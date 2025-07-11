@@ -2,57 +2,139 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Know the Roads</title>
   <meta charset="utf-8" />
+  <title>Know the Roads - Manheim Township</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    integrity="sha256-sA+4D6jN5CkXf+T+QJdHrIhbfkLKMHID2hVf2PB0z14="
+    crossorigin=""
+  />
   <style>
-    #map { height: 100vh; width: 100%; }
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+    }
+    .guess-box {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border: 1px solid black;
+      display: none;
+      z-index: 1000;
+    }
+    .legend {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: white;
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #000;
+      z-index: 1000;
+    }
+    .correct-road {
+      color: black;
+    }
+    .wrong-road {
+      color: red;
+    }
+    .suffix-error {
+      color: orange;
+    }
+    .hint-road {
+      color: green;
+    }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-    const map = L.map('map').setView([40.09, -76.3], 13);
+<div id="map"></div>
+<div class="legend">
+  <b>Legend:</b><br>
+  <span style="color:black;">■</span> Correct<br>
+  <span style="color:red;">■</span> Incorrect<br>
+  <span style="color:orange;">■</span> Wrong Suffix<br>
+  <span style="color:green;">■</span> Hint Used
+</div>
+<div class="guess-box" id="guessBox">
+  <label for="guessInput">Guess this road:</label><br>
+  <input type="text" id="guessInput" />
+  <button onclick="submitGuess()">Submit</button>
+</div>
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
+<script
+  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+  integrity="sha256-o9N1jvNQqqI+2Qb1zP8hVVnKqDg6kBxKuX3F4k5w6bM="
+  crossorigin=""
+></script>
+<script src="https://unpkg.com/leaflet-geometryutil"></script>
+<script>
+  const map = L.map("map").setView([40.083, -76.32], 13);
 
-    fetch('roads_manheim_named_only.geojson')
-      .then(response => response.json())
-      .then(data => {
-        const geojsonLayer = L.geoJSON(data, {
-          style: {
-            color: "black",
-            weight: 3
-          },
-          onEachFeature: function (feature, layer) {
-            layer.on({
-              click: function () {
-                const roadName = feature.properties.name || "Unnamed Road";
-                L.popup()
-                  .setLatLng(layer.getBounds().getCenter())
-                  .setContent(`<b>${roadName}</b>`)
-                  .openOn(map);
-              }
-            });
-          }
-        }).addTo(map);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
 
-        map.on("zoomend", function () {
-          const zoom = map.getZoom();
-          let weight = 2;
-          if (zoom >= 17) weight = 6;
-          else if (zoom >= 15) weight = 4;
-          else if (zoom >= 13) weight = 3;
-          else weight = 2;
+  let guessBox = document.getElementById("guessBox");
+  let guessInput = document.getElementById("guessInput");
+  let currentLayer = null;
+  let roadAttempts = {};
 
-          geojsonLayer.setStyle({ weight });
-        });
-      });
-  </script>
+  function submitGuess() {
+    const userGuess = guessInput.value.trim().toLowerCase();
+    const correctName = currentLayer.feature.properties.name.toLowerCase();
+
+    const guessedWords = userGuess.split(" ");
+    const correctWords = correctName.split(" ");
+
+    let feedback = "";
+    let color = "red";
+
+    if (userGuess === correctName) {
+      feedback = "Correct!";
+      color = "black";
+    } else if (guessedWords[0] === correctWords[0]) {
+      feedback = "Wrong suffix";
+      color = "orange";
+    } else {
+      feedback = "Incorrect!";
+      color = "red";
+    }
+
+    const id = L.stamp(currentLayer);
+    roadAttempts[id] = (roadAttempts[id] || 0) + 1;
+
+    if (roadAttempts[id] >= 3 && color === "red") {
+      const firstLetter = correctWords[0][0].toUpperCase();
+      alert("Hint: First letter is " + firstLetter);
+      color = "green";
+    }
+
+    currentLayer.setStyle({ color: color });
+    guessBox.style.display = "none";
+  }
+
+  fetch("roads_manheim_named_only.geojson")
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        style: () => ({
+          color: "black",
+          weight: 6
+        }),
+        onEachFeature: (feature, layer) => {
+          layer.on("click", () => {
+            currentLayer = layer;
+            guessBox.style.display = "block";
+            guessInput.value = "";
+          });
+        }
+      }).addTo(map);
+    });
+</script>
 </body>
 </html>
