@@ -59,7 +59,7 @@
 
     let nameToLayers = {};
     let guessedSegmentIds = new Set();
-let hintTracker = {};
+    let hintUsedIds = new Set();
     let currentUserId = null;
 
     document.getElementById('login-btn').onclick = async () => {
@@ -93,29 +93,36 @@ let hintTracker = {};
     async function loadGuessedSegmentIds() {
       const { data, error } = await supabase
         .from('road_guesses')
-        .select('road_id')
+        .select('road_id, used_hint')
         .eq('user_id', currentUserId);
       if (error) {
         console.error('Error loading guesses:', error);
         return;
       }
       guessedSegmentIds.clear();
-      data.forEach(row => guessedSegmentIds.add(row.road_id));
+      hintUsedIds.clear();
+      data.forEach(row => {
+        guessedSegmentIds.add(row.road_id);
+        if (row.used_hint) hintUsedIds.add(row.road_id);
+      });
     }
 
-    async function saveGuessSegmentIds(roadName, usedHint = hintTracker[roadName] || false) {
+    async function saveGuessSegmentIds(roadName, usedHint = false) {
       if (!currentUserId) return;
       const ids = roadNameToIds[roadName] || [];
       for (const id of ids) {
         if (!guessedSegmentIds.has(id)) {
           const { error } = await supabase.from('road_guesses').insert([{
             user_id: currentUserId,
-            road_id: String(id),
+            road_id: id,
             road_name: roadName,
             correct: true,
             used_hint: usedHint
           }]);
-          if (!error) guessedSegmentIds.add(id);
+          if (!error) {
+            guessedSegmentIds.add(id);
+            if (usedHint) hintUsedIds.add(id);
+          }
         }
       }
     }
@@ -141,7 +148,8 @@ let hintTracker = {};
               nameToLayers[name].push(layer);
 
               if (guessedSegmentIds.has(id)) {
-                layer.setStyle({ color: 'gray', weight: 6 });
+                const color = hintUsedIds.has(id) ? 'orange' : 'gray';
+                layer.setStyle({ color, weight: 6 });
                 layer.off('click');
                 return;
               }
@@ -154,14 +162,10 @@ let hintTracker = {};
                 if (!userGuess) return;
 
                 if (userGuess.toLowerCase() === name.toLowerCase()) {
-                  const finalColor = hintTracker[name] ? 'orange' : 'gray';
+                  const usedHint = attempts >= 3;
+                  const finalColor = usedHint ? 'orange' : 'gray';
                   applyColorToAllSegments(name, finalColor);
-                  await saveGuessSegmentIds(name);
-                  alert("Correct!");
-                  layer.off('click');
-                  return;
-                }
-                  await saveGuessSegmentIds(name);
+                  await saveGuessSegmentIds(name, usedHint);
                   alert("Correct!");
                   layer.off('click');
                 } else {
