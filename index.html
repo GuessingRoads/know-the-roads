@@ -92,17 +92,28 @@
     async function loadGuessedSegmentIds() {
       const { data, error } = await supabase
         .from('road_guesses')
-        .select('road_id')
+        .select('road_id, road_name, used_hint')
         .eq('user_id', currentUserId);
       if (error) {
         console.error('Error loading guesses:', error);
         return;
       }
       guessedSegmentIds.clear();
-      data.forEach(row => guessedSegmentIds.add(row.road_id));
+      
+      data.forEach(row => {
+        guessedSegmentIds.add(row.road_id);
+        const color = row.used_hint ? 'orange' : 'gray';
+        applyColorToAllSegments(row.road_name, color);
+        if (nameToLayers[row.road_name]) {
+          for (const l of nameToLayers[row.road_name]) {
+            l.off('click');
+          }
+        }
+      });
+    
     }
 
-    async function saveGuessSegmentIds(roadName) {
+    async function saveGuessSegmentIds(roadName, usedHint = false) {
       if (!currentUserId) return;
       const ids = roadNameToIds[roadName] || [];
       for (const id of ids) {
@@ -112,7 +123,7 @@
             road_id: id,
             road_name: roadName,
             correct: true,
-            used_hint: false
+            used_hint: usedHint
           }]);
           if (!error) guessedSegmentIds.add(id);
         }
@@ -148,8 +159,35 @@
               layer.setStyle({ color: 'black', weight: 6 });
               let attempts = 0;
 
-              layer.on('click', async function () {
-                let userGuess = prompt("Guess the name of this road:");
+              
+      layer.on('click', async function () {
+        let usedHintFlag = false;
+        let userGuess;
+        while (true) {
+          userGuess = prompt("Guess the name of this road:");
+          if (!userGuess) return;
+
+          if (userGuess.toLowerCase() === name.toLowerCase()) {
+            const finalColor = usedHintFlag ? 'orange' : 'gray';
+            applyColorToAllSegments(name, finalColor);
+            await saveGuessSegmentIds(name, usedHintFlag);
+            alert("Correct!");
+            layer.off('click');
+            break;
+          } else {
+            attempts += 1;
+            const color = attempts >= 3 ? 'orange' : 'red';
+            applyColorToAllSegments(name, color);
+
+            if (attempts === 3) {
+              usedHintFlag = true;
+              alert("Hint: This road starts with '" + name.charAt(0) + "'");
+            } else {
+              alert("Incorrect. Try again.");
+            }
+          }
+        }
+    
                 if (!userGuess) return;
 
                 if (userGuess.toLowerCase() === name.toLowerCase()) {
