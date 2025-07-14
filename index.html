@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Know The Roads</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    #map { height: 100vh; }
+    .legend {
+      background: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5em;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
+    #login-btn, #logout-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 1001;
+    }
+    #logout-btn { right: 130px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="legend" id="legend">
+    <strong>Legend</strong><br>
+    Black: Unguessed<br>
+    Red: Incorrect<br>
+    Orange: Hint Used<br>
+    Gray: Correct<br>
+    Prismatic: Ultra-Hard Mode
+  </div>
+  <button id="login-btn">Login with Google</button>
+  <button id="logout-btn">Logout</button>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { roadNameToIds } from './roadNameToIds.js';
+
+    const supabase = createClient(
+      'https://yulvzmznvnctgaiwuypb.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
+    );
+
+    let nameToLayers = {};
+    let guessedSegmentIds = new Set();
+    let currentUserId = null;
+
+    document.getElementById('login-btn').onclick = async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) alert('Login error: ' + error.message);
+    };
+
+    document.getElementById('logout-btn').onclick = async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) alert('Logout error: ' + error.message);
+      else {
+        alert('Logged out');
+        location.reload();
+      }
+    };
+
+    async function checkLogin() {
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (user) {
+        currentUserId = user.id;
+        await loadGuessedSegmentIds();
+      }
+    }
+
+    
+    async function loadGuessedSegmentIds() {
+      const { data, error } = await supabase
+        .from('road_guesses')
+        .select('road_id, road_name, correct, used_hint')
+        .eq('user_id', currentUserId);
+
+      if (error) {
+        console.error('Error loading guesses:', error);
+        return;
+      }
+      guessedSegmentIds.clear();
+      data.forEach(row => {
+        guessedSegmentIds.add(row.road_id);
+        const color = row.used_hint ? 'orange' : 'gray';
+        applyColorToAllSegments(row.road_name, color);
+        if (nameToLayers[row.road_name]) {
+          for (const l of nameToLayers[row.road_name]) {
+            l.off('click');
+          }
+        }
+      });
+    }
+          guessedSegmentIds.clear();
+      data.forEach(row => guessedSegmentIds.add(row.road_id));
+    }
+
+    async function saveGuessSegmentIds(roadName, usedHint = false) {
+      if (!currentUserId) return;
+      const ids = roadNameToIds[roadName] || [];
+      for (const id of ids) {
+        if (!guessedSegmentIds.has(id)) {
+          const { error } = await supabase.from('road_guesses').insert([{
+            user_id: currentUserId,
+            road_id: id,
+            road_name: roadName,
+            correct: true,
+            used_hint: usedHint
+          }]);
+          if (!error) guessedSegmentIds.add(id);
+          console.log('Guess saved:', id, '(hint:', usedHint, ')');
+        }
+      }
+    }
+
+    function applyColorToAllSegments(name, color) {
+      if (!nameToLayers[name]) return;
+      for (const l of nameToLayers[name]) {
+        l.setStyle({ color });
+      }
+    }
+
+    async function loadMap() {
+      await checkLogin();
+
+      fetch('roads_manheim_named_only.geojson')
+        .then(res => res.json())
+        .then(data => {
+          L.geoJSON(data, {
+            onEachFeature: function (feature, layer) {
+              const id = feature.id;
+              const name = feature.properties.name || "";
+              if (!nameToLayers[name]) nameToLayers[name] = [];
+              nameToLayers[name].push(layer);
+
+              if (guessedSegmentIds.has(id)) {
+                layer.setStyle({ color: 'gray', weight: 6 });
+                layer.off('click');
+                return;
+              }
+
+              layer.setStyle({ color: 'black', weight: 6 });
+              let attempts = 0;
+
+              
+    layer.on('click', async function () {
+      let userGuess = prompt("Guess the name of this road:");
+      if (!userGuess) return;
+
+      attempts += 1;
+
+      if (userGuess.toLowerCase() === name.toLowerCase()) {
+        applyColorToAllSegments(name, attempts >= 3 ? 'orange' : 'gray');
+        await saveGuessSegmentIds(name, attempts >= 3);
+        alert("Correct!");
+        layer.off('click');
+      } else {
+        const color = attempts >= 3 ? 'orange' : 'red';
+        applyColorToAllSegments(name, color);
+        if (attempts === 3) {
+          alert("Hint: This road starts with '" + name.charAt(0).toUpperCase() + "'");
+        } else {
+          alert("Incorrect. Try again.");
+        }
+      }
+    });
+    
+                } else {
+                  attempts += 1;
+                  const color = attempts >= 3 ? 'orange' : 'red';
+                  applyColorToAllSegments(name, color);
+                  alert("Incorrect. Try again.");
+                }
+              });
+            }
+          }).addTo(map);
+        });
+    }
+
+    const map = L.map('map').setView([40.09, -76.3], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    loadMap();
+  </script>
+</body>
+</html>
