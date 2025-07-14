@@ -59,6 +59,7 @@
 
     let nameToLayers = {};
     let guessedSegmentIds = new Set();
+let hintTracker = {};
     let currentUserId = null;
 
     document.getElementById('login-btn').onclick = async () => {
@@ -102,7 +103,7 @@
       
       data.forEach(row => {
         guessedSegmentIds.add(row.road_id);
-        const color = row.used_hint ? 'orange' : 'gray';
+        const color = row.used_hint === true ? 'orange' : 'gray';
         applyColorToAllSegments(row.road_name, color);
         if (nameToLayers[row.road_name]) {
           for (const l of nameToLayers[row.road_name]) {
@@ -113,7 +114,7 @@
     
     }
 
-    async function saveGuessSegmentIds(roadName, usedHint = false) {
+    async function saveGuessSegmentIds(roadName, usedHint = hintTracker[roadName] || false) {
       if (!currentUserId) return;
       const ids = roadNameToIds[roadName] || [];
       for (const id of ids) {
@@ -160,15 +161,18 @@
               let attempts = 0;
 
               
+      
       layer.on('click', async function () {
         let usedHintFlag = false;
+        if (hintTracker[name]) usedHintFlag = true;
         let userGuess;
         while (true) {
+    
           userGuess = prompt("Guess the name of this road:");
           if (!userGuess) return;
 
           if (userGuess.toLowerCase() === name.toLowerCase()) {
-            const finalColor = usedHintFlag ? 'orange' : 'gray';
+            const finalColor = hintTracker[name] ? 'orange' : 'gray';
             applyColorToAllSegments(name, finalColor);
             await saveGuessSegmentIds(name, usedHintFlag);
             alert("Correct!");
@@ -179,9 +183,13 @@
             const color = attempts >= 3 ? 'orange' : 'red';
             applyColorToAllSegments(name, color);
 
+            
             if (attempts === 3) {
               usedHintFlag = true;
+              hintTracker[name] = true;
               alert("Hint: This road starts with '" + name.charAt(0) + "'");
+            }
+    
             } else {
               alert("Incorrect. Try again.");
             }
