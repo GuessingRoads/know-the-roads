@@ -114,6 +114,18 @@
           });
         }
     });
+        const id = row.road_id;
+        const color = row.correct
+          ? (row.used_hint ? 'orange' : 'gray')
+          : (row.used_hint ? 'orange' : 'red');
+        guessedSegmentIds.add(id);
+        if (nameToLayers[row.road_name]) {
+          nameToLayers[row.road_name].forEach(layer => {
+            layer.setStyle({ color, weight: 6 });
+            layer.off('click');
+          });
+        }
+    });
         guessedSegmentIds.add(row.road_id);
         if (row.used_hint) hintUsedIds.add(row.road_id);
       });
@@ -185,6 +197,14 @@
                   attempts += 1;
                   const color = attempts >= 3 ? 'orange' : 'red';
                   applyColorToAllSegments(name, color);
+                  await supabase.from('road_guesses').insert([{
+                      user_id: currentUserId,
+                      road_id: String(id),
+                      road_name: name,
+                      correct: false,
+                      used_hint: attempts >= 3
+                    }]);
+                  guessedSegmentIds.add(String(id));
                   await supabase.from('road_guesses').insert([{
                       user_id: currentUserId,
                       road_id: String(id),
