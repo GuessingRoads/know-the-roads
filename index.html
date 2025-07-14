@@ -158,7 +158,8 @@
               let attempts = 0;
 
               layer.on('click', async function () {
-                let userGuess = prompt("Guess the name of this road:");
+                let hintText = (attempts >= 3) ? ` (Hint: starts with "${name.charAt(0)}")` : "";
+                let userGuess = prompt("Guess the name of this road:" + hintText);
                 if (!userGuess) return;
 
                 if (userGuess.toLowerCase() === name.toLowerCase()) {
