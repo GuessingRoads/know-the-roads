@@ -60,6 +60,7 @@
     let nameToLayers = {};
     let guessedSegmentIds = new Set();
 let hintTracker = {};
+let hintTracker = {};
     let currentUserId = null;
 
     document.getElementById('login-btn').onclick = async () => {
@@ -171,36 +172,16 @@ let hintTracker = {};
           userGuess = prompt("Guess the name of this road:");
           if (!userGuess) return;
 
-          if (userGuess.toLowerCase() === name.toLowerCase()) {
-            const finalColor = hintTracker[name] ? 'orange' : 'gray';
-            applyColorToAllSegments(name, finalColor);
-            await saveGuessSegmentIds(name, usedHintFlag);
-            alert("Correct!");
-            layer.off('click');
-            break;
-          } else {
-            attempts += 1;
-            const color = attempts >= 3 ? 'orange' : 'red';
-            applyColorToAllSegments(name, color);
-
-            
-            if (attempts === 3) {
-              usedHintFlag = true;
-              hintTracker[name] = true;
-              alert("Hint: This road starts with '" + name.charAt(0) + "'");
-            }
-    
-            } else {
-              alert("Incorrect. Try again.");
-            }
-          }
-        }
-    
-                if (!userGuess) return;
-
+          
                 if (userGuess.toLowerCase() === name.toLowerCase()) {
-                  applyColorToAllSegments(name, 'gray');
+                  const finalColor = hintTracker[name] ? 'orange' : 'gray';
+                  applyColorToAllSegments(name, finalColor);
                   await saveGuessSegmentIds(name);
+                  alert("Correct!");
+                  layer.off('click');
+                  break;
+                }
+    
                   alert("Correct!");
                   layer.off('click');
                 } else {
