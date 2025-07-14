@@ -59,6 +59,7 @@
 
     let nameToLayers = {};
     let guessedSegmentIds = new Set();
+let hintTracker = {};
     let currentUserId = null;
 
     document.getElementById('login-btn').onclick = async () => {
@@ -102,17 +103,17 @@
       data.forEach(row => guessedSegmentIds.add(row.road_id));
     }
 
-    async function saveGuessSegmentIds(roadName) {
+    async function saveGuessSegmentIds(roadName, usedHint = hintTracker[roadName] || false) {
       if (!currentUserId) return;
       const ids = roadNameToIds[roadName] || [];
       for (const id of ids) {
         if (!guessedSegmentIds.has(id)) {
           const { error } = await supabase.from('road_guesses').insert([{
             user_id: currentUserId,
-            road_id: id,
+            road_id: String(id),
             road_name: roadName,
             correct: true,
-            used_hint: false
+            used_hint: usedHint
           }]);
           if (!error) guessedSegmentIds.add(id);
         }
@@ -153,7 +154,13 @@
                 if (!userGuess) return;
 
                 if (userGuess.toLowerCase() === name.toLowerCase()) {
-                  applyColorToAllSegments(name, 'gray');
+                  const finalColor = hintTracker[name] ? 'orange' : 'gray';
+                  applyColorToAllSegments(name, finalColor);
+                  await saveGuessSegmentIds(name);
+                  alert("Correct!");
+                  layer.off('click');
+                  return;
+                }
                   await saveGuessSegmentIds(name);
                   alert("Correct!");
                   layer.off('click');
