@@ -59,7 +59,6 @@
 
     let nameToLayers = {};
     let guessedSegmentIds = new Set();
-let incorrectSegmentIds = new Set();
     let hintUsedIds = new Set();
     let currentUserId = null;
 
@@ -103,11 +102,7 @@ let incorrectSegmentIds = new Set();
       guessedSegmentIds.clear();
       hintUsedIds.clear();
       data.forEach(row => {
-        if (row.correct) {
         guessedSegmentIds.add(row.road_id);
-    } else {
-        incorrectSegmentIds.add(row.road_id);
-    }
         if (row.used_hint) hintUsedIds.add(row.road_id);
       });
     }
@@ -153,14 +148,6 @@ let incorrectSegmentIds = new Set();
               nameToLayers[name].push(layer);
 
               if (guessedSegmentIds.has(id)) {
-                layer.setStyle({ color: 'gray', weight: 6 });
-                layer.off('click');
-                return;
-              } else if (incorrectSegmentIds.has(id)) {
-                layer.setStyle({ color: 'red', weight: 6 });
-                layer.off('click');
-                return;
-              }
                 const color = hintUsedIds.has(id) ? 'orange' : 'gray';
                 layer.setStyle({ color, weight: 6 });
                 layer.off('click');
@@ -185,26 +172,6 @@ let incorrectSegmentIds = new Set();
                 } else {
                   attempts += 1;
                   const color = attempts >= 3 ? 'orange' : 'red';
-                  if (color === 'red') {
-                    const ids = roadNameToIds[name] || [];
-                    for (const id of ids) {
-                      if (!incorrectSegmentIds.has(String(id))) {
-                        const { error } = await supabase.from('road_guesses').insert([{
-                          user_id: currentUserId,
-                          road_id: String(id),
-                          road_name: name,
-                          correct: false,
-                          used_hint: false
-                        }]);
-                        if (!error) {
-                          incorrectSegmentIds.add(String(id));
-                          console.log('Incorrect guess saved for', id);
-                        } else {
-                          console.error('Error saving incorrect guess:', error);
-                        }
-                      }
-                    }
-                  }
                   applyColorToAllSegments(name, color);
                   alert("Incorrect. Try again.");
                 }
