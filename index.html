@@ -159,28 +159,29 @@ async function loadMap() {
           if (!nameToLayers[name]) nameToLayers[name] = [];
           nameToLayers[name].push(layer);
 
-        if (segmentStateMap.has(id)) {
+if (segmentStateMap.has(id)) {
   const state = segmentStateMap.get(id);
-  let color = 'gray';
 
   if (!state.correct) {
-    color = 'red';
-    // Keep it clickable — don't return early
+    // Red = incorrect, keep clickable
+    layer.setStyle({ color: 'red', weight: 6 });
+    // no return, keep it interactive
   } else if (state.used_hint) {
-    color = 'orange';
-    layer.setStyle({ color, weight: 6 });
-    layer.off('click'); // lock orange roads
+    // Orange = hint used
+    layer.setStyle({ color: 'orange', weight: 6 });
+    layer.off('click');
     return;
   } else {
-    color = 'gray';
-    layer.setStyle({ color, weight: 6 });
-    layer.off('click'); // lock gray roads
+    // Gray = correct
+    layer.setStyle({ color: 'gray', weight: 6 });
+    layer.off('click');
     return;
   }
-
-  // Apply red color and allow it to remain clickable
-  layer.setStyle({ color, weight: 6 });
+} else {
+  // Unguessed = black
+  layer.setStyle({ color: 'black', weight: 6 });
 }
+
 
 
 
