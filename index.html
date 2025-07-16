@@ -55,7 +55,6 @@ const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
 );
 
-
 import { roadNameToIds } from './roadNameToIds.js';
 
 let nameToLayers = {};
@@ -83,15 +82,13 @@ const suffixMap = {
 };
 
 function normalizeName(name) {
-  const parts = name.trim().toLowerCase().split(/\s+/);
-  const last = parts.pop();
-  const suffixNorm = suffixMap[last] || last;
-  return [...parts, suffixNorm].join(' ');
-}
-
-function isSuffixMismatch(guess, actual) {
-  return normalizeName(guess) !== normalizeName(actual) &&
-         guess.split(" ")[0].toLowerCase() === actual.split(" ")[0].toLowerCase();
+  if (!name) return '';
+  let words = name.trim().toLowerCase().split(/\s+/);
+  if (words.length > 1) {
+    let last = words[words.length - 1];
+    words[words.length - 1] = suffixMap[last] || last;
+  }
+  return words.join(' ');
 }
 
 document.getElementById('login-btn').onclick = async () => {
@@ -150,26 +147,40 @@ async function loadGuessedSegmentIds() {
 }
 
 async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
-  const roadNameKey = roadName.toLowerCase();
-  const ids = roadNameToIds[roadNameKey] || [];
+  const ids = roadNameToIds[roadName] || [];
 
   for (const id of ids) {
     const stringId = String(id);
     const existing = segmentStateMap.get(stringId);
 
-    const { error } = await supabase.from('road_guesses').upsert({
-      user_id: currentUserId,
-      road_id: stringId,
-      road_name: roadName,
-      correct: isCorrect,
-      used_hint: usedHint
-    }, { onConflict: ['user_id', 'road_id'] });
+    if (!existing) {
+      const { error } = await supabase.from('road_guesses').insert([{
+        user_id: currentUserId,
+        road_id: stringId,
+        road_name: roadName,
+        correct: isCorrect,
+        used_hint: usedHint
+      }]);
+      if (!error) {
+        guessedSegmentIds.add(stringId);
+        segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+        console.log('Inserted new guess:', { road_name: roadName, correct: isCorrect, used_hint: usedHint });
+      } else {
+        console.error('Insert error:', error);
+      }
+    } else if (isCorrect && !existing.correct) {
+      const { error } = await supabase
+        .from('road_guesses')
+        .update({ correct: true, used_hint: usedHint })
+        .eq('user_id', currentUserId)
+        .eq('road_id', stringId);
 
-    if (!error) {
-      guessedSegmentIds.add(stringId);
-      segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
-    } else {
-      console.error('Upsert error:', error);
+      if (!error) {
+        segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
+        console.log('Updated guess to correct:', { road_name: roadName });
+      } else {
+        console.error('Update error:', error);
+      }
     }
   }
 }
@@ -217,16 +228,26 @@ async function loadMap() {
             let userGuess = prompt("Guess the name of this road:");
             if (!userGuess) return;
 
-            if (userGuess.toLowerCase() === name.toLowerCase()) {
-              const usedHint = attempts >= 3;
-              applyColorToAllSegments(name, usedHint ? 'orange' : 'gray');
-              await saveGuessSegmentIds(name, true, usedHint);
+            const normalizedGuess = normalizeName(userGuess);
+            const normalizedActual = normalizeName(name);
+
+            if (normalizedGuess === normalizedActual) {
+              if (attempts >= 3) {
+                applyColorToAllSegments(name, 'orange');
+                await saveGuessSegmentIds(name, true, true);
+              } else {
+                applyColorToAllSegments(name, 'gray');
+                await saveGuessSegmentIds(name, true, false);
+              }
               layer.off('click');
               alert("Correct!");
-            } else if (isSuffixMismatch(userGuess, name)) {
+            } else if (
+              normalizedGuess.split(" ").slice(0, -1).join(" ") ===
+              normalizedActual.split(" ").slice(0, -1).join(" ")
+            ) {
               applyColorToAllSegments(name, 'yellow');
               alert("Almost! Check the suffix.");
-              return;
+              // Not saved to Supabase
             } else {
               attempts += 1;
               const color = attempts >= 3 ? 'orange' : 'red';
