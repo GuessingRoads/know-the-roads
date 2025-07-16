@@ -135,8 +135,9 @@ async function loadGuessedSegmentIds() {
   segmentStateMap.clear();
 
   data.forEach(row => {
-    guessedSegmentIds.add(row.road_id);
-    segmentStateMap.set(row.road_id, {
+    const strId = String(row.road_id);
+    guessedSegmentIds.add(strId);
+    segmentStateMap.set(strId, {
       correct: row.correct,
       used_hint: row.used_hint
     });
@@ -186,9 +187,8 @@ async function loadMap() {
           if (!nameToLayers[name]) nameToLayers[name] = [];
           nameToLayers[name].push(layer);
 
-          if (segmentStateMap.has(id)) {
-            const state = segmentStateMap.get(id);
-
+          const state = segmentStateMap.get(id);
+          if (state) {
             if (!state.correct) {
               layer.setStyle({ color: 'red', weight: 6 });
             } else if (state.used_hint) {
@@ -207,8 +207,8 @@ async function loadMap() {
           let attempts = 0;
 
           layer.on('click', async function () {
-            if (segmentStateMap.has(id) && segmentStateMap.get(id).correct)
-              return;
+            const segmentStates = (roadNameToIds[name] || []).map(id => segmentStateMap.get(String(id)));
+            if (segmentStates.some(s => s?.correct)) return;
 
             let userGuess = prompt("Guess the name of this road:");
             if (!userGuess) return;
@@ -224,7 +224,9 @@ async function loadMap() {
                 applyColorToAllSegments(name, 'gray');
                 await saveGuessSegmentIds(name, true, false);
               }
-              layer.off('click');
+              for (const l of nameToLayers[name]) {
+                l.off('click');
+              }
               alert("Correct!");
             } else if (isSuffixMismatch(userGuess, name)) {
               applyColorToAllSegments(name, 'yellow');
