@@ -49,7 +49,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
 const supabase = createClient(
   'https://yulvzmznvnctgaiwuypb.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
@@ -57,17 +56,27 @@ const supabase = createClient(
 
 import { roadNameToIds } from './roadNameToIds.js';
 
-const suffixMap = {
-  rd: "road", st: "street", ave: "avenue", blvd: "boulevard", ln: "lane",
-  dr: "drive", ct: "court", cir: "circle", pkwy: "parkway", hwy: "highway",
-  ter: "terrace", pl: "place", sq: "square", tpke: "turnpike", ext: "extension"
-};
-
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
 let currentUserId = null;
 let segmentStateMap = new Map(); // road_id => { correct, used_hint }
-let roadAttempts = {}; // name => attempt count
+
+const suffixMap = {
+  rd: "road", st: "street", ave: "avenue", blvd: "boulevard", ln: "lane", dr: "drive",
+  ct: "court", cir: "circle", pkwy: "parkway", hwy: "highway", tpke: "turnpike",
+  ter: "terrace", pl: "place", sq: "square", loop: "loop", way: "way"
+};
+
+function normalize(name) {
+  let parts = name.trim().toLowerCase().split(/\s+/);
+  let last = parts[parts.length - 1];
+  if (suffixMap[last]) parts[parts.length - 1] = suffixMap[last];
+  return parts.join(" ");
+}
+
+function getFirstLetterHint(name) {
+  return name.split(" ")[0][0].toUpperCase();
+}
 
 document.getElementById('login-btn').onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
@@ -80,10 +89,7 @@ document.getElementById('login-btn').onclick = async () => {
 document.getElementById('logout-btn').onclick = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) alert('Logout error: ' + error.message);
-  else {
-    alert('Logged out');
-    location.reload();
-  }
+  else location.reload();
 };
 
 supabase.auth.onAuthStateChange((event, session) => {
@@ -105,10 +111,7 @@ async function loadGuessedSegmentIds() {
     .select('road_id, correct, used_hint')
     .eq('user_id', currentUserId);
 
-  if (error) {
-    console.error('Error loading guesses:', error);
-    return;
-  }
+  if (error) return console.error('Error loading guesses:', error);
 
   guessedSegmentIds.clear();
   segmentStateMap.clear();
@@ -122,23 +125,46 @@ async function loadGuessedSegmentIds() {
   });
 }
 
-function normalizeName(name) {
-  const words = name.toLowerCase().split(" ");
-  const last = words[words.length - 1];
-  const expanded = suffixMap[last] || last;
-  words[words.length - 1] = expanded;
-  return words.join(" ");
+async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
+  const ids = roadNameToIds[roadName] || [];
+
+  for (const id of ids) {
+    const stringId = String(id);
+    const existing = segmentStateMap.get(stringId);
+
+    if (!existing) {
+      const { error } = await supabase.from('road_guesses').insert([{
+        user_id: currentUserId,
+        road_id: stringId,
+        road_name: roadName,
+        correct: isCorrect,
+        used_hint: usedHint
+      }]);
+      if (!error) {
+        guessedSegmentIds.add(stringId);
+        segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+      }
+
+    } else if (isCorrect && !existing.correct) {
+      const { error } = await supabase
+        .from('road_guesses')
+        .update({ correct: true, used_hint: usedHint })
+        .eq('user_id', currentUserId)
+        .eq('road_id', stringId);
+
+      if (!error) {
+        segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
+      }
+    }
+  }
 }
 
-async function saveGuess(roadId, roadName, correct, usedHint) {
-  const { error } = await supabase.from('road_guesses').insert([{
-    user_id: currentUserId,
-    road_id: roadId,
-    road_name: roadName,
-    correct,
-    used_hint: usedHint
-  }]);
-  if (error) console.error("Insert error:", error);
+function applyColorToAllSegments(name, color) {
+  if (!nameToLayers[name]) return;
+  for (const l of nameToLayers[name]) {
+    l.setStyle({ color });
+    l.off('click');
+  }
 }
 
 async function loadMap() {
@@ -171,89 +197,57 @@ async function loadMap() {
             layer.setStyle({ color: 'black', weight: 6 });
           }
 
-          layer.on('click', async function () {
-            if (!roadAttempts[name]) roadAttempts[name] = 0;
+          let attempts = 0;
 
-            if (roadAttempts[name] >= 3) {
-              const firstLetter = name.charAt(0).toUpperCase();
-              alert(`Hint: Road begins with '${firstLetter}'`);
-              applyColorToAllSegments(name, 'orange');
-              const ids = roadNameToIds[name] || [];
-              for (const rid of ids) {
-                const sid = String(rid);
-                if (!guessedSegmentIds.has(sid)) {
-                  await saveGuess(sid, name, true, true);
-                  guessedSegmentIds.add(sid);
-                  segmentStateMap.set(sid, { correct: true, used_hint: true });
-                }
+          layer.on('click', async function () {
+            const hint = getFirstLetterHint(name);
+            let guess;
+
+            if (attempts >= 3) {
+              guess = prompt(`Hint: Road starts with "${hint}"\nFinal guess:`);
+              if (!guess) return;
+              if (normalize(guess) === normalize(name)) {
+                applyColorToAllSegments(name, 'orange');
+                await saveGuessSegmentIds(name, true, true);
+                alert("Correct! You got it after a hint.");
+              } else {
+                applyColorToAllSegments(name, 'orange');
+                await saveGuessSegmentIds(name, true, true);
+                alert(`Nice try! The correct answer was: ${name}`);
               }
-              layer.off('click');
               return;
             }
 
-            let guess = prompt("Guess the name of this road:");
+            guess = prompt("Guess the name of this road:");
             if (!guess) return;
 
-            const userGuess = normalizeName(guess);
-            const correctName = normalizeName(name);
+            const normGuess = normalize(guess);
+            const normName = normalize(name);
 
-            if (userGuess === correctName) {
-              const usedHint = roadAttempts[name] >= 3;
-              applyColorToAllSegments(name, usedHint ? 'orange' : 'gray');
-              const ids = roadNameToIds[name] || [];
-              for (const rid of ids) {
-                const sid = String(rid);
-                if (!guessedSegmentIds.has(sid)) {
-                  await saveGuess(sid, name, true, usedHint);
-                  guessedSegmentIds.add(sid);
-                  segmentStateMap.set(sid, { correct: true, used_hint: usedHint });
-                }
-              }
-              layer.off('click');
+            if (normGuess === normName) {
+              applyColorToAllSegments(name, 'gray');
+              await saveGuessSegmentIds(name, true, false);
               alert("Correct!");
-            } else {
-              roadAttempts[name]++;
-              const guessNormalized = guess.toLowerCase().trim();
-              const correctNormalized = name.toLowerCase().trim();
-
-              const guessSuffix = guessNormalized.split(" ").slice(-1)[0];
-              const correctSuffix = correctNormalized.split(" ").slice(-1)[0];
-              const guessCore = guessNormalized.replace(guessSuffix, '').trim();
-              const correctCore = correctNormalized.replace(correctSuffix, '').trim();
-
-              if (guessCore === correctCore && guessSuffix !== correctSuffix) {
-                applyColorToAllSegments(name, 'yellow');
-                alert("Almost! Check the suffix.");
-                return;
-              }
-
-              applyColorToAllSegments(name, 'red');
-
-              if (roadAttempts[name] <= 1) {
-                const ids = roadNameToIds[name] || [];
-                for (const rid of ids) {
-                  const sid = String(rid);
-                  if (!guessedSegmentIds.has(sid)) {
-                    await saveGuess(sid, name, false, false);
-                    guessedSegmentIds.add(sid);
-                    segmentStateMap.set(sid, { correct: false, used_hint: false });
-                  }
-                }
-              }
-
-              alert("Incorrect. Try again.");
+              return;
             }
+
+            // Check for suffix-only mismatch
+            const guessWords = normGuess.split(" ");
+            const nameWords = normName.split(" ");
+            if (guessWords.slice(0, -1).join(" ") === nameWords.slice(0, -1).join(" ")) {
+              applyColorToAllSegments(name, 'yellow');
+              alert("Almost! Check the suffix.");
+              return;
+            }
+
+            attempts += 1;
+            applyColorToAllSegments(name, 'red');
+            if (attempts === 1) await saveGuessSegmentIds(name, false, false);
+            alert("Incorrect. Try again.");
           });
         }
       }).addTo(map);
     });
-}
-
-function applyColorToAllSegments(name, color) {
-  if (!nameToLayers[name]) return;
-  for (const l of nameToLayers[name]) {
-    l.setStyle({ color });
-  }
 }
 
 const map = L.map('map').setView([40.09, -76.3], 12);
@@ -262,6 +256,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 loadMap();
+</script>
 </script>
 </body>
 </html>
