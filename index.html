@@ -142,23 +142,21 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
 
     } else {
       // Update if going from incorrect to correct
-      if (isCorrect && !existing.correct) {
-        const { error } = await supabase
-          .from('road_guesses')
-          .update({ correct: true, used_hint: usedHint })
-          .eq('user_id', currentUserId)
-          .eq('road_id', stringId);
+     if (isCorrect) {
+  const { error } = await supabase
+    .from('road_guesses')
+    .update({ correct: true, used_hint: usedHint })
+    .eq('user_id', currentUserId)
+    .eq('road_id', stringId);
 
-        if (!error) {
-          segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
-          console.log('Updated guess to correct:', { road_name: roadName });
-        } else {
-          console.error('Update error:', error);
-        }
-      }
-    }
+  if (!error) {
+    segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
+    console.log('Updated guess to correct:', { road_name: roadName });
+  } else {
+    console.error('Update error:', error);
   }
 }
+
 
 function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
