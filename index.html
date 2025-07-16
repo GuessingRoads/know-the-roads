@@ -42,27 +42,32 @@
     Red: Incorrect<br>
     Orange: Hint Used<br>
     Gray: Correct<br>
-    Prismatic: Ultra-Hard Mode<br>
-    Yellow: Suffix Warning
+    Prismatic: Ultra-Hard Mode
   </div>
   <button id="login-btn">Login with Google</button>
   <button id="logout-btn">Logout</button>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
 const supabase = createClient(
   'https://yulvzmznvnctgaiwuypb.supabase.co',
-  ''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
-'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
 );
 
 import { roadNameToIds } from './roadNameToIds.js';
+
+const suffixMap = {
+  rd: "road", st: "street", ave: "avenue", blvd: "boulevard", ln: "lane",
+  dr: "drive", ct: "court", cir: "circle", pkwy: "parkway", hwy: "highway",
+  ter: "terrace", pl: "place", sq: "square", tpke: "turnpike", ext: "extension"
+};
 
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
 let currentUserId = null;
 let segmentStateMap = new Map(); // road_id => { correct, used_hint }
-let roadAttemptCounts = new Map(); // road name => number of attempts
+let roadAttempts = {}; // name => attempt count
 
 document.getElementById('login-btn').onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
@@ -117,52 +122,23 @@ async function loadGuessedSegmentIds() {
   });
 }
 
-async function logGuessToSupabase(roadName, isCorrect, usedHint = false) {
-  const ids = roadNameToIds[roadName] || [];
-  for (const id of ids) {
-    const stringId = String(id);
-    const existing = segmentStateMap.get(stringId);
-
-    const { error } = await supabase.from('road_guesses').insert([{
-      user_id: currentUserId,
-      road_id: stringId,
-      road_name: roadName,
-      correct: isCorrect,
-      used_hint: usedHint
-    }]);
-
-    if (!error) {
-      guessedSegmentIds.add(stringId);
-      segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
-      console.log('Logged guess:', { road_name: roadName, correct: isCorrect, used_hint: usedHint });
-    } else {
-      console.error('Insert error:', error);
-    }
-  }
+function normalizeName(name) {
+  const words = name.toLowerCase().split(" ");
+  const last = words[words.length - 1];
+  const expanded = suffixMap[last] || last;
+  words[words.length - 1] = expanded;
+  return words.join(" ");
 }
 
-function applyColorToAllSegments(name, color) {
-  if (!nameToLayers[name]) return;
-  for (const l of nameToLayers[name]) {
-    l.setStyle({ color });
-  }
-}
-
-function normalizeSuffix(str) {
-  const suffixMap = {
-    ave: 'avenue', st: 'street', rd: 'road', blvd: 'boulevard',
-    ln: 'lane', dr: 'drive', ct: 'court', cir: 'circle', hwy: 'highway',
-    pike: 'pike', pl: 'place', trl: 'trail', way: 'way'
-  };
-  return str.split(' ').map(word => {
-    const w = word.toLowerCase();
-    return suffixMap[w] || word;
-  }).join(' ');
-}
-
-function isSuffixOnlyMismatch(userGuess, actualName) {
-  const normalize = s => s.toLowerCase().split(' ').slice(0, -1).join(' ');
-  return normalize(userGuess) === normalize(actualName);
+async function saveGuess(roadId, roadName, correct, usedHint) {
+  const { error } = await supabase.from('road_guesses').insert([{
+    user_id: currentUserId,
+    road_id: roadId,
+    road_name: roadName,
+    correct,
+    used_hint: usedHint
+  }]);
+  if (error) console.error("Insert error:", error);
 }
 
 async function loadMap() {
@@ -195,45 +171,89 @@ async function loadMap() {
             layer.setStyle({ color: 'black', weight: 6 });
           }
 
-          roadAttemptCounts.set(name, 0); // initialize
-
           layer.on('click', async function () {
-            const attempts = roadAttemptCounts.get(name) || 0;
+            if (!roadAttempts[name]) roadAttempts[name] = 0;
 
-            if (attempts < 3) {
-              const guess = prompt("Guess the name of this road:");
-              if (!guess) return;
+            if (roadAttempts[name] >= 3) {
+              const firstLetter = name.charAt(0).toUpperCase();
+              alert(`Hint: Road begins with '${firstLetter}'`);
+              applyColorToAllSegments(name, 'orange');
+              const ids = roadNameToIds[name] || [];
+              for (const rid of ids) {
+                const sid = String(rid);
+                if (!guessedSegmentIds.has(sid)) {
+                  await saveGuess(sid, name, true, true);
+                  guessedSegmentIds.add(sid);
+                  segmentStateMap.set(sid, { correct: true, used_hint: true });
+                }
+              }
+              layer.off('click');
+              return;
+            }
 
-              const userNorm = normalizeSuffix(guess);
-              const actualNorm = normalizeSuffix(name);
+            let guess = prompt("Guess the name of this road:");
+            if (!guess) return;
 
-              if (userNorm === actualNorm) {
-                applyColorToAllSegments(name, 'gray');
-                await logGuessToSupabase(name, true, false);
-                layer.off('click');
-                alert("Correct!");
-              } else if (isSuffixOnlyMismatch(guess, name)) {
+            const userGuess = normalizeName(guess);
+            const correctName = normalizeName(name);
+
+            if (userGuess === correctName) {
+              const usedHint = roadAttempts[name] >= 3;
+              applyColorToAllSegments(name, usedHint ? 'orange' : 'gray');
+              const ids = roadNameToIds[name] || [];
+              for (const rid of ids) {
+                const sid = String(rid);
+                if (!guessedSegmentIds.has(sid)) {
+                  await saveGuess(sid, name, true, usedHint);
+                  guessedSegmentIds.add(sid);
+                  segmentStateMap.set(sid, { correct: true, used_hint: usedHint });
+                }
+              }
+              layer.off('click');
+              alert("Correct!");
+            } else {
+              roadAttempts[name]++;
+              const guessNormalized = guess.toLowerCase().trim();
+              const correctNormalized = name.toLowerCase().trim();
+
+              const guessSuffix = guessNormalized.split(" ").slice(-1)[0];
+              const correctSuffix = correctNormalized.split(" ").slice(-1)[0];
+              const guessCore = guessNormalized.replace(guessSuffix, '').trim();
+              const correctCore = correctNormalized.replace(correctSuffix, '').trim();
+
+              if (guessCore === correctCore && guessSuffix !== correctSuffix) {
                 applyColorToAllSegments(name, 'yellow');
                 alert("Almost! Check the suffix.");
-              } else {
-                roadAttemptCounts.set(name, attempts + 1);
-                applyColorToAllSegments(name, 'red');
-                await logGuessToSupabase(name, false, false);
-                alert("Incorrect. Try again.");
+                return;
               }
 
-            } else {
-              // 4th attempt — force hint
-              const hintLetter = name[0].toUpperCase();
-              alert(`Here's a hint: Road begins with "${hintLetter}"`);
-              applyColorToAllSegments(name, 'orange');
-              await logGuessToSupabase(name, true, true);
-              layer.off('click');
+              applyColorToAllSegments(name, 'red');
+
+              if (roadAttempts[name] <= 1) {
+                const ids = roadNameToIds[name] || [];
+                for (const rid of ids) {
+                  const sid = String(rid);
+                  if (!guessedSegmentIds.has(sid)) {
+                    await saveGuess(sid, name, false, false);
+                    guessedSegmentIds.add(sid);
+                    segmentStateMap.set(sid, { correct: false, used_hint: false });
+                  }
+                }
+              }
+
+              alert("Incorrect. Try again.");
             }
           });
         }
       }).addTo(map);
     });
+}
+
+function applyColorToAllSegments(name, color) {
+  if (!nameToLayers[name]) return;
+  for (const l of nameToLayers[name]) {
+    l.setStyle({ color });
+  }
 }
 
 const map = L.map('map').setView([40.09, -76.3], 12);
@@ -245,4 +265,3 @@ loadMap();
 </script>
 </body>
 </html>
-
