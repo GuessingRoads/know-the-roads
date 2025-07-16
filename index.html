@@ -59,7 +59,7 @@ import { roadNameToIds } from './roadNameToIds.js';
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
 let currentUserId = null;
-let segmentStateMap = new Map(); // road_id => { correct, used_hint }
+let segmentStateMap = new Map();
 
 document.getElementById('login-btn').onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
@@ -114,6 +114,8 @@ async function loadGuessedSegmentIds() {
       used_hint: row.used_hint
     });
   });
+
+  console.log("Loaded segment state map:", segmentStateMap);
 }
 
 async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
@@ -124,7 +126,6 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
     const existing = segmentStateMap.get(stringId);
 
     if (!existing) {
-      // No guess yet — insert
       const { error } = await supabase.from('road_guesses').insert([{
         user_id: currentUserId,
         road_id: stringId,
@@ -140,23 +141,22 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
         console.error('Insert error:', error);
       }
 
-    } else {
-      // Update if going from incorrect to correct
-     if (isCorrect) {
-  const { error } = await supabase
-    .from('road_guesses')
-    .update({ correct: true, used_hint: usedHint })
-    .eq('user_id', currentUserId)
-    .eq('road_id', stringId);
+    } else if (isCorrect) {
+      const { error } = await supabase
+        .from('road_guesses')
+        .update({ correct: true, used_hint: usedHint })
+        .eq('user_id', currentUserId)
+        .eq('road_id', stringId);
 
-  if (!error) {
-    segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
-    console.log('Updated guess to correct:', { road_name: roadName });
-  } else {
-    console.error('Update error:', error);
+      if (!error) {
+        segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
+        console.log('Updated guess to correct:', { road_name: roadName });
+      } else {
+        console.error('Update error:', error);
+      }
+    }
   }
 }
-
 
 function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
@@ -167,10 +167,12 @@ function applyColorToAllSegments(name, color) {
 
 async function loadMap() {
   await checkLogin();
+  console.log("Login checked, loading map...");
 
   fetch('roads_manheim_named_only.geojson')
     .then(res => res.json())
     .then(data => {
+      console.log("Loaded GeoJSON features:", data.features.length);
       L.geoJSON(data, {
         onEachFeature: function (feature, layer) {
           const id = String(feature.id);
@@ -180,7 +182,6 @@ async function loadMap() {
 
           if (segmentStateMap.has(id)) {
             const state = segmentStateMap.get(id);
-
             if (!state.correct) {
               layer.setStyle({ color: 'red', weight: 6 });
             } else if (state.used_hint) {
@@ -216,13 +217,16 @@ async function loadMap() {
               attempts += 1;
               const color = attempts >= 3 ? 'orange' : 'red';
               applyColorToAllSegments(name, color);
-              await saveGuessSegmentIds(name, false, false); // Always log incorrect attempts
+              if (attempts === 1) {
+                await saveGuessSegmentIds(name, false, false);
+              }
               alert("Incorrect. Try again.");
             }
           });
         }
       }).addTo(map);
-    });
+    })
+    .catch(err => console.error("Error loading GeoJSON:", err));
 }
 
 const map = L.map('map').setView([40.09, -76.3], 12);
@@ -234,4 +238,3 @@ loadMap();
 </script>
 </body>
 </html>
-
