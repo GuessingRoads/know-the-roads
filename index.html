@@ -42,7 +42,8 @@
     Red: Incorrect<br>
     Orange: Hint Used<br>
     Gray: Correct<br>
-    Prismatic: Ultra-Hard Mode
+    Prismatic: Ultra-Hard Mode<br>
+    Yellow: Suffix Mismatch
   </div>
   <button id="login-btn">Login with Google</button>
   <button id="logout-btn">Logout</button>
@@ -51,7 +52,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 const supabase = createClient(
   'https://yulvzmznvnctgaiwuypb.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
+  'YOUR_PUBLIC_SUPABASE_KEY_HERE'
 );
 
 import { roadNameToIds } from './roadNameToIds.js';
@@ -60,6 +61,32 @@ let nameToLayers = {};
 let guessedSegmentIds = new Set();
 let currentUserId = null;
 let segmentStateMap = new Map(); // road_id => { correct, used_hint }
+
+const suffixMap = {
+  st: 'street', ave: 'avenue', rd: 'road', blvd: 'boulevard', ln: 'lane',
+  ct: 'court', cir: 'circle', hwy: 'highway', pkwy: 'parkway', dr: 'drive',
+  ter: 'terrace', pl: 'place', sq: 'square', way: 'way'
+};
+
+function normalize(name) {
+  const parts = name.toLowerCase().split(/\s+/);
+  return parts.map((part, i) => {
+    const cleaned = part.replace(/[^a-z]/g, '');
+    return suffixMap[cleaned] || cleaned;
+  }).join(' ').trim();
+}
+
+function isSuffixMismatch(guess, actual) {
+  const partsG = guess.trim().toLowerCase().split(/\s+/);
+  const partsA = actual.trim().toLowerCase().split(/\s+/);
+  if (partsG.length !== partsA.length) return false;
+  const lastG = suffixMap[partsG.at(-1)] || partsG.at(-1);
+  const lastA = suffixMap[partsA.at(-1)] || partsA.at(-1);
+  return (
+    partsG.slice(0, -1).join(' ') === partsA.slice(0, -1).join(' ') &&
+    lastG !== lastA
+  );
+}
 
 document.getElementById('login-btn').onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
@@ -159,36 +186,37 @@ async function loadMap() {
           if (!nameToLayers[name]) nameToLayers[name] = [];
           nameToLayers[name].push(layer);
 
-if (segmentStateMap.has(id)) {
-  const state = segmentStateMap.get(id);
+          if (segmentStateMap.has(id)) {
+            const state = segmentStateMap.get(id);
 
-  if (!state.correct) {
-    // Red = incorrect, keep clickable
-    layer.setStyle({ color: 'red', weight: 6 });
-    // no return, keep it interactive
-  } else if (state.used_hint) {
-    // Orange = hint used
-    layer.setStyle({ color: 'orange', weight: 6 });
-    layer.off('click');
-    return;
-  } else {
-    // Gray = correct
-    layer.setStyle({ color: 'gray', weight: 6 });
-    layer.off('click');
-    return;
-  }
-} else {
-  // Unguessed = black
-  layer.setStyle({ color: 'black', weight: 6 });
-}
+            if (!state.correct) {
+              layer.setStyle({ color: 'red', weight: 6 });
+            } else if (state.used_hint) {
+              layer.setStyle({ color: 'orange', weight: 6 });
+              layer.off('click');
+              return;
+            } else {
+              layer.setStyle({ color: 'gray', weight: 6 });
+              layer.off('click');
+              return;
+            }
+          } else {
+            layer.setStyle({ color: 'black', weight: 6 });
+          }
 
           let attempts = 0;
 
           layer.on('click', async function () {
+            if (segmentStateMap.has(id) && segmentStateMap.get(id).correct)
+              return;
+
             let userGuess = prompt("Guess the name of this road:");
             if (!userGuess) return;
 
-            if (userGuess.toLowerCase() === name.toLowerCase()) {
+            const normalizedGuess = normalize(userGuess);
+            const normalizedActual = normalize(name);
+
+            if (normalizedGuess === normalizedActual) {
               if (attempts >= 3) {
                 applyColorToAllSegments(name, 'orange');
                 await saveGuessSegmentIds(name, true, true);
@@ -198,15 +226,16 @@ if (segmentStateMap.has(id)) {
               }
               layer.off('click');
               alert("Correct!");
+            } else if (isSuffixMismatch(userGuess, name)) {
+              applyColorToAllSegments(name, 'yellow');
+              alert("Almost! Check the suffix.");
             } else {
               attempts += 1;
               const color = attempts >= 3 ? 'orange' : 'red';
               applyColorToAllSegments(name, color);
-
               if (attempts === 1) {
-                await saveGuessSegmentIds(name, false, false); // Log first wrong attempt
+                await saveGuessSegmentIds(name, false, false);
               }
-
               alert("Incorrect. Try again.");
             }
           });
