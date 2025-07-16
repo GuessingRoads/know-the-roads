@@ -124,6 +124,7 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
   for (const id of ids) {
     const stringId = String(id);
 
+    console.log('Attempting upsert for:', { stringId, roadName, isCorrect, usedHint });
     const { error } = await supabase.from('road_guesses').upsert({
       user_id: currentUserId,
       road_id: stringId,
