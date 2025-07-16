@@ -140,19 +140,21 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
         console.error('Insert error:', error);
       }
 
-    } else if (isCorrect && !existing.correct) {
-      // Previously incorrect, now correct — update
-      const { error } = await supabase
-        .from('road_guesses')
-        .update({ correct: true, used_hint: usedHint })
-        .eq('user_id', currentUserId)
-        .eq('road_id', stringId);
+    } else {
+      // Update if going from incorrect to correct
+      if (isCorrect && !existing.correct) {
+        const { error } = await supabase
+          .from('road_guesses')
+          .update({ correct: true, used_hint: usedHint })
+          .eq('user_id', currentUserId)
+          .eq('road_id', stringId);
 
-      if (!error) {
-        segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
-        console.log('Updated guess to correct:', { road_name: roadName });
-      } else {
-        console.error('Update error:', error);
+        if (!error) {
+          segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
+          console.log('Updated guess to correct:', { road_name: roadName });
+        } else {
+          console.error('Update error:', error);
+        }
       }
     }
   }
@@ -178,28 +180,23 @@ async function loadMap() {
           if (!nameToLayers[name]) nameToLayers[name] = [];
           nameToLayers[name].push(layer);
 
-if (segmentStateMap.has(id)) {
-  const state = segmentStateMap.get(id);
+          if (segmentStateMap.has(id)) {
+            const state = segmentStateMap.get(id);
 
-  if (!state.correct) {
-    // Red = incorrect, keep clickable
-    layer.setStyle({ color: 'red', weight: 6 });
-    // no return, keep it interactive
-  } else if (state.used_hint) {
-    // Orange = hint used
-    layer.setStyle({ color: 'orange', weight: 6 });
-    layer.off('click');
-    return;
-  } else {
-    // Gray = correct
-    layer.setStyle({ color: 'gray', weight: 6 });
-    layer.off('click');
-    return;
-  }
-} else {
-  // Unguessed = black
-  layer.setStyle({ color: 'black', weight: 6 });
-}
+            if (!state.correct) {
+              layer.setStyle({ color: 'red', weight: 6 });
+            } else if (state.used_hint) {
+              layer.setStyle({ color: 'orange', weight: 6 });
+              layer.off('click');
+              return;
+            } else {
+              layer.setStyle({ color: 'gray', weight: 6 });
+              layer.off('click');
+              return;
+            }
+          } else {
+            layer.setStyle({ color: 'black', weight: 6 });
+          }
 
           let attempts = 0;
 
@@ -221,11 +218,7 @@ if (segmentStateMap.has(id)) {
               attempts += 1;
               const color = attempts >= 3 ? 'orange' : 'red';
               applyColorToAllSegments(name, color);
-
-              if (attempts === 1) {
-                await saveGuessSegmentIds(name, false, false); // Log first wrong attempt
-              }
-
+              await saveGuessSegmentIds(name, false, false); // Always log incorrect attempts
               alert("Incorrect. Try again.");
             }
           });
@@ -243,3 +236,4 @@ loadMap();
 </script>
 </body>
 </html>
+
