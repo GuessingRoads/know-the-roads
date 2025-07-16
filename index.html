@@ -123,40 +123,25 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
 
   for (const id of ids) {
     const stringId = String(id);
-    const existing = segmentStateMap.get(stringId);
 
-    if (!existing) {
-      const { error } = await supabase.from('road_guesses').insert([{
-        user_id: currentUserId,
-        road_id: stringId,
-        road_name: roadName,
-        correct: isCorrect,
-        used_hint: usedHint
-      }]);
-      if (!error) {
-        guessedSegmentIds.add(stringId);
-        segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
-        console.log('Inserted new guess:', { road_name: roadName, correct: isCorrect, used_hint: usedHint });
-      } else {
-        console.error('Insert error:', error);
-      }
+    const { error } = await supabase.from('road_guesses').upsert({
+      user_id: currentUserId,
+      road_id: stringId,
+      road_name: roadName,
+      correct: isCorrect,
+      used_hint: usedHint
+    }, { onConflict: ['user_id', 'road_id'] });
 
-    } else if (isCorrect) {
-      const { error } = await supabase
-        .from('road_guesses')
-        .update({ correct: true, used_hint: usedHint })
-        .eq('user_id', currentUserId)
-        .eq('road_id', stringId);
-
-      if (!error) {
-        segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
-        console.log('Updated guess to correct:', { road_name: roadName });
-      } else {
-        console.error('Update error:', error);
-      }
+    if (!error) {
+      guessedSegmentIds.add(stringId);
+      segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+      console.log('Upserted guess:', { road_name: roadName, correct: isCorrect, used_hint: usedHint });
+    } else {
+      console.error('Upsert error:', error);
     }
   }
 }
+
 
 function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
