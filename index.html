@@ -36,7 +36,6 @@
 
     #logout-btn { right: 130px; }
 
-    /* Modal overlay and popup */
     .guess-overlay {
       position: fixed;
       top: 0; left: 0;
@@ -91,7 +90,6 @@
   <button id="login-btn">Login with Google</button>
   <button id="logout-btn">Logout</button>
 
-  <!-- Modal Guess Box -->
   <div class="guess-overlay" id="guess-overlay">
     <div class="guess-box">
       <div id="guess-question">Guess the name of this road:</div>
@@ -124,7 +122,6 @@ const cancelBtn = document.getElementById('cancel-guess');
 
 let activeGuessName = "";
 let guessAttempts = 0;
-let activeLayer = null;
 
 const suffixMap = {
   st: 'street', ave: 'avenue', rd: 'road', blvd: 'boulevard', ln: 'lane',
@@ -134,7 +131,7 @@ const suffixMap = {
 
 function normalize(name) {
   const parts = name.toLowerCase().split(/\s+/);
-  return parts.map(part => suffixMap[part] || part).join(' ');
+  return parts.map(part => suffixMap[part] || part).join(' ').trim();
 }
 
 function isSuffixMismatch(guess, actual) {
@@ -213,7 +210,9 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
         correct: isCorrect,
         used_hint: usedHint
       }]);
-      if (!error) {
+      if (error) {
+        console.error('Insert error:', error);
+      } else {
         guessedSegmentIds.add(stringId);
         segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
       }
@@ -226,9 +225,8 @@ function applyColorToAllSegments(name, color) {
   for (const l of nameToLayers[name]) l.setStyle({ color });
 }
 
-function openGuessBox(name, layer) {
+function openGuessBox(name) {
   activeGuessName = name;
-  activeLayer = layer;
   guessAttempts = 0;
   overlay.style.display = "flex";
   input.value = "";
@@ -248,11 +246,9 @@ submitBtn.onclick = async () => {
     await saveGuessSegmentIds(activeGuessName, true, usedHint);
     for (const l of nameToLayers[activeGuessName]) l.off('click');
     overlay.style.display = "none";
-    return;
   } else if (isSuffixMismatch(userGuess, activeGuessName)) {
     applyColorToAllSegments(activeGuessName, 'yellow');
     alert("Almost! Check the suffix.");
-    return;
   } else {
     guessAttempts += 1;
     const color = guessAttempts >= 3 ? 'orange' : 'red';
@@ -299,7 +295,7 @@ async function loadMap() {
           }
 
           layer.on('click', () => {
-            openGuessBox(name, layer);
+            openGuessBox(name);
           });
         }
       }).addTo(map);
