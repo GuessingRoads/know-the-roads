@@ -42,6 +42,7 @@
     Red: Incorrect<br>
     Orange: Hint Used<br>
     Gray: Correct<br>
+    Yellow: Check the Suffix!<br>
     Prismatic: Ultra-Hard Mode
   </div>
   <button id="login-btn">Login with Google</button>
@@ -51,7 +52,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 const supabase = createClient(
   'https://yulvzmznvnctgaiwuypb.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
+  'YOUR_PUBLIC_ANON_KEY_HERE'
 );
 
 import { roadNameToIds } from './roadNameToIds.js';
@@ -59,7 +60,38 @@ import { roadNameToIds } from './roadNameToIds.js';
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
 let currentUserId = null;
-let segmentStateMap = new Map();
+let segmentStateMap = new Map(); // road_id => { correct, used_hint }
+
+const suffixMap = {
+  ave: 'avenue',
+  st: 'street',
+  rd: 'road',
+  blvd: 'boulevard',
+  ln: 'lane',
+  ct: 'court',
+  cir: 'circle',
+  dr: 'drive',
+  pike: 'pike',
+  hwy: 'highway',
+  tpke: 'turnpike',
+  ter: 'terrace',
+  sq: 'square',
+  pl: 'place',
+  way: 'way',
+  ext: 'extension'
+};
+
+function normalizeName(name) {
+  const parts = name.trim().toLowerCase().split(/\s+/);
+  const last = parts.pop();
+  const suffixNorm = suffixMap[last] || last;
+  return [...parts, suffixNorm].join(' ');
+}
+
+function isSuffixMismatch(guess, actual) {
+  return normalizeName(guess) !== normalizeName(actual) &&
+         guess.split(" ")[0].toLowerCase() === actual.split(" ")[0].toLowerCase();
+}
 
 document.getElementById('login-btn').onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
@@ -114,17 +146,16 @@ async function loadGuessedSegmentIds() {
       used_hint: row.used_hint
     });
   });
-
-  console.log("Loaded segment state map:", segmentStateMap);
 }
 
 async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
-  const ids = roadNameToIds[roadName] || [];
+  const roadNameKey = roadName.toLowerCase();
+  const ids = roadNameToIds[roadNameKey] || [];
 
   for (const id of ids) {
     const stringId = String(id);
+    const existing = segmentStateMap.get(stringId);
 
-    console.log('Attempting upsert for:', { stringId, roadName, isCorrect, usedHint });
     const { error } = await supabase.from('road_guesses').upsert({
       user_id: currentUserId,
       road_id: stringId,
@@ -136,13 +167,11 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
     if (!error) {
       guessedSegmentIds.add(stringId);
       segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
-      console.log('Upserted guess:', { road_name: roadName, correct: isCorrect, used_hint: usedHint });
     } else {
       console.error('Upsert error:', error);
     }
   }
 }
-
 
 function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
@@ -153,12 +182,10 @@ function applyColorToAllSegments(name, color) {
 
 async function loadMap() {
   await checkLogin();
-  console.log("Login checked, loading map...");
 
   fetch('roads_manheim_named_only.geojson')
     .then(res => res.json())
     .then(data => {
-      console.log("Loaded GeoJSON features:", data.features.length);
       L.geoJSON(data, {
         onEachFeature: function (feature, layer) {
           const id = String(feature.id);
@@ -190,15 +217,15 @@ async function loadMap() {
             if (!userGuess) return;
 
             if (userGuess.toLowerCase() === name.toLowerCase()) {
-              if (attempts >= 3) {
-                applyColorToAllSegments(name, 'orange');
-                await saveGuessSegmentIds(name, true, true);
-              } else {
-                applyColorToAllSegments(name, 'gray');
-                await saveGuessSegmentIds(name, true, false);
-              }
+              const usedHint = attempts >= 3;
+              applyColorToAllSegments(name, usedHint ? 'orange' : 'gray');
+              await saveGuessSegmentIds(name, true, usedHint);
               layer.off('click');
               alert("Correct!");
+            } else if (isSuffixMismatch(userGuess, name)) {
+              applyColorToAllSegments(name, 'yellow');
+              alert("Almost! Check the suffix.");
+              return;
             } else {
               attempts += 1;
               const color = attempts >= 3 ? 'orange' : 'red';
@@ -211,8 +238,7 @@ async function loadMap() {
           });
         }
       }).addTo(map);
-    })
-    .catch(err => console.error("Error loading GeoJSON:", err));
+    });
 }
 
 const map = L.map('map').setView([40.09, -76.3], 12);
