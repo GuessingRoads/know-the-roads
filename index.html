@@ -163,9 +163,12 @@ function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
   for (const l of nameToLayers[name]) {
     l.setStyle({ color });
-    l.off('click');
+    if (color === 'gray' || color === 'orange' || color === 'yellow') {
+      l.off('click'); // only disable click for finished states
+    }
   }
 }
+
 
 async function loadMap() {
   await checkLogin();
