@@ -42,224 +42,221 @@
     Red: Incorrect<br>
     Orange: Hint Used<br>
     Gray: Correct<br>
+    Yellow: Check the suffix!<br>
     Prismatic: Ultra-Hard Mode
   </div>
   <button id="login-btn">Login with Google</button>
   <button id="logout-btn">Logout</button>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-const supabase = createClient(
-  'https://yulvzmznvnctgaiwuypb.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
-);
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    const supabase = createClient(
+      'https://yulvzmznvnctgaiwuypb.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM
+'
+    );
 
-import { roadNameToIds } from './roadNameToIds.js';
+    import { roadNameToIds } from './roadNameToIds.js';
 
-let nameToLayers = {};
-let guessedSegmentIds = new Set();
-let currentUserId = null;
-let segmentStateMap = new Map(); // road_id => { correct, used_hint }
+    let nameToLayers = {};
+    let guessedSegmentIds = new Set();
+    let currentUserId = null;
+    let segmentStateMap = new Map(); // road_id => { correct, used_hint }
 
-const suffixMap = {
-  rd: "road", st: "street", ave: "avenue", blvd: "boulevard", ln: "lane", dr: "drive",
-  ct: "court", cir: "circle", pkwy: "parkway", hwy: "highway", tpke: "turnpike",
-  ter: "terrace", pl: "place", sq: "square", loop: "loop", way: "way"
-};
+    const suffixMap = {
+      rd: "road", st: "street", ave: "avenue", blvd: "boulevard", cir: "circle",
+      dr: "drive", ln: "lane", ct: "court", hwy: "highway", pkwy: "parkway",
+      sq: "square", ter: "terrace", tpke: "turnpike", pl: "place"
+    };
 
-function normalize(name) {
-  let parts = name.trim().toLowerCase().split(/\s+/);
-  let last = parts[parts.length - 1];
-  if (suffixMap[last]) parts[parts.length - 1] = suffixMap[last];
-  return parts.join(" ");
-}
+    function normalizeSuffix(str) {
+      let parts = str.toLowerCase().split(" ");
+      if (parts.length < 2) return str.toLowerCase();
+      const suffix = parts[parts.length - 1];
+      parts[parts.length - 1] = suffixMap[suffix] || suffix;
+      return parts.join(" ");
+    }
 
-function getFirstLetterHint(name) {
-  return name.split(" ")[0][0].toUpperCase();
-}
+    document.getElementById('login-btn').onclick = async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      });
+      if (error) alert('Login error: ' + error.message);
+    };
 
-document.getElementById('login-btn').onclick = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin }
-  });
-  if (error) alert('Login error: ' + error.message);
-};
-
-document.getElementById('logout-btn').onclick = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) alert('Logout error: ' + error.message);
-  else location.reload();
-};
-
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log("Auth event:", event, "Session:", session);
-});
-
-async function checkLogin() {
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
-  if (user) {
-    currentUserId = user.id;
-    await loadGuessedSegmentIds();
-  }
-}
-
-async function loadGuessedSegmentIds() {
-  const { data, error } = await supabase
-    .from('road_guesses')
-    .select('road_id, correct, used_hint')
-    .eq('user_id', currentUserId);
-
-  if (error) return console.error('Error loading guesses:', error);
-
-  guessedSegmentIds.clear();
-  segmentStateMap.clear();
-
-  data.forEach(row => {
-    guessedSegmentIds.add(row.road_id);
-    segmentStateMap.set(row.road_id, {
-      correct: row.correct,
-      used_hint: row.used_hint
-    });
-  });
-}
-
-async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
-  const ids = roadNameToIds[roadName] || [];
-
-  for (const id of ids) {
-    const stringId = String(id);
-    const existing = segmentStateMap.get(stringId);
-
-    if (!existing) {
-      const { error } = await supabase.from('road_guesses').insert([{
-        user_id: currentUserId,
-        road_id: stringId,
-        road_name: roadName,
-        correct: isCorrect,
-        used_hint: usedHint
-      }]);
-      if (!error) {
-        guessedSegmentIds.add(stringId);
-        segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+    document.getElementById('logout-btn').onclick = async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) alert('Logout error: ' + error.message);
+      else {
+        alert('Logged out');
+        location.reload();
       }
+    };
 
-    } else if (isCorrect && !existing.correct) {
-      const { error } = await supabase
+    supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth event:", event, "Session:", session);
+    });
+
+    async function checkLogin() {
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (user) {
+        currentUserId = user.id;
+        await loadGuessedSegmentIds();
+      }
+    }
+
+    async function loadGuessedSegmentIds() {
+      const { data, error } = await supabase
         .from('road_guesses')
-        .update({ correct: true, used_hint: usedHint })
-        .eq('user_id', currentUserId)
-        .eq('road_id', stringId);
+        .select('road_id, correct, used_hint')
+        .eq('user_id', currentUserId);
 
-      if (!error) {
-        segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
+      if (error) {
+        console.error('Error loading guesses:', error);
+        return;
+      }
+
+      guessedSegmentIds.clear();
+      segmentStateMap.clear();
+
+      data.forEach(row => {
+        guessedSegmentIds.add(row.road_id);
+        segmentStateMap.set(row.road_id, {
+          correct: row.correct,
+          used_hint: row.used_hint
+        });
+      });
+    }
+
+    async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
+      const ids = roadNameToIds[roadName] || [];
+
+      for (const id of ids) {
+        const stringId = String(id);
+        const existing = segmentStateMap.get(stringId);
+
+        if (!existing) {
+          const { error } = await supabase.from('road_guesses').insert([{
+            user_id: currentUserId,
+            road_id: stringId,
+            road_name: roadName,
+            correct: isCorrect,
+            used_hint: usedHint
+          }]);
+          if (!error) {
+            guessedSegmentIds.add(stringId);
+            segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+          }
+        } else if (isCorrect && !existing.correct) {
+          const { error } = await supabase
+            .from('road_guesses')
+            .update({ correct: true, used_hint: usedHint })
+            .eq('user_id', currentUserId)
+            .eq('road_id', stringId);
+          if (!error) {
+            segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
+          }
+        }
       }
     }
-  }
-}
 
-function applyColorToAllSegments(name, color) {
-  if (!nameToLayers[name]) return;
-  for (const l of nameToLayers[name]) {
-    l.setStyle({ color });
-    if (color === 'gray' || color === 'orange' || color === 'yellow') {
-      l.off('click'); // only disable click for finished states
+    function applyColorToAllSegments(name, color) {
+      if (!nameToLayers[name]) return;
+      for (const l of nameToLayers[name]) {
+        l.setStyle({ color });
+      }
     }
-  }
-}
 
+    async function loadMap() {
+      await checkLogin();
 
-async function loadMap() {
-  await checkLogin();
+      fetch('roads_manheim_named_only.geojson')
+        .then(res => res.json())
+        .then(data => {
+          L.geoJSON(data, {
+            onEachFeature: function (feature, layer) {
+              const id = String(feature.id);
+              const name = feature.properties.name || "";
+              if (!nameToLayers[name]) nameToLayers[name] = [];
+              nameToLayers[name].push(layer);
 
-  fetch('roads_manheim_named_only.geojson')
-    .then(res => res.json())
-    .then(data => {
-      L.geoJSON(data, {
-        onEachFeature: function (feature, layer) {
-          const id = String(feature.id);
-          const name = feature.properties.name || "";
-          if (!nameToLayers[name]) nameToLayers[name] = [];
-          nameToLayers[name].push(layer);
-
-          if (segmentStateMap.has(id)) {
-            const state = segmentStateMap.get(id);
-            if (!state.correct) {
-              layer.setStyle({ color: 'red', weight: 6 });
-            } else if (state.used_hint) {
-              layer.setStyle({ color: 'orange', weight: 6 });
-              layer.off('click');
-              return;
-            } else {
-              layer.setStyle({ color: 'gray', weight: 6 });
-              layer.off('click');
-              return;
-            }
-          } else {
-            layer.setStyle({ color: 'black', weight: 6 });
-          }
-
-          let attempts = 0;
-
-          layer.on('click', async function () {
-            const hint = getFirstLetterHint(name);
-            let guess;
-
-            if (attempts >= 3) {
-              guess = prompt(`Hint: Road starts with "${hint}"\nFinal guess:`);
-              if (!guess) return;
-              if (normalize(guess) === normalize(name)) {
-                applyColorToAllSegments(name, 'orange');
-                await saveGuessSegmentIds(name, true, true);
-                alert("Correct! You got it after a hint.");
+              if (segmentStateMap.has(id)) {
+                const state = segmentStateMap.get(id);
+                if (!state.correct) {
+                  layer.setStyle({ color: 'red', weight: 6 });
+                } else if (state.used_hint) {
+                  layer.setStyle({ color: 'orange', weight: 6 });
+                  layer.off('click');
+                  return;
+                } else {
+                  layer.setStyle({ color: 'gray', weight: 6 });
+                  layer.off('click');
+                  return;
+                }
               } else {
-                applyColorToAllSegments(name, 'orange');
-                await saveGuessSegmentIds(name, true, true);
-                alert(`Nice try! The correct answer was: ${name}`);
+                layer.setStyle({ color: 'black', weight: 6 });
               }
-              return;
+
+              let attempts = 0;
+
+              layer.on('click', async function () {
+                const userGuess = prompt("Guess the name of this road:");
+                if (!userGuess) return;
+
+                const raw = userGuess.trim().toLowerCase();
+                const actual = name.toLowerCase();
+
+                const normalizedGuess = normalizeSuffix(raw);
+                const normalizedActual = normalizeSuffix(actual);
+
+                if (normalizedGuess === normalizedActual) {
+                  if (attempts >= 3) {
+                    applyColorToAllSegments(name, 'orange');
+                    await saveGuessSegmentIds(name, true, true);
+                  } else {
+                    applyColorToAllSegments(name, 'gray');
+                    await saveGuessSegmentIds(name, true, false);
+                  }
+                  layer.off('click');
+                  alert("Correct!");
+                } else {
+                  attempts += 1;
+
+                  // Suffix-only mismatch?
+                  const baseGuess = raw.split(" ").slice(0, -1).join(" ");
+                  const baseActual = actual.split(" ").slice(0, -1).join(" ");
+                  const suffixOnlyMismatch = baseGuess === baseActual;
+
+                  if (suffixOnlyMismatch) {
+                    applyColorToAllSegments(name, 'yellow');
+                    alert("Almost! Check the suffix.");
+                    return;
+                  }
+
+                  const color = attempts >= 3 ? 'orange' : 'red';
+                  applyColorToAllSegments(name, color);
+
+                  if (attempts === 1) {
+                    await saveGuessSegmentIds(name, false, false);
+                  }
+
+                  alert("Incorrect. Try again.");
+                }
+              });
             }
+          }).addTo(map);
+        });
+    }
 
-            guess = prompt("Guess the name of this road:");
-            if (!guess) return;
+    const map = L.map('map').setView([40.09, -76.3], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
 
-            const normGuess = normalize(guess);
-            const normName = normalize(name);
-
-            if (normGuess === normName) {
-              applyColorToAllSegments(name, 'gray');
-              await saveGuessSegmentIds(name, true, false);
-              alert("Correct!");
-              return;
-            }
-
-            // Check for suffix-only mismatch
-            const guessWords = normGuess.split(" ");
-            const nameWords = normName.split(" ");
-            if (guessWords.slice(0, -1).join(" ") === nameWords.slice(0, -1).join(" ")) {
-              applyColorToAllSegments(name, 'yellow');
-              alert("Almost! Check the suffix.");
-              return;
-            }
-
-            attempts += 1;
-            applyColorToAllSegments(name, 'red');
-            if (attempts === 1) await saveGuessSegmentIds(name, false, false);
-            alert("Incorrect. Try again.");
-          });
-        }
-      }).addTo(map);
-    });
-}
-
-const map = L.map('map').setView([40.09, -76.3], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
-}).addTo(map);
-
-loadMap();
-</script>
-</script>
+    loadMap();
+  </script>
 </body>
 </html>
