@@ -310,36 +310,70 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 loadMap();
 
-// 🎵 Dynamic Music Player Logic
+// 🎵 Web Audio API Seamless Loop Logic
+let audioContext = null;
+let sourceNode = null;
+let musicBuffer = null;
 let musicPlaying = false;
-let currentTrack = new Audio('music/Lofi_1.wav');
-currentTrack.loop = true;
+let isMuted = false;
 
 const musicBtn = document.getElementById('music-btn');
 const modal = document.getElementById('music-modal');
 const muteBtn = document.getElementById('mute-btn');
 const skipBtn = document.getElementById('skip-btn');
 
+// Load audio buffer
+async function loadMusic() {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const response = await fetch('music/Lofi_1.wav');
+  const arrayBuffer = await response.arrayBuffer();
+  musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
+}
+
+// Start playing loop
+function playLoop() {
+  if (!musicBuffer || isMuted) return;
+  sourceNode = audioContext.createBufferSource();
+  sourceNode.buffer = musicBuffer;
+  sourceNode.connect(audioContext.destination);
+  sourceNode.loop = true;
+  sourceNode.start(0);
+}
+
+// Stop loop
+function stopLoop() {
+  if (sourceNode) {
+    sourceNode.stop(0);
+    sourceNode.disconnect();
+    sourceNode = null;
+  }
+}
+
 musicBtn.onclick = () => {
   modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
 };
 
 muteBtn.onclick = () => {
-  currentTrack.muted = !currentTrack.muted;
-  muteBtn.innerText = currentTrack.muted ? 'Unmute' : 'Mute';
+  isMuted = !isMuted;
+  muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
+  if (isMuted) stopLoop();
+  else playLoop();
 };
 
 skipBtn.onclick = () => {
-  currentTrack.currentTime = 0;
-  currentTrack.play();
+  stopLoop();
+  playLoop();
 };
 
-window.addEventListener('click', () => {
+// Start audio on first interaction
+window.addEventListener('click', async () => {
   if (!musicPlaying) {
-    currentTrack.play().catch(e => console.warn('Autoplay blocked:', e));
+    await loadMusic();
+    playLoop();
     musicPlaying = true;
   }
 }, { once: true });
+
   </script>
 </body>
 </html>
