@@ -87,10 +87,39 @@
     <button id="mute-btn">Mute</button>
     <button id="skip-btn">Skip Track</button>
   </div>
- <audio id="bg-music" loop>
-  <source src="music/Lofi_1.wav" type="audio/wav">
-  Your browser does not support the audio element.
-</audio>
+// 🎵 Dynamic Music Player Logic with .wav
+let musicPlaying = false;
+let currentTrack = new Audio('music/Lofi_1.wav');
+currentTrack.loop = true;
+
+const musicBtn = document.getElementById('music-btn');
+const modal = document.getElementById('music-modal');
+const muteBtn = document.getElementById('mute-btn');
+const skipBtn = document.getElementById('skip-btn');
+
+musicBtn.onclick = () => {
+  modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+};
+
+muteBtn.onclick = () => {
+  currentTrack.muted = !currentTrack.muted;
+  muteBtn.innerText = currentTrack.muted ? 'Unmute' : 'Mute';
+};
+
+skipBtn.onclick = () => {
+  // Just restart the same track for now
+  currentTrack.currentTime = 0;
+  currentTrack.play();
+};
+
+// Play on first user interaction (complies with autoplay rules)
+window.addEventListener('click', () => {
+  if (!musicPlaying) {
+    currentTrack.play().catch(e => console.warn("Audio play blocked:", e));
+    musicPlaying = true;
+  }
+}, { once: true });
+
 
   <div class="legend" id="legend">
     <strong>Legend</strong><br>
