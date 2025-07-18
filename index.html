@@ -7,94 +7,345 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
     #map { height: 100vh; }
-    #music-icon {
+
+    .legend {
+      background: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5em;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
+
+    #login-btn, #logout-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 1001;
+    }
+
+    #logout-btn { right: 130px; }
+
+    /* 🎵 Music Button */
+    #music-btn {
       position: absolute;
       top: 10px;
       left: 10px;
-      width: 32px;
-      height: 32px;
-      background: url('https://cdn-icons-png.flaticon.com/512/727/727245.png') no-repeat center center;
-      background-size: contain;
-      z-index: 1002;
+      background: white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      z-index: 1002;
     }
+
+    /* 🎵 Modal */
     #music-modal {
-      display: none;
       position: absolute;
       top: 50px;
       left: 10px;
-      background-color: white;
+      background: white;
       border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 14px;
-      z-index: 1002;
-      box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+      padding: 8px;
+      border-radius: 6px;
+      z-index: 1003;
+      display: none;
     }
+
     #music-modal button {
-      display: block;
       margin-top: 5px;
-      padding: 6px 10px;
       width: 100%;
-      font-size: 14px;
+      padding: 6px;
+      font-size: 13px;
+      border-radius: 4px;
+      border: 1px solid #888;
+      background: #f8f8f8;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="music-icon" title="Music Settings"></div>
+
+  <!-- 🎵 Music Button and Modal -->
+  <div id="music-btn" title="Music Settings">🎵</div>
   <div id="music-modal">
-    <strong>Music Settings</strong><br>
-    <button id="toggle-mute">Mute</button>
-    <button id="skip-track">Skip Track</button>
+    <button id="mute-btn">Mute</button>
+    <button id="skip-btn">Skip Track</button>
   </div>
+  <audio id="bg-music" loop>
+    <source src="music/track1.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <div class="legend" id="legend">
+    <strong>Legend</strong><br>
+    Black: Unguessed<br>
+    Red: Incorrect<br>
+    Orange: Hint Used<br>
+    Gray: Correct<br>
+    Yellow: Suffix Warning<br>
+    Prismatic: Ultra-Hard Mode
+  </div>
+  <button id="login-btn">Login with Google</button>
+  <button id="logout-btn">Logout</button>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-    const supabase = createClient(
-      'https://yulvzmznvnctgaiwuypb.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
-    );
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+const supabase = createClient(
+  'https://yulvzmznvnctgaiwuypb.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
+);
 
-    // Minimal map loader for now
-    const map = L.map('map').setView([40.09, -76.3], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(map);
+import { roadNameToIds } from './roadNameToIds.js';
 
-    const tracks = ['Lofi_1.wav'];
-    let currentTrackIndex = Math.floor(Math.random() * tracks.length);
-    const audio = new Audio(tracks[currentTrackIndex]);
-    audio.loop = true;
-    let isMuted = false;
+const suffixMap = {
+  st: 'street',
+  ave: 'avenue',
+  rd: 'road',
+  blvd: 'boulevard',
+  ln: 'lane',
+  dr: 'drive',
+  ct: 'court',
+  cir: 'circle',
+  hwy: 'highway',
+  pkwy: 'parkway',
+  ter: 'terrace',
+  pl: 'place'
+};
 
-    document.body.addEventListener('click', () => {
-      if (audio.paused) audio.play();
-    }, { once: true });
+let nameToLayers = {};
+let guessedSegmentIds = new Set();
+let currentUserId = null;
+let segmentStateMap = new Map();
 
-    const musicIcon = document.getElementById('music-icon');
-    const musicModal = document.getElementById('music-modal');
-    const toggleMuteBtn = document.getElementById('toggle-mute');
-    const skipTrackBtn = document.getElementById('skip-track');
+document.getElementById('login-btn').onclick = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+  if (error) alert('Login error: ' + error.message);
+};
 
-    musicIcon.addEventListener('click', () => {
-      musicModal.style.display = musicModal.style.display === 'block' ? 'none' : 'block';
+document.getElementById('logout-btn').onclick = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) alert('Logout error: ' + error.message);
+  else location.reload();
+};
+
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log("Auth event:", event, "Session:", session);
+});
+
+async function checkLogin() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+  if (user) {
+    currentUserId = user.id;
+    await loadGuessedSegmentIds();
+  }
+}
+
+async function loadGuessedSegmentIds() {
+  const { data, error } = await supabase
+    .from('road_guesses')
+    .select('road_id, correct, used_hint')
+    .eq('user_id', currentUserId);
+
+  if (error) {
+    console.error('Error loading guesses:', error);
+    return;
+  }
+
+  guessedSegmentIds.clear();
+  segmentStateMap.clear();
+  data.forEach(row => {
+    guessedSegmentIds.add(row.road_id);
+    segmentStateMap.set(row.road_id, {
+      correct: row.correct,
+      used_hint: row.used_hint
     });
+  });
+}
 
-    toggleMuteBtn.addEventListener('click', () => {
-      isMuted = !isMuted;
-      audio.muted = isMuted;
-      toggleMuteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
-    });
+async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
+  const ids = roadNameToIds[roadName] || [];
 
-    skipTrackBtn.addEventListener('click', () => {
-      audio.pause();
-      currentTrackIndex = (currentTrackIndex + 1) % tracks.length;
-      audio.src = tracks[currentTrackIndex];
-      audio.play();
+  for (const id of ids) {
+    const stringId = String(id);
+    const existing = segmentStateMap.get(stringId);
+
+    if (!existing) {
+      const { error } = await supabase.from('road_guesses').insert([{
+        user_id: currentUserId,
+        road_id: stringId,
+        road_name: roadName,
+        correct: isCorrect,
+        used_hint: usedHint
+      }]);
+      if (!error) {
+        guessedSegmentIds.add(stringId);
+        segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+      }
+    } else if (isCorrect && !existing.correct) {
+      const { error } = await supabase
+        .from('road_guesses')
+        .update({ correct: true, used_hint: usedHint })
+        .eq('user_id', currentUserId)
+        .eq('road_id', stringId);
+      if (!error) {
+        segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
+      }
+    }
+  }
+}
+
+function applyColorToAllSegments(name, color) {
+  if (!nameToLayers[name]) return;
+  for (const l of nameToLayers[name]) {
+    l.setStyle({ color });
+  }
+}
+
+function normalizeName(name) {
+  const parts = name.trim().toLowerCase().split(" ");
+  const last = parts[parts.length - 1];
+  const suffix = suffixMap[last] || last;
+  return [...parts.slice(0, -1), suffix].join(" ");
+}
+
+function suffixOnlyMismatch(guess, actual) {
+  const g = guess.toLowerCase().split(" ");
+  const a = actual.toLowerCase().split(" ");
+  if (g.length !== a.length) return false;
+  const sameBase = g.slice(0, -1).join(" ") === a.slice(0, -1).join(" ");
+  const diffSuffix = g[g.length - 1] !== a[g.length - 1];
+  return sameBase && diffSuffix;
+}
+
+async function loadMap() {
+  await checkLogin();
+
+  fetch('roads_manheim_named_only.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        onEachFeature: function (feature, layer) {
+          const id = String(feature.id);
+          const name = feature.properties.name || "";
+          if (!nameToLayers[name]) nameToLayers[name] = [];
+          nameToLayers[name].push(layer);
+
+          if (segmentStateMap.has(id)) {
+            const state = segmentStateMap.get(id);
+            if (!state.correct) {
+              layer.setStyle({ color: 'red', weight: 6 });
+            } else if (state.used_hint) {
+              layer.setStyle({ color: 'orange', weight: 6 });
+              return;
+            } else {
+              layer.setStyle({ color: 'gray', weight: 6 });
+              return;
+            }
+          } else {
+            layer.setStyle({ color: 'black', weight: 6 });
+          }
+
+          let attempts = 0;
+          layer.on('click', async function () {
+            let userGuess = prompt("Guess the name of this road:");
+            if (!userGuess) return;
+
+            const normalizedGuess = normalizeName(userGuess);
+            const normalizedName = normalizeName(name);
+
+            if (normalizedGuess === normalizedName) {
+              const usedHint = attempts >= 3;
+              applyColorToAllSegments(name, usedHint ? 'orange' : 'gray');
+              await saveGuessSegmentIds(name, true, usedHint);
+              alert("Correct!");
+              return;
+            }
+
+            if (suffixOnlyMismatch(normalizedGuess, normalizedName)) {
+              applyColorToAllSegments(name, 'yellow');
+              alert("Almost... check the suffix!");
+              return;
+            }
+
+            attempts++;
+            if (attempts >= 4) {
+              const firstLetter = name.charAt(0).toUpperCase();
+              alert("Hint: Road begins with " + firstLetter);
+              applyColorToAllSegments(name, 'orange');
+              await saveGuessSegmentIds(name, true, true);
+              return;
+            }
+
+            if (attempts === 1) {
+              await saveGuessSegmentIds(name, false, false);
+            }
+            applyColorToAllSegments(name, 'red');
+            alert("Incorrect. Try again.");
+          });
+        }
+      }).addTo(map);
     });
+}
+
+const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+loadMap();
+
+
+// 🎵 Music Player Logic
+let musicPlaying = false;
+const musicBtn = document.getElementById('music-btn');
+const modal = document.getElementById('music-modal');
+const music = document.getElementById('bg-music');
+const muteBtn = document.getElementById('mute-btn');
+const skipBtn = document.getElementById('skip-btn');
+
+musicBtn.onclick = () => {
+  modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+};
+
+muteBtn.onclick = () => {
+  music.muted = !music.muted;
+  muteBtn.innerText = music.muted ? 'Unmute' : 'Mute';
+};
+
+skipBtn.onclick = () => {
+  // Placeholder: Loop since only one track
+  music.currentTime = 0;
+  music.play();
+};
+
+// Autoplay on first interaction
+window.addEventListener('click', () => {
+  if (!musicPlaying) {
+    music.play();
+    musicPlaying = true;
+  }
+}, { once: true });
   </script>
 </body>
 </html>
+
