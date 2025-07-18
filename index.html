@@ -258,5 +258,33 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 loadMap();
   </script>
+
+<audio id="bg-music" loop autoplay>
+  <source src="Lofi1.m4a" type="audio/mp4">
+  Your browser does not support the audio element.
+</audio>
+<button id="music-toggle">🔊</button>
+<script>
+  const audio = document.getElementById("bg-music");
+  const toggle = document.getElementById("music-toggle");
+  toggle.style.position = 'absolute';
+  toggle.style.bottom = '10px';
+  toggle.style.right = '10px';
+  toggle.style.zIndex = 1001;
+  toggle.style.background = 'white';
+  toggle.style.border = '1px solid black';
+  toggle.style.borderRadius = '4px';
+  toggle.style.padding = '4px 8px';
+
+  toggle.onclick = () => {
+    if (audio.paused) {
+      audio.play();
+      toggle.textContent = '🔊';
+    } else {
+      audio.pause();
+      toggle.textContent = '🔇';
+    }
+  };
+</script>
 </body>
 </html>
