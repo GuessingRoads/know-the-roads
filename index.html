@@ -269,46 +269,227 @@ async function loadMap() {
           }
 
           let attempts = 0;
-          layer.on('click', async function () {
-            let userGuess = prompt("Guess the name of this road:");
-            if (!userGuess) return;
+          <!DOCTYPE html>
+<html>
+<head>
+  <title>Know The Roads</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    #map { height: 100vh; }
 
-            const normalizedGuess = normalizeName(userGuess);
-            const normalizedName = normalizeName(name);
+    .legend {
+      background: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5em;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
 
-            if (normalizedGuess === normalizedName) {
-              const usedHint = attempts >= 3;
-              applyColorToAllSegments(name, usedHint ? 'orange' : 'gray');
-              await saveGuessSegmentIds(name, true, usedHint);
-              alert("Correct!");
-              return;
-            }
+    #login-btn, #logout-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 1001;
+    }
 
-            if (suffixOnlyMismatch(normalizedGuess, normalizedName)) {
-              applyColorToAllSegments(name, 'yellow');
-              alert("Almost... check the suffix!");
-              return;
-            }
+    #logout-btn { right: 130px; }
 
-            attempts++;
-            if (attempts >= 4) {
-              const firstLetter = name.charAt(0).toUpperCase();
-              alert("Hint: Road begins with " + firstLetter);
-              applyColorToAllSegments(name, 'orange');
-              await saveGuessSegmentIds(name, true, true);
-              return;
-            }
+    #music-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1002;
+    }
 
-            if (attempts === 1) {
-              await saveGuessSegmentIds(name, false, false);
-            }
-            applyColorToAllSegments(name, 'red');
-            alert("Incorrect. Try again.");
-          });
-        }
-      }).addTo(map);
-    });
+    #music-modal {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 6px;
+      z-index: 1003;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    #music-modal button {
+      margin-top: 4px;
+      min-width: 85px;
+      padding: 5px 12px;
+      font-size: 13px;
+      border-radius: 4px;
+      border: 1px solid #888;
+      background: #f8f8f8;
+      cursor: pointer;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    /* Modal guess box */
+    #guess-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      z-index: 1005;
+      display: none;
+      text-align: center;
+      animation: popupFadeIn 0.3s ease;
+    }
+
+    #guess-modal input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    #guess-modal button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: none;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+    }
+
+    @keyframes popupFadeIn {
+      from { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="music-btn" title="Music Settings">🎵</div>
+  <div id="music-modal">
+    <button id="mute-btn">Mute</button>
+    <button id="skip-btn">Skip Track</button>
+  </div>
+  <div id="guess-modal">
+    <input type="text" id="guess-input" placeholder="Enter road name" />
+    <button id="submit-guess">Submit</button>
+  </div>
+  <div class="legend" id="legend">
+    <strong>Legend</strong><br>
+    Black: Unguessed<br>
+    Red: Incorrect<br>
+    Orange: Hint Used<br>
+    Gray: Correct<br>
+    Yellow: Suffix Warning<br>
+    Prismatic: Ultra-Hard Mode
+  </div>
+  <button id="login-btn">Login with Google</button>
+  <button id="logout-btn">Logout</button>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module">
+// your existing import, supabase, map and game logic stays the same
+// just update the guess logic:
+
+let currentGuessTarget = null;
+let attemptMap = new Map();
+
+function openGuessModal(targetName) {
+  currentGuessTarget = targetName;
+  document.getElementById('guess-input').value = '';
+  document.getElementById('guess-modal').style.display = 'block';
+  document.getElementById('guess-input').focus();
 }
+
+function closeGuessModal() {
+  document.getElementById('guess-modal').style.display = 'none';
+}
+
+function getAttempts(name) {
+  return attemptMap.get(name) || 0;
+}
+
+function incrementAttempts(name) {
+  attemptMap.set(name, getAttempts(name) + 1);
+}
+
+document.getElementById('submit-guess').onclick = async () => {
+  if (!currentGuessTarget) return;
+  const input = document.getElementById('guess-input').value.trim();
+  const normalizedGuess = normalizeName(input);
+  const normalizedActual = normalizeName(currentGuessTarget);
+  const attempts = getAttempts(currentGuessTarget);
+
+  if (normalizedGuess === normalizedActual) {
+    const usedHint = attempts >= 3;
+    applyColorToAllSegments(currentGuessTarget, usedHint ? 'orange' : 'gray');
+    await saveGuessSegmentIds(currentGuessTarget, true, usedHint);
+    closeGuessModal();
+    alert('Correct!');
+    return;
+  }
+
+  if (suffixOnlyMismatch(normalizedGuess, normalizedActual)) {
+    applyColorToAllSegments(currentGuessTarget, 'yellow');
+    alert("Almost... check the suffix!");
+    return;
+  }
+
+  incrementAttempts(currentGuessTarget);
+  const newAttempts = getAttempts(currentGuessTarget);
+
+  if (newAttempts >= 4) {
+    const firstLetter = currentGuessTarget.charAt(0).toUpperCase();
+    alert("Hint: Road begins with " + firstLetter);
+    applyColorToAllSegments(currentGuessTarget, 'orange');
+    await saveGuessSegmentIds(currentGuessTarget, true, true);
+    closeGuessModal();
+    return;
+  }
+
+  if (newAttempts === 1) {
+    await saveGuessSegmentIds(currentGuessTarget, false, false);
+  }
+  applyColorToAllSegments(currentGuessTarget, 'red');
+  alert('Incorrect. Try again.');
+};
+
+// Replace old prompt-based click handler with:
+layer.on('click', async function () {
+  openGuessModal(name);
+});
+
+// Keep rest of your game/map/audio logic unchanged
+  </script>
+</body>
+</html>
+
 
 const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
