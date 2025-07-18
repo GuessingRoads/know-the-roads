@@ -188,7 +188,7 @@ let audioContext = new (window.AudioContext || window.webkitAudioContext)();
 let sourceNode;
 
 async function playLoopingMusic() {
-  const response = await fetch('Lofi_1.ogg');
+  const response = await fetch('Lofi_1.wav');
   const arrayBuffer = await response.arrayBuffer();
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
