@@ -82,44 +82,7 @@
 }
 
 
-  #guess-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(1);
-  background: white;
-  padding: 16px;
-  border-radius: 8px;
-  border: 2px solid #333;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  z-index: 1005;
-  display: none;
-  text-align: center;
-  animation: popupFadeIn 0.3s ease;
-  width: 260px;
-}
-#guess-modal input {
-  width: 100%;
-  padding: 8px;
-  font-size: 16px;
-  box-sizing: border-box;
-  margin-bottom: 8px;
-}
-#guess-modal button {
-  padding: 6px 12px;
-  font-size: 14px;
-  border-radius: 4px;
-  border: none;
-  background-color: #333;
-  color: white;
-  cursor: pointer;
-  margin: 4px;
-}
-@keyframes popupFadeIn {
-  from { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
-  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-</style>
+  </style>
 </head>
 <body>
   <div id="map"></div>
@@ -143,83 +106,7 @@
   <button id="login-btn">Login with Google</button>
   <button id="logout-btn">Logout</button>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">let currentGuessTarget = null;
-let attemptMap = new Map();
-
-function openGuessModal(targetName) {
-  currentGuessTarget = targetName;
-  document.getElementById('guess-input').value = '';
-  document.getElementById('feedback-message').innerText = '';
-  document.getElementById('guess-modal').style.display = 'block';
-  document.getElementById('guess-input').focus();
-}
-
-function closeGuessModal() {
-  document.getElementById('guess-modal').style.display = 'none';
-}
-
-function getAttempts(name) {
-  return attemptMap.get(name) || 0;
-}
-
-function incrementAttempts(name) {
-  attemptMap.set(name, getAttempts(name) + 1);
-}
-
-document.getElementById('submit-guess').onclick = handleGuess;
-document.getElementById('give-up').onclick = async () => {
-  const name = currentGuessTarget;
-  applyColorToAllSegments(name, 'orange');
-  document.getElementById('feedback-message').innerText = `Gave up! The road was: ${name}`;
-  await saveGuessSegmentIds(name, true, true);
-  setTimeout(closeGuessModal, 1200);
-};
-
-document.getElementById('guess-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') handleGuess();
-});
-
-async function handleGuess() {
-  if (!currentGuessTarget) return;
-  const input = document.getElementById('guess-input').value.trim();
-  const normalizedGuess = normalizeName(input);
-  const normalizedActual = normalizeName(currentGuessTarget);
-  const attempts = getAttempts(currentGuessTarget);
-
-  if (normalizedGuess === normalizedActual) {
-    const usedHint = attempts >= 3;
-    applyColorToAllSegments(currentGuessTarget, usedHint ? 'orange' : 'gray');
-    await saveGuessSegmentIds(currentGuessTarget, true, usedHint);
-    document.getElementById('feedback-message').innerText = '✅ Correct!';
-    setTimeout(closeGuessModal, 1000);
-    return;
-  }
-
-  if (suffixOnlyMismatch(normalizedGuess, normalizedActual)) {
-    applyColorToAllSegments(currentGuessTarget, 'yellow');
-    document.getElementById('feedback-message').innerText = 'Almost... check the suffix!';
-    return;
-  }
-
-  incrementAttempts(currentGuessTarget);
-  const newAttempts = getAttempts(currentGuessTarget);
-
-  if (newAttempts >= 4) {
-    const firstLetter = currentGuessTarget.charAt(0).toUpperCase();
-    applyColorToAllSegments(currentGuessTarget, 'orange');
-    await saveGuessSegmentIds(currentGuessTarget, true, true);
-    document.getElementById('feedback-message').innerText = `Hint used! Road begins with ${firstLetter}`;
-    setTimeout(closeGuessModal, 1500);
-    return;
-  }
-
-  if (newAttempts === 1) {
-    await saveGuessSegmentIds(currentGuessTarget, false, false);
-  }
-  applyColorToAllSegments(currentGuessTarget, 'red');
-  document.getElementById('feedback-message').innerText = '❌ Incorrect. Try again.';
-}
-</script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 const supabase = createClient(
@@ -382,10 +269,9 @@ async function loadMap() {
           }
 
           let attempts = 0;
-        layer.on('click', function () {
-  openGuessModal(name);
-});
-
+          layer.on('click', async function () {
+            let userGuess = prompt("Guess the name of this road:");
+            if (!userGuess) return;
 
             const normalizedGuess = normalizeName(userGuess);
             const normalizedName = normalizeName(name);
@@ -494,91 +380,6 @@ window.addEventListener('click', async () => {
   }
 }, { once: true });
 
-  let currentGuessTarget = null;
-let attemptMap = new Map();
-
-function openGuessModal(targetName) {
-  currentGuessTarget = targetName;
-  document.getElementById('guess-input').value = '';
-  document.getElementById('feedback-message').innerText = '';
-  document.getElementById('guess-modal').style.display = 'block';
-  document.getElementById('guess-input').focus();
-}
-
-function closeGuessModal() {
-  document.getElementById('guess-modal').style.display = 'none';
-}
-
-function getAttempts(name) {
-  return attemptMap.get(name) || 0;
-}
-
-function incrementAttempts(name) {
-  attemptMap.set(name, getAttempts(name) + 1);
-}
-
-document.getElementById('submit-guess').onclick = handleGuess;
-document.getElementById('give-up').onclick = async () => {
-  const name = currentGuessTarget;
-  applyColorToAllSegments(name, 'orange');
-  document.getElementById('feedback-message').innerText = `Gave up! The road was: ${name}`;
-  await saveGuessSegmentIds(name, true, true);
-  setTimeout(closeGuessModal, 1200);
-};
-
-document.getElementById('guess-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') handleGuess();
-});
-
-async function handleGuess() {
-  if (!currentGuessTarget) return;
-  const input = document.getElementById('guess-input').value.trim();
-  const normalizedGuess = normalizeName(input);
-  const normalizedActual = normalizeName(currentGuessTarget);
-  const attempts = getAttempts(currentGuessTarget);
-
-  if (normalizedGuess === normalizedActual) {
-    const usedHint = attempts >= 3;
-    applyColorToAllSegments(currentGuessTarget, usedHint ? 'orange' : 'gray');
-    await saveGuessSegmentIds(currentGuessTarget, true, usedHint);
-    document.getElementById('feedback-message').innerText = '✅ Correct!';
-    setTimeout(closeGuessModal, 1000);
-    return;
-  }
-
-  if (suffixOnlyMismatch(normalizedGuess, normalizedActual)) {
-    applyColorToAllSegments(currentGuessTarget, 'yellow');
-    document.getElementById('feedback-message').innerText = 'Almost... check the suffix!';
-    return;
-  }
-
-  incrementAttempts(currentGuessTarget);
-  const newAttempts = getAttempts(currentGuessTarget);
-
-  if (newAttempts >= 4) {
-    const firstLetter = currentGuessTarget.charAt(0).toUpperCase();
-    applyColorToAllSegments(currentGuessTarget, 'orange');
-    await saveGuessSegmentIds(currentGuessTarget, true, true);
-    document.getElementById('feedback-message').innerText = `Hint used! Road begins with ${firstLetter}`;
-    setTimeout(closeGuessModal, 1500);
-    return;
-  }
-
-  if (newAttempts === 1) {
-    await saveGuessSegmentIds(currentGuessTarget, false, false);
-  }
-  applyColorToAllSegments(currentGuessTarget, 'red');
-  document.getElementById('feedback-message').innerText = '❌ Incorrect. Try again.';
-}
-</script>
-<!-- Guess Modal -->
-<div id="guess-modal">
-  <input type="text" id="guess-input" placeholder="Enter road name" />
-  <div>
-    <button id="submit-guess">Submit</button>
-    <button id="give-up">Give Up</button>
-  </div>
-  <div id="feedback-message" style="margin-top: 8px; font-size: 14px;"></div>
-</div>
+  </script>
 </body>
 </html>
