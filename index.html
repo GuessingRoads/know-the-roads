@@ -382,9 +382,10 @@ async function loadMap() {
           }
 
           let attempts = 0;
-          layer.on('click', async function () {
-            let userGuess = prompt("Guess the name of this road:");
-            if (!userGuess) return;
+        layer.on('click', function () {
+  openGuessModal(name);
+});
+
 
             const normalizedGuess = normalizeName(userGuess);
             const normalizedName = normalizeName(name);
