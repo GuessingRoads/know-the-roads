@@ -87,39 +87,6 @@
     <button id="mute-btn">Mute</button>
     <button id="skip-btn">Skip Track</button>
   </div>
-// 🎵 Dynamic Music Player Logic with .wav
-let musicPlaying = false;
-let currentTrack = new Audio('music/Lofi_1.wav');
-currentTrack.loop = true;
-
-const musicBtn = document.getElementById('music-btn');
-const modal = document.getElementById('music-modal');
-const muteBtn = document.getElementById('mute-btn');
-const skipBtn = document.getElementById('skip-btn');
-
-musicBtn.onclick = () => {
-  modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
-};
-
-muteBtn.onclick = () => {
-  currentTrack.muted = !currentTrack.muted;
-  muteBtn.innerText = currentTrack.muted ? 'Unmute' : 'Mute';
-};
-
-skipBtn.onclick = () => {
-  // Just restart the same track for now
-  currentTrack.currentTime = 0;
-  currentTrack.play();
-};
-
-// Play on first user interaction (complies with autoplay rules)
-window.addEventListener('click', () => {
-  if (!musicPlaying) {
-    currentTrack.play().catch(e => console.warn("Audio play blocked:", e));
-    musicPlaying = true;
-  }
-}, { once: true });
-
 
   <div class="legend" id="legend">
     <strong>Legend</strong><br>
@@ -263,7 +230,7 @@ function suffixOnlyMismatch(guess, actual) {
   const a = actual.toLowerCase().split(" ");
   if (g.length !== a.length) return false;
   const sameBase = g.slice(0, -1).join(" ") === a.slice(0, -1).join(" ");
-  const diffSuffix = g[g.length - 1] !== a[g.length - 1];
+  const diffSuffix = g[g.length - 1] !== a[a.length - 1];
   return sameBase && diffSuffix;
 }
 
@@ -343,12 +310,13 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 loadMap();
 
-
-// 🎵 Music Player Logic
+// 🎵 Dynamic Music Player Logic
 let musicPlaying = false;
+let currentTrack = new Audio('music/Lofi_1.wav');
+currentTrack.loop = true;
+
 const musicBtn = document.getElementById('music-btn');
 const modal = document.getElementById('music-modal');
-const music = document.getElementById('bg-music');
 const muteBtn = document.getElementById('mute-btn');
 const skipBtn = document.getElementById('skip-btn');
 
@@ -357,24 +325,21 @@ musicBtn.onclick = () => {
 };
 
 muteBtn.onclick = () => {
-  music.muted = !music.muted;
-  muteBtn.innerText = music.muted ? 'Unmute' : 'Mute';
+  currentTrack.muted = !currentTrack.muted;
+  muteBtn.innerText = currentTrack.muted ? 'Unmute' : 'Mute';
 };
 
 skipBtn.onclick = () => {
-  // Placeholder: Loop since only one track
-  music.currentTime = 0;
-  music.play();
+  currentTrack.currentTime = 0;
+  currentTrack.play();
 };
 
-// Autoplay on first interaction
 window.addEventListener('click', () => {
   if (!musicPlaying) {
-    music.play();
+    currentTrack.play().catch(e => console.warn('Autoplay blocked:', e));
     musicPlaying = true;
   }
 }, { once: true });
   </script>
 </body>
 </html>
-
