@@ -36,7 +36,6 @@
 
     #logout-btn { right: 130px; }
 
-    /* 🎵 Music Button */
     #music-btn {
       position: absolute;
       top: 10px;
@@ -53,7 +52,6 @@
       z-index: 1002;
     }
 
-    /* 🎵 Modal */
     #music-modal {
       position: absolute;
       top: 50px;
@@ -63,37 +61,66 @@
       padding: 8px;
       border-radius: 6px;
       z-index: 1003;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
     }
 
- #music-modal button {
-  margin-top: 4px;
-  min-width: 85px;
-  padding: 5px 12px; /* vertical 5px, horizontal 12px */
-  font-size: 13px;
-  border-radius: 4px;
-  border: 1px solid #888;
-  background: #f8f8f8;
-  cursor: pointer;
-  text-align: center;
-  box-sizing: border-box;
-}
+    #music-modal button {
+      margin-top: 4px;
+      min-width: 85px;
+      padding: 5px 12px;
+      font-size: 13px;
+      border-radius: 4px;
+      border: 1px solid #888;
+      background: #f8f8f8;
+      cursor: pointer;
+      text-align: center;
+      box-sizing: border-box;
+    }
 
+    #guess-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      z-index: 1005;
+      display: none;
+      width: 260px;
+      text-align: center;
+    }
 
+    #guess-modal input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    #guess-modal button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: none;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+      margin: 4px;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
-
-  <!-- 🎵 Music Button and Modal -->
   <div id="music-btn" title="Music Settings">🎵</div>
   <div id="music-modal">
     <button id="mute-btn">Mute</button>
     <button id="skip-btn">Skip Track</button>
   </div>
-
   <div class="legend" id="legend">
     <strong>Legend</strong><br>
     Black: Unguessed<br>
@@ -106,8 +133,17 @@
   <button id="login-btn">Login with Google</button>
   <button id="logout-btn">Logout</button>
 
+  <div id="guess-modal">
+    <input type="text" id="guess-input" placeholder="Enter road name" />
+    <div>
+      <button id="submit-guess">Submit</button>
+      <button id="give-up">Give Up</button>
+    </div>
+    <div id="feedback-message" style="margin-top: 8px; font-size: 14px;"></div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module">
+  <script type="module" src="/injected-modal-logic.js"></script>
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 const supabase = createClient(
   'https://yulvzmznvnctgaiwuypb.supabase.co',
