@@ -374,38 +374,6 @@
   }
 
 </script>
-
-
-    const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(map);
-
-    fetch('roads_manheim_named_only.geojson')
-      .then(res => res.json())
-      .then(data => {
-        L.geoJSON(data, {
-          onEachFeature: function (feature, layer) {
-            const id = String(feature.id);
-            const name = feature.properties.name || "";
-            if (!nameToLayers[name]) nameToLayers[name] = [];
-            nameToLayers[name].push(layer);
-
-            if (segmentStateMap.has(id)) {
-              const state = segmentStateMap.get(id);
-              const color = state.correct
-                ? (state.used_hint ? 'orange' : 'gray')
-                : 'red';
-              layer.setStyle({ color, weight: 6 });
-            } else {
-              layer.setStyle({ color: 'black', weight: 6 });
-            }
-
-            layer.on('click', () => openGuessModal(name));
-          }
-        }).addTo(map);
-      });
-  </script>
 </body>
 </html>
 
