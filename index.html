@@ -122,11 +122,35 @@
   </style>
 </head>
 <body>
-  <!-- Body content remains the same -->
-</body>
-</html>
+  <div id="map"></div>
 
-  <!-- ... (same HTML layout as before) ... -->
+  <div id="music-btn" title="Music Settings">🎵</div>
+  <div id="music-modal">
+    <button id="mute-btn">Mute</button>
+    <button id="skip-btn">Skip Track</button>
+  </div>
+
+  <div class="legend" id="legend">
+    <strong>Legend</strong><br>
+    Black: Unguessed<br>
+    Red: Incorrect<br>
+    Orange: Hint Used<br>
+    Gray: Correct<br>
+    Yellow: Suffix Warning<br>
+    Prismatic: Ultra-Hard Mode
+  </div>
+
+  <button id="login-btn">Login with Google</button>
+  <button id="logout-btn">Logout</button>
+
+  <div id="guess-modal">
+    <input type="text" id="guess-input" placeholder="Enter road name" />
+    <div>
+      <button id="submit-guess">Submit</button>
+      <button id="give-up">Give Up</button>
+    </div>
+    <div id="feedback-message" style="margin-top: 8px; font-size: 14px;"></div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
@@ -313,7 +337,6 @@
              g[g.length - 1] !== a[a.length - 1];
     }
 
-    // Guess modal
     const guessModal = document.getElementById('guess-modal');
     const guessInput = document.getElementById('guess-input');
     const feedbackMessage = document.getElementById('feedback-message');
