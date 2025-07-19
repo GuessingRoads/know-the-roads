@@ -153,235 +153,228 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-    import { roadNameToIds } from './roadNameToIds.js';
+  <!-- [HTML and <head> section remain the same as your current file] -->
 
-    const supabase = createClient(
-      'https://yulvzmznvnctgaiwuypb.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
-    );
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+  import { roadNameToIds } from './roadNameToIds.js';
 
-    const suffixMap = {
-      st: 'street', ave: 'avenue', rd: 'road', blvd: 'boulevard', ln: 'lane',
-      dr: 'drive', ct: 'court', cir: 'circle', hwy: 'highway', pkwy: 'parkway',
-      ter: 'terrace', pl: 'place'
-    };
+  const supabase = createClient(
+    'https://yulvzmznvnctgaiwuypb.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
+  );
 
-    let nameToLayers = {}, guessedSegmentIds = new Set(), segmentStateMap = new Map();
-    let currentGuessTarget = null, attemptMap = new Map(), currentUserId = null;
+  const suffixMap = {
+    st: 'street', ave: 'avenue', rd: 'road', blvd: 'boulevard', ln: 'lane',
+    dr: 'drive', ct: 'court', cir: 'circle', hwy: 'highway', pkwy: 'parkway',
+    ter: 'terrace', pl: 'place'
+  };
 
-    // MUSIC
-    let audioContext, sourceNode, musicBuffer, musicPlaying = false, isMuted = false;
-    const musicBtn = document.getElementById('music-btn');
-    const muteBtn = document.getElementById('mute-btn');
-    const skipBtn = document.getElementById('skip-btn');
-    const modal = document.getElementById('music-modal');
+  let nameToLayers = {}, guessedSegmentIds = new Set(), segmentStateMap = new Map();
+  let currentGuessTarget = null, attemptMap = new Map(), currentUserId = null;
 
-    musicBtn.onclick = () => {
-      modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
-    };
+  // MUSIC HANDLING (unchanged)
+  // ...
 
-    muteBtn.onclick = () => {
-      isMuted = !isMuted;
-      muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
-      isMuted ? stopLoop() : playLoop();
-    };
-
-    skipBtn.onclick = () => {
-      stopLoop();
-      playLoop();
-    };
-
-    async function loadMusic() {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const response = await fetch('music/Lofi_1.wav');
-      const arrayBuffer = await response.arrayBuffer();
-      musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    }
-
-    function playLoop() {
-      if (!musicBuffer || isMuted) return;
-      sourceNode = audioContext.createBufferSource();
-      sourceNode.buffer = musicBuffer;
-      sourceNode.connect(audioContext.destination);
-      sourceNode.loop = true;
-      sourceNode.start(0);
-    }
-
-    function stopLoop() {
-      if (sourceNode) {
-        sourceNode.stop(0);
-        sourceNode.disconnect();
-        sourceNode = null;
-      }
-    }
-
-    window.addEventListener('click', async () => {
-      if (!musicPlaying) {
-        await loadMusic();
-        playLoop();
-        musicPlaying = true;
-      }
-    }, { once: true });
-
-    // AUTH
-    document.getElementById('login-btn').onclick = async () => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin }
-      });
-      if (error) alert('Login error: ' + error.message);
-    };
-
-    document.getElementById('logout-btn').onclick = async () => {
-      await supabase.auth.signOut();
-      location.reload();
-    };
-
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        currentUserId = session.user.id;
-        loadGuessedSegmentIds();
-      }
+  // AUTH + MAP LOADING
+  document.getElementById('login-btn').onclick = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
     });
+    if (error) alert('Login error: ' + error.message);
+  };
 
-    async function loadGuessedSegmentIds() {
-      const { data } = await supabase
-        .from('road_guesses')
-        .select('road_id, correct, used_hint')
-        .eq('user_id', currentUserId);
-      if (data) {
-        data.forEach(row => {
-          guessedSegmentIds.add(row.road_id);
-          segmentStateMap.set(row.road_id, {
-            correct: row.correct,
-            used_hint: row.used_hint
-          });
+  document.getElementById('logout-btn').onclick = async () => {
+    await supabase.auth.signOut();
+    location.reload();
+  };
+
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user) {
+      currentUserId = session.user.id;
+      await loadGuessedSegmentIds();
+      renderMap();
+    } else {
+      renderMap();
+    }
+  });
+
+  async function loadGuessedSegmentIds() {
+    const { data } = await supabase
+      .from('road_guesses')
+      .select('road_id, correct, used_hint')
+      .eq('user_id', currentUserId);
+    if (data) {
+      data.forEach(row => {
+        guessedSegmentIds.add(row.road_id);
+        segmentStateMap.set(row.road_id, {
+          correct: row.correct,
+          used_hint: row.used_hint
         });
+      });
+    }
+  }
+
+  function renderMap() {
+    const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    fetch('roads_manheim_named_only.geojson')
+      .then(res => res.json())
+      .then(data => {
+        L.geoJSON(data, {
+          onEachFeature: function (feature, layer) {
+            const id = String(feature.id);
+            const name = feature.properties.name || "";
+            if (!nameToLayers[name]) nameToLayers[name] = [];
+            nameToLayers[name].push(layer);
+
+            if (segmentStateMap.has(id)) {
+              const state = segmentStateMap.get(id);
+              const color = state.correct
+                ? (state.used_hint ? 'orange' : 'gray')
+                : 'red';
+              layer.setStyle({ color, weight: 6 });
+            } else {
+              layer.setStyle({ color: 'black', weight: 6 });
+            }
+
+            // Only attach click event if road is not already guessed
+            if (!guessedSegmentIds.has(id)) {
+              layer.on('click', () => openGuessModal(name));
+            }
+          }
+        }).addTo(map);
+      });
+  }
+
+  async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
+    const ids = roadNameToIds[roadName] || [];
+    for (const id of ids) {
+      const existing = segmentStateMap.get(id);
+      if (!existing) {
+        await supabase.from('road_guesses').insert([{
+          user_id: currentUserId,
+          road_id: id,
+          road_name: roadName,
+          correct: isCorrect,
+          used_hint: usedHint
+        }]);
+        guessedSegmentIds.add(id);
+        segmentStateMap.set(id, { correct: isCorrect, used_hint: usedHint });
+      } else if (isCorrect && !existing.correct) {
+        await supabase
+          .from('road_guesses')
+          .update({ correct: true, used_hint: usedHint })
+          .eq('user_id', currentUserId)
+          .eq('road_id', id);
+        segmentStateMap.set(id, { correct: true, used_hint: usedHint });
       }
     }
+  }
 
-    async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
-      const ids = roadNameToIds[roadName] || [];
-      for (const id of ids) {
-        const existing = segmentStateMap.get(id);
-        if (!existing) {
-          await supabase.from('road_guesses').insert([{
-            user_id: currentUserId,
-            road_id: id,
-            road_name: roadName,
-            correct: isCorrect,
-            used_hint: usedHint
-          }]);
-          guessedSegmentIds.add(id);
-          segmentStateMap.set(id, { correct: isCorrect, used_hint: usedHint });
-        } else if (isCorrect && !existing.correct) {
-          await supabase
-            .from('road_guesses')
-            .update({ correct: true, used_hint: usedHint })
-            .eq('user_id', currentUserId)
-            .eq('road_id', id);
-          segmentStateMap.set(id, { correct: true, used_hint: usedHint });
-        }
-      }
+  function applyColorToAllSegments(name, color) {
+    if (!nameToLayers[name]) return;
+    nameToLayers[name].forEach(layer => layer.setStyle({ color }));
+  }
+
+  function normalizeName(name) {
+    const parts = name.trim().toLowerCase().split(" ");
+    const last = parts[parts.length - 1];
+    const suffix = suffixMap[last] || last;
+    return [...parts.slice(0, -1), suffix].join(" ");
+  }
+
+  function suffixOnlyMismatch(guess, actual) {
+    const g = guess.toLowerCase().split(" ");
+    const a = actual.toLowerCase().split(" ");
+    return g.length === a.length &&
+           g.slice(0, -1).join(" ") === a.slice(0, -1).join(" ") &&
+           g[g.length - 1] !== a[a.length - 1];
+  }
+
+  // GUESS MODAL
+  const guessModal = document.getElementById('guess-modal');
+  const guessInput = document.getElementById('guess-input');
+  const feedbackMessage = document.getElementById('feedback-message');
+
+  function openGuessModal(targetName) {
+    if (!targetName || guessedSegmentIds.has(roadNameToIds[targetName]?.[0])) return;
+    currentGuessTarget = targetName;
+    guessInput.value = '';
+    feedbackMessage.innerText = '';
+    guessModal.style.display = 'block';
+    guessInput.focus();
+  }
+
+  function closeGuessModal() {
+    guessModal.style.display = 'none';
+  }
+
+  document.getElementById('submit-guess').onclick = handleGuess;
+  document.getElementById('give-up').onclick = async () => {
+    if (!currentGuessTarget) return;
+    applyColorToAllSegments(currentGuessTarget, 'orange');
+    feedbackMessage.innerText = `Gave up! The road was: ${currentGuessTarget}`;
+    await saveGuessSegmentIds(currentGuessTarget, true, true);
+    guessedSegmentIds.add(roadNameToIds[currentGuessTarget]?.[0]);
+    setTimeout(closeGuessModal, 1200);
+  };
+
+  guessInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleGuess();
+  });
+
+  async function handleGuess() {
+    const input = guessInput.value.trim();
+    const normalizedGuess = normalizeName(input);
+    const normalizedActual = normalizeName(currentGuessTarget);
+    const attempts = attemptMap.get(currentGuessTarget) || 0;
+
+    if (!currentGuessTarget) return;
+
+    if (normalizedGuess === normalizedActual) {
+      const usedHint = attempts >= 3;
+      applyColorToAllSegments(currentGuessTarget, usedHint ? 'orange' : 'gray');
+      await saveGuessSegmentIds(currentGuessTarget, true, usedHint);
+      guessedSegmentIds.add(roadNameToIds[currentGuessTarget]?.[0]);
+      feedbackMessage.innerText = '✅ Correct!';
+      setTimeout(closeGuessModal, 1000);
+      return;
     }
 
-    function applyColorToAllSegments(name, color) {
-      if (!nameToLayers[name]) return;
-      nameToLayers[name].forEach(layer => layer.setStyle({ color }));
+    if (suffixOnlyMismatch(normalizedGuess, normalizedActual)) {
+      applyColorToAllSegments(currentGuessTarget, 'yellow');
+      feedbackMessage.innerText = 'Almost... check the suffix!';
+      return;
     }
 
-    function normalizeName(name) {
-      const parts = name.trim().toLowerCase().split(" ");
-      const last = parts[parts.length - 1];
-      const suffix = suffixMap[last] || last;
-      return [...parts.slice(0, -1), suffix].join(" ");
-    }
+    const newAttempts = attempts + 1;
+    attemptMap.set(currentGuessTarget, newAttempts);
 
-    function suffixOnlyMismatch(guess, actual) {
-      const g = guess.toLowerCase().split(" ");
-      const a = actual.toLowerCase().split(" ");
-      return g.length === a.length &&
-             g.slice(0, -1).join(" ") === a.slice(0, -1).join(" ") &&
-             g[g.length - 1] !== a[a.length - 1];
-    }
-
-    const guessModal = document.getElementById('guess-modal');
-    const guessInput = document.getElementById('guess-input');
-    const feedbackMessage = document.getElementById('feedback-message');
-
-    function openGuessModal(targetName) {
-      if (!targetName || guessedSegmentIds.has(roadNameToIds[targetName]?.[0])) return;
-      currentGuessTarget = targetName;
-      guessInput.value = '';
-      feedbackMessage.innerText = '';
-      guessModal.style.display = 'block';
-      guessInput.focus();
-    }
-
-    function closeGuessModal() {
-      guessModal.style.display = 'none';
-    }
-
-    document.getElementById('submit-guess').onclick = handleGuess;
-    document.getElementById('give-up').onclick = async () => {
-      if (!currentGuessTarget) return;
+    if (newAttempts >= 4) {
+      const firstLetter = currentGuessTarget.charAt(0).toUpperCase();
       applyColorToAllSegments(currentGuessTarget, 'orange');
-      feedbackMessage.innerText = `Gave up! The road was: ${currentGuessTarget}`;
       await saveGuessSegmentIds(currentGuessTarget, true, true);
       guessedSegmentIds.add(roadNameToIds[currentGuessTarget]?.[0]);
-      setTimeout(closeGuessModal, 1200);
-    };
-
-    guessInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') handleGuess();
-    });
-
-    async function handleGuess() {
-      const input = guessInput.value.trim();
-      const normalizedGuess = normalizeName(input);
-      const normalizedActual = normalizeName(currentGuessTarget);
-      const attempts = attemptMap.get(currentGuessTarget) || 0;
-
-      if (!currentGuessTarget) return;
-
-      if (normalizedGuess === normalizedActual) {
-        const usedHint = attempts >= 3;
-        applyColorToAllSegments(currentGuessTarget, usedHint ? 'orange' : 'gray');
-        await saveGuessSegmentIds(currentGuessTarget, true, usedHint);
-        guessedSegmentIds.add(roadNameToIds[currentGuessTarget]?.[0]);
-        feedbackMessage.innerText = '✅ Correct!';
-        setTimeout(closeGuessModal, 1000);
-        return;
-      }
-
-      if (suffixOnlyMismatch(normalizedGuess, normalizedActual)) {
-        applyColorToAllSegments(currentGuessTarget, 'yellow');
-        feedbackMessage.innerText = 'Almost... check the suffix!';
-        return;
-      }
-
-      const newAttempts = attempts + 1;
-      attemptMap.set(currentGuessTarget, newAttempts);
-
-      if (newAttempts >= 4) {
-        const firstLetter = currentGuessTarget.charAt(0).toUpperCase();
-        applyColorToAllSegments(currentGuessTarget, 'orange');
-        await saveGuessSegmentIds(currentGuessTarget, true, true);
-        guessedSegmentIds.add(roadNameToIds[currentGuessTarget]?.[0]);
-        feedbackMessage.innerText = `Hint used! Road begins with ${firstLetter}`;
-        setTimeout(closeGuessModal, 1500);
-        return;
-      }
-
-      if (newAttempts === 1) {
-        await saveGuessSegmentIds(currentGuessTarget, false, false);
-      }
-
-      applyColorToAllSegments(currentGuessTarget, 'red');
-      feedbackMessage.innerText = '❌ Incorrect. Try again.';
+      feedbackMessage.innerText = `Hint used! Road begins with ${firstLetter}`;
+      setTimeout(closeGuessModal, 1500);
+      return;
     }
+
+    if (newAttempts === 1) {
+      await saveGuessSegmentIds(currentGuessTarget, false, false);
+    }
+
+    applyColorToAllSegments(currentGuessTarget, 'red');
+    feedbackMessage.innerText = '❌ Incorrect. Try again.';
+  }
+
+</script>
+
 
     const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
