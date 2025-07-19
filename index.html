@@ -6,10 +6,126 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    /* ... (same CSS as your working version) ... */
+    #map { height: 100vh; }
+
+    .legend {
+      background: white;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5em;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+    }
+
+    #login-btn, #logout-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 1001;
+    }
+
+    #logout-btn { right: 130px; }
+
+    #music-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1002;
+    }
+
+    #music-modal {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 6px;
+      z-index: 1003;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    #music-modal button {
+      margin-top: 4px;
+      min-width: 85px;
+      padding: 5px 12px;
+      font-size: 13px;
+      border-radius: 4px;
+      border: 1px solid #888;
+      background: #f8f8f8;
+      cursor: pointer;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    #guess-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      z-index: 1005;
+      display: none;
+      text-align: center;
+      animation: popupFadeIn 0.3s ease;
+      width: 260px;
+    }
+
+    #guess-modal input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    #guess-modal button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: none;
+      background-color: #333;
+      color: white;
+      cursor: pointer;
+      margin: 4px;
+    }
+
+    @keyframes popupFadeIn {
+      from { opacity: 0; transform: translate(-50%, -60%) scale(0.95); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
   </style>
 </head>
 <body>
+  <!-- Body content remains the same -->
+</body>
+</html>
+
   <!-- ... (same HTML layout as before) ... -->
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
