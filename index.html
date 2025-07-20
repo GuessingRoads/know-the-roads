@@ -213,17 +213,13 @@ async function loadGuessedSegmentIds() {
     .eq('user_id', currentUserId);
 
   if (error) {
-  console.error("❌ Supabase insert error:", error);
-  console.log("Debug values →", { currentUserId, stringId, normalized, isCorrect, usedHint });
-} else {
-  guessedSegmentIds.add(stringId);
-  segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
-    console.error('Error loading guesses:', error);
+    console.error('❌ Error loading guesses:', error);
     return;
   }
 
   guessedSegmentIds.clear();
   segmentStateMap.clear();
+
   data.forEach(row => {
     guessedSegmentIds.add(row.road_id);
     segmentStateMap.set(row.road_id, {
@@ -232,6 +228,7 @@ async function loadGuessedSegmentIds() {
     });
   });
 }
+
 
 async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
   const normalized = normalizeName(roadName);
@@ -249,10 +246,13 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
         correct: isCorrect,
         used_hint: usedHint
       }]);
-      if (!error) {
-        guessedSegmentIds.add(stringId);
-        segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
-      }
+      if (error) {
+  console.error("❌ Supabase insert error:", error);
+  console.log("Debug values →", { currentUserId, stringId, normalized, isCorrect, usedHint });
+} else {
+  guessedSegmentIds.add(stringId);
+  segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+}
     } else if (isCorrect && !existing.correct) {
       const { error } = await supabase
         .from('road_guesses')
