@@ -238,6 +238,8 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
     const stringId = String(id);
     const existing = segmentStateMap.get(stringId);
 
+    console.log("🔎 Existing value for road", stringId, "→", existing); // ⬅️ ADD THIS
+
     if (!existing) {
   console.log("📝 Inserting guess →", {
     currentUserId,
