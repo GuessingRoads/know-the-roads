@@ -335,43 +335,43 @@ document.getElementById('submit-guess').onclick = async function () {
   console.log('Submit button clicked');
   if (!currentRoad) return;
 
-  const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
-  const actualName = normalizeName(currentRoad.name);
+const userGuess = document.getElementById('guess-input').value.trim();
+const correctName = currentRoad.name.trim();
+const normalizedGuess = normalizeName(userGuess);
+const normalizedCorrect = normalizeName(correctName);
 
-  if (userGuess === actualName) {
-    applyColorToAllSegments(actualName, 'gray');
-    guessedSegmentIds.add(currentRoad.id);
-    await saveGuessSegmentIds(actualName, true);
-    document.getElementById('guess-modal').style.display = 'none';
-    currentRoad = null;
-  } else if (suffixOnlyMismatch(userGuess, actualName)) {
-    applyColorToAllSegments(actualName, 'yellow');
-    document.getElementById('feedback-message').innerText = "Check the suffix!";
+let isCorrect = normalizedGuess === normalizedCorrect;
+let usedHint = false; // assume false unless you're tracking it above
+
+// Determine color
+let color = 'gray'; // default for correct
+if (!isCorrect) {
+  if (normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
+    color = 'yellow'; // suffix mismatch
   } else {
-    currentRoad.attempts++;
-    applyColorToAllSegments(actualName, 'red');
-    document.getElementById('feedback-message').innerText = "Incorrect";
-    if (currentRoad.attempts >= 3) {
-      document.getElementById('feedback-message').innerText = `Hint: Begins with ${actualName[0].toUpperCase()}`;
-    }
+    color = 'red'; // totally incorrect
   }
-};
+}
 
-// 🟧 GIVE UP button handler — sibling, not parent
-document.getElementById('give-up').onclick = async function () {
-  if (!currentRoad) return;
+// Color all matching segments
+const ids = roadNameToIds[normalizedCorrect] || [];
+for (const id of ids) {
+  const layer = nameToLayers[correctName].find(l => String(l.feature.id) === String(id));
+  if (layer) {
+    layer.setStyle({ color: color, weight: 6 });
+  }
+}
 
-  const actualName = normalizeName(currentRoad.name);
-  applyColorToAllSegments(actualName, 'red');
-  await saveGuessSegmentIds(actualName, false, false);
+// Save to Supabase
+await saveGuessSegmentIds(correctName, isCorrect, usedHint);
 
-  document.getElementById('feedback-message').innerText = "Marked as incorrect. Try again later.";
-  setTimeout(() => {
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
-    currentRoad = null;
-  }, 800);
-};
+// Close modal
+document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
+setTimeout(() => {
+  document.getElementById('guess-modal').style.display = 'none';
+  document.getElementById('feedback-message').innerText = '';
+  currentRoad = null;
+}, 800);
     }); // ✅ closes .then(data => { ... })
 }         // ✅ closes the whole loadMap()
 loadMap();
