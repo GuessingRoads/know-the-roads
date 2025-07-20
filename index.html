@@ -328,50 +328,51 @@ async function loadMap() {
     document.getElementById('guess-input').focus();
   });
 }
-         }).addTo(map);
+                 }).addTo(map); // ✅ end of geoJSON block
+      }); // ✅ closes .then(data => { ... })
+} // ✅ closes loadMap()
 
-// 🟩 SUBMIT button handler — NOT inside give-up!
+loadMap(); // ✅ called after it's defined
+
+// ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
   console.log('Submit button clicked');
   if (!currentRoad) return;
 
-const userGuess = document.getElementById('guess-input').value.trim();
-const correctName = currentRoad.name.trim();
-const normalizedGuess = normalizeName(userGuess);
-const normalizedCorrect = normalizeName(correctName);
+  const userGuess = document.getElementById('guess-input').value.trim();
+  const correctName = currentRoad.name.trim();
+  const normalizedGuess = normalizeName(userGuess);
+  const normalizedCorrect = normalizeName(correctName);
 
-let isCorrect = normalizedGuess === normalizedCorrect;
-let usedHint = false; // assume false unless you're tracking it above
+  let isCorrect = normalizedGuess === normalizedCorrect;
+  let usedHint = false;
 
-// Determine color
-let color = 'gray'; // default for correct
-if (!isCorrect) {
-  if (normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
-    color = 'yellow'; // suffix mismatch
-  } else {
-    color = 'red'; // totally incorrect
+  let color = 'gray';
+  if (!isCorrect) {
+    if (normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
+      color = 'yellow';
+    } else {
+      color = 'red';
+    }
   }
-}
 
-// Color all matching segments
-const ids = roadNameToIds[normalizedCorrect] || [];
-for (const id of ids) {
-  const layer = nameToLayers[correctName].find(l => String(l.feature.id) === String(id));
-  if (layer) {
-    layer.setStyle({ color: color, weight: 6 });
+  const ids = roadNameToIds[normalizedCorrect] || [];
+  for (const id of ids) {
+    const layer = nameToLayers[correctName].find(l => String(l.feature.id) === String(id));
+    if (layer) {
+      layer.setStyle({ color: color, weight: 6 });
+    }
   }
-}
 
-// Save to Supabase
-await saveGuessSegmentIds(correctName, isCorrect, usedHint);
+  await saveGuessSegmentIds(correctName, isCorrect, usedHint);
 
-// Close modal
-document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
-setTimeout(() => {
-  document.getElementById('guess-modal').style.display = 'none';
-  document.getElementById('feedback-message').innerText = '';
-  currentRoad = null;
-}, 800);
+  document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
+  setTimeout(() => {
+    document.getElementById('guess-modal').style.display = 'none';
+    document.getElementById('feedback-message').innerText = '';
+    currentRoad = null;
+  }, 800);
+};
     }); // ✅ closes .then(data => { ... })
 }         // ✅ closes the whole loadMap()
 loadMap();
