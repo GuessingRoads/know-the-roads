@@ -239,14 +239,22 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
     const existing = segmentStateMap.get(stringId);
 
     if (!existing) {
-      const { error } = await supabase.from('road_guesses').insert([{
-        user_id: currentUserId,
-        road_id: stringId,
-        road_name: normalized,
-        correct: isCorrect,
-        used_hint: usedHint
+  console.log("📝 Inserting guess →", {
+    currentUserId,
+    stringId,
+    normalized,
+    isCorrect,
+    usedHint
+  });
 
-      }]);
+  const { error } = await supabase.from('road_guesses').insert([{
+    user_id: currentUserId,
+    road_id: stringId,
+    road_name: normalized,
+    correct: isCorrect,
+    used_hint: usedHint
+  }]);
+
       if (error) {
   console.error("❌ Supabase insert error:", error);
   console.log("Debug values →", { currentUserId, stringId, normalized, isCorrect, usedHint });
