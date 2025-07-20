@@ -306,42 +306,22 @@ async function loadMap() {
           }
 
           let attempts = 0;
-          layer.on('click', async function () {
-            let userGuess = prompt("Guess the name of this road:");
-            if (!userGuess) return;
+         layer.on('click', function () {
+  if (guessedSegmentIds.has(id)) return;
 
-            const normalizedGuess = normalizeName(userGuess);
-            const normalizedName = normalizeName(name);
+  document.getElementById('guess-modal').style.display = 'block';
+  document.getElementById('guess-input').value = '';
+  document.getElementById('feedback-message').innerText = '';
+  document.getElementById('guess-input').focus();
 
-            if (normalizedGuess === normalizedName) {
-              const usedHint = attempts >= 3;
-              applyColorToAllSegments(name, usedHint ? 'orange' : 'gray');
-              await saveGuessSegmentIds(name, true, usedHint);
-              alert("Correct!");
-              return;
-            }
+  currentRoad = {
+    name: name,
+    id: id,
+    attempts: 0,
+    layer: layer
+  };
+});
 
-            if (suffixOnlyMismatch(normalizedGuess, normalizedName)) {
-              applyColorToAllSegments(name, 'yellow');
-              alert("Almost... check the suffix!");
-              return;
-            }
-
-            attempts++;
-            if (attempts >= 4) {
-              const firstLetter = name.charAt(0).toUpperCase();
-              alert("Hint: Road begins with " + firstLetter);
-              applyColorToAllSegments(name, 'orange');
-              await saveGuessSegmentIds(name, true, true);
-              return;
-            }
-
-            if (attempts === 1) {
-              await saveGuessSegmentIds(name, false, false);
-            }
-            applyColorToAllSegments(name, 'red');
-            alert("Incorrect. Try again.");
-          });
         }
       }).addTo(map);
     });
