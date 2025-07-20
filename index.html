@@ -384,21 +384,6 @@ document.getElementById('submit-guess').onclick = async function () {
   }
 };
 
-document.getElementById('give-up').onclick = async function () {
-  if (!currentRoad) return;
-
-  const actualName = normalizeName(currentRoad.name);
-
-  applyColorToAllSegments(actualName, 'red');
-  await saveGuessSegmentIds(actualName, false, false);
-
-  document.getElementById('feedback-message').innerText = "Marked as incorrect. Try again later.";
-  setTimeout(() => {
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
-    currentRoad = null;
-  }, 800);
-};
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
   if (e.key === 'Enter') {
     document.getElementById('submit-guess').click();
