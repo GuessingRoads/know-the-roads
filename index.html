@@ -213,6 +213,11 @@ async function loadGuessedSegmentIds() {
     .eq('user_id', currentUserId);
 
   if (error) {
+  console.error("❌ Supabase insert error:", error);
+  console.log("Debug values →", { currentUserId, stringId, normalized, isCorrect, usedHint });
+} else {
+  guessedSegmentIds.add(stringId);
+  segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
     console.error('Error loading guesses:', error);
     return;
   }
