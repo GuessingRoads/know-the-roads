@@ -365,7 +365,7 @@ document.getElementById('submit-guess').onclick = async function () {
 }
 
 
-  await saveGuessSegmentIds(correctName, isCorrect, usedHint);
+  await saveGuessSegmentIds(userGuess, isCorrect, usedHint);
 
   document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
   setTimeout(() => {
