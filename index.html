@@ -321,72 +321,27 @@ async function loadMap() {
     layer: layer
   };
 });
-          document.getElementById('give-up').onclick = async () => {
+document.getElementById('give-up').onclick = async function () {
   if (!currentRoad) return;
 
-  // Mark road red (incorrect)
-  applyColorToAllSegments(currentRoad.name, 'red');
+  const actualName = normalizeName(currentRoad.name);
 
-  // Save as incorrect guess in Supabase
-  if (currentUserId) {
-    await saveGuessSegmentIds(currentRoad.name, false, false);
-  }
+  // Color the road red (not orange)
+  applyColorToAllSegments(actualName, 'red');
 
-  // Hide modal, but do NOT disable the road
-  document.getElementById('guess-modal').style.display = 'none';
+  // Save incorrect guess
+  await saveGuessSegmentIds(actualName, false, false);
+
+  // Show modal briefly then hide
+  document.getElementById('feedback-message').innerText = "Marked as incorrect. Try again later.";
+  setTimeout(() => {
+    document.getElementById('guess-modal').style.display = 'none';
+    document.getElementById('feedback-message').innerText = '';
+  }, 800);
+
+  // Do NOT disable the road
   currentRoad = null;
 };
-
-          document.getElementById('submit-guess').onclick = async () => {
-  const userGuess = document.getElementById('guess-input').value.trim();
-  const feedback = document.getElementById('feedback-message');
-  const modal = document.getElementById('guess-modal');
-
-  if (!userGuess) return;
-
-  const normalizedGuess = normalizeName(userGuess);
-  const normalizedName = normalizeName(currentRoad.name);
-
-  if (normalizedGuess === normalizedName) {
-    const usedHint = currentRoad.attempts >= 3;
-    applyColorToAllSegments(currentRoad.name, usedHint ? 'orange' : 'gray');
-    await saveGuessSegmentIds(currentRoad.name, true, usedHint);
-    feedback.innerText = 'Correct!';
-    setTimeout(() => modal.style.display = 'none', 400);
-    return;
-  }
-
-  if (suffixOnlyMismatch(normalizedGuess, normalizedName)) {
-    applyColorToAllSegments(currentRoad.name, 'yellow');
-    feedback.innerText = 'Almost... check the suffix!';
-    return;
-  }
-
-  currentRoad.attempts++;
-  if (currentRoad.attempts >= 4) {
-    const hint = currentRoad.name.charAt(0).toUpperCase();
-    feedback.innerText = 'Hint: Road begins with ' + hint;
-    applyColorToAllSegments(currentRoad.name, 'orange');
-    await saveGuessSegmentIds(currentRoad.name, true, true);
-    setTimeout(() => modal.style.display = 'none', 1000);
-    return;
-  }
-
-  if (currentRoad.attempts === 1) {
-    await saveGuessSegmentIds(currentRoad.name, false, false);
-  }
-
-  applyColorToAllSegments(currentRoad.name, 'red');
-  feedback.innerText = 'Incorrect. Try again.';
-};
-
-document.getElementById('give-up').onclick = async () => {
-  const modal = document.getElementById('guess-modal');
-  applyColorToAllSegments(currentRoad.name, 'orange');
-  await saveGuessSegmentIds(currentRoad.name, true, true);
-  modal.style.display = 'none';
-};
-
 
         }
       }).addTo(map);
