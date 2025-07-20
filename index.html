@@ -395,46 +395,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 loadMap();
-  document.getElementById('submit-guess').onclick = async function () {
-  if (!currentRoad) return;
-
-  const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
-  const actualName = normalizeName(currentRoad.name);
-
-  if (userGuess === actualName) {
-    applyColorToAllSegments(actualName, 'gray');
-    guessedSegmentIds.add(currentRoad.id);
-    await saveGuessSegmentIds(actualName, true);
-    document.getElementById('guess-modal').style.display = 'none';
-    currentRoad = null;
-  } else if (suffixOnlyMismatch(userGuess, actualName)) {
-    applyColorToAllSegments(actualName, 'yellow');
-    document.getElementById('feedback-message').innerText = "Check the suffix!";
-  } else {
-    currentRoad.attempts++;
-    applyColorToAllSegments(actualName, 'red');
-    document.getElementById('feedback-message').innerText = "Incorrect";
-    if (currentRoad.attempts >= 3) {
-      document.getElementById('feedback-message').innerText = `Hint: Begins with ${actualName[0].toUpperCase()}`;
-    }
-  }
-};
-
-document.getElementById('give-up').onclick = async function () {
-  if (!currentRoad) return;
-
-  const actualName = normalizeName(currentRoad.name);
-  applyColorToAllSegments(actualName, 'red');
-  await saveGuessSegmentIds(actualName, false, false);
-
-  document.getElementById('feedback-message').innerText = "Marked as incorrect. Try again later.";
-  setTimeout(() => {
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
-    currentRoad = null;
-  }, 800);
-};
-
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
   if (e.key === 'Enter') {
