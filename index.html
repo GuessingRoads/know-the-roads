@@ -441,18 +441,6 @@ document.getElementById('submit-guess').onclick = async function () {
     }
   }
 };
-
-document.getElementById('give-up').onclick = async function () {
-  if (!currentRoad) return;
-  const actualName = normalizeName(currentRoad.name);
-  applyColorToAllSegments(actualName, 'orange');
-  guessedSegmentIds.add(currentRoad.id);
-  await saveGuessSegmentIds(actualName, false, true);
-  alert("Correct answer: " + currentRoad.name);
-  document.getElementById('guess-modal').style.display = 'none';
-};
-
-
   </script>
 </body>
 </html>
