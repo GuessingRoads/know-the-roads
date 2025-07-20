@@ -234,6 +234,9 @@ async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
   const normalized = normalizeName(roadName);
   const ids = roadNameToIds[normalized] || [];
 
+  console.log("🔗 Matched segment IDs for road:", normalized, "→", ids);
+
+
   for (const id of ids) {
     const stringId = String(id);
     const existing = segmentStateMap.get(stringId);
