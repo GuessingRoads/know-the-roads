@@ -1,4 +1,5 @@
-export const roadNameToIds = {
+window.roadNameToIds = {
+
   "Buckfield Drive": [
     "way/11921782"
   ],
