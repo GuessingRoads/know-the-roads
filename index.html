@@ -321,6 +321,22 @@ async function loadMap() {
     layer: layer
   };
 });
+          document.getElementById('give-up').onclick = async () => {
+  if (!currentRoad) return;
+
+  // Mark road red (incorrect)
+  applyColorToAllSegments(currentRoad.name, 'red');
+
+  // Save as incorrect guess in Supabase
+  if (currentUserId) {
+    await saveGuessSegmentIds(currentRoad.name, false, false);
+  }
+
+  // Hide modal, but do NOT disable the road
+  document.getElementById('guess-modal').style.display = 'none';
+  currentRoad = null;
+};
+
           document.getElementById('submit-guess').onclick = async () => {
   const userGuess = document.getElementById('guess-input').value.trim();
   const feedback = document.getElementById('feedback-message');
