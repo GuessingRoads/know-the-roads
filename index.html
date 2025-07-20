@@ -364,27 +364,6 @@ document.getElementById('give-up').onclick = async function () {
     currentRoad = null;
   }, 800);
 };
-
-
-  const actualName = normalizeName(currentRoad.name);
-
-  // Color the road red (not orange)
-  applyColorToAllSegments(actualName, 'red');
-
-  // Save incorrect guess
-  await saveGuessSegmentIds(actualName, false, false);
-
-  // Show modal briefly then hide
-  document.getElementById('feedback-message').innerText = "Marked as incorrect. Try again later.";
-  setTimeout(() => {
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
-  }, 800);
-
-  // Do NOT disable the road
-  currentRoad = null;
-};
-
         }
       }).addTo(map);
     });
