@@ -228,8 +228,8 @@ async function loadGuessedSegmentIds() {
 }
 
 async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
- const normalized = normalizeName(roadName);
-const ids = roadNameToIds[normalized] || [];
+ const ids = roadNameToIds[normalizeName(roadName)] || [];
+
 
 
   for (const id of ids) {
