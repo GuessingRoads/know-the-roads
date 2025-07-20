@@ -307,7 +307,7 @@ async function loadMap() {
           }
 
           let attempts = 0;
-         layer.on('click', function () {
+        layer.on('click', function () {
   if (guessedSegmentIds.has(id)) return;
 
   const currentColor = layer.options.color;
@@ -326,10 +326,8 @@ async function loadMap() {
   document.getElementById('guess-input').focus();
 });
 
-document.getElementById('give-up').onclick = async function () {
-  if (!currentRoad) return;
-
-  document.getElementById('submit-guess').onclick = async function () {
+// 🟩 SUBMIT button handler — NOT inside give-up!
+document.getElementById('submit-guess').onclick = async function () {
   if (!currentRoad) return;
 
   const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
@@ -352,6 +350,22 @@ document.getElementById('give-up').onclick = async function () {
       document.getElementById('feedback-message').innerText = `Hint: Begins with ${actualName[0].toUpperCase()}`;
     }
   }
+};
+
+// 🟧 GIVE UP button handler — sibling, not parent
+document.getElementById('give-up').onclick = async function () {
+  if (!currentRoad) return;
+
+  const actualName = normalizeName(currentRoad.name);
+  applyColorToAllSegments(actualName, 'red');
+  await saveGuessSegmentIds(actualName, false, false);
+
+  document.getElementById('feedback-message').innerText = "Marked as incorrect. Try again later.";
+  setTimeout(() => {
+    document.getElementById('guess-modal').style.display = 'none';
+    document.getElementById('feedback-message').innerText = '';
+    currentRoad = null;
+  }, 800);
 };
 
 
