@@ -315,30 +315,6 @@ async function loadMap() {
   document.getElementById('guess-input').focus();
 
   currentRoad = {
-    document.getElementById('submit-guess').onclick = async function () {
-  if (!currentRoad) return;
-  const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
-  const actualName = normalizeName(currentRoad.name);
-
-  if (userGuess === actualName) {
-    applyColorToAllSegments(actualName, 'gray');
-    guessedSegmentIds.add(currentRoad.id);
-    await saveGuessSegmentIds(actualName, true);
-    document.getElementById('guess-modal').style.display = 'none';
-    currentRoad = null;
-  } else if (suffixOnlyMismatch(userGuess, actualName)) {
-    applyColorToAllSegments(actualName, 'yellow');
-    document.getElementById('feedback-message').innerText = "Check the suffix!";
-  } else {
-    currentRoad.attempts++;
-    applyColorToAllSegments(actualName, 'red');
-    document.getElementById('feedback-message').innerText = "Incorrect";
-    if (currentRoad.attempts >= 3) {
-      document.getElementById('feedback-message').innerText = `Hint: Begins with ${actualName[0].toUpperCase()}`;
-    }
-  }
-};
-
     name: name,
     id: id,
     attempts: 0,
@@ -377,6 +353,31 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 loadMap();
+
+document.getElementById('submit-guess').onclick = async function () {
+  if (!currentRoad) return;
+  const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
+  const actualName = normalizeName(currentRoad.name);
+
+  if (userGuess === actualName) {
+    applyColorToAllSegments(actualName, 'gray');
+    guessedSegmentIds.add(currentRoad.id);
+    await saveGuessSegmentIds(actualName, true);
+    document.getElementById('guess-modal').style.display = 'none';
+    currentRoad = null;
+  } else if (suffixOnlyMismatch(userGuess, actualName)) {
+    applyColorToAllSegments(actualName, 'yellow');
+    document.getElementById('feedback-message').innerText = "Check the suffix!";
+  } else {
+    currentRoad.attempts++;
+    applyColorToAllSegments(actualName, 'red');
+    document.getElementById('feedback-message').innerText = "Incorrect";
+    if (currentRoad.attempts >= 3) {
+      document.getElementById('feedback-message').innerText = `Hint: Begins with ${actualName[0].toUpperCase()}`;
+    }
+  }
+};
+
 
 // 🎵 Web Audio API Seamless Loop Logic
 let audioContext = null;
