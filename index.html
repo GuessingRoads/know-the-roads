@@ -327,9 +327,6 @@ async function loadMap() {
 }
          }).addTo(map);
 
-    }); // ✅ this line was missing — closes .then(data => { ... })
-}       // ✅ this line was missing — closes loadMap()
-
 // 🟩 SUBMIT button handler — NOT inside give-up!
 document.getElementById('submit-guess').onclick = async function () {
   console.log('Submit button clicked');
@@ -373,7 +370,8 @@ document.getElementById('give-up').onclick = async function () {
   }, 800);
 };
       }).addTo(map);
-}
+    }); // ✅ closes .then(data => { ... })
+}         // ✅ closes the whole loadMap()
 loadMap();
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
