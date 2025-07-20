@@ -329,6 +329,32 @@ async function loadMap() {
 document.getElementById('give-up').onclick = async function () {
   if (!currentRoad) return;
 
+  document.getElementById('submit-guess').onclick = async function () {
+  if (!currentRoad) return;
+
+  const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
+  const actualName = normalizeName(currentRoad.name);
+
+  if (userGuess === actualName) {
+    applyColorToAllSegments(actualName, 'gray');
+    guessedSegmentIds.add(currentRoad.id);
+    await saveGuessSegmentIds(actualName, true);
+    document.getElementById('guess-modal').style.display = 'none';
+    currentRoad = null;
+  } else if (suffixOnlyMismatch(userGuess, actualName)) {
+    applyColorToAllSegments(actualName, 'yellow');
+    document.getElementById('feedback-message').innerText = "Check the suffix!";
+  } else {
+    currentRoad.attempts++;
+    applyColorToAllSegments(actualName, 'red');
+    document.getElementById('feedback-message').innerText = "Incorrect";
+    if (currentRoad.attempts >= 3) {
+      document.getElementById('feedback-message').innerText = `Hint: Begins with ${actualName[0].toUpperCase()}`;
+    }
+  }
+};
+
+
   const actualName = normalizeName(currentRoad.name);
 
   // Color the road red (not orange)
