@@ -229,9 +229,8 @@ async function loadGuessedSegmentIds() {
 }
 
 async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
- const ids = roadNameToIds[normalizeName(roadName)] || [];
-
-
+  const normalized = normalizeName(roadName);
+  const ids = roadNameToIds[normalized] || [];
 
   for (const id of ids) {
     const stringId = String(id);
