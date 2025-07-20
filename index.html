@@ -373,8 +373,6 @@ document.getElementById('submit-guess').onclick = async function () {
     currentRoad = null;
   }, 800);
 };
-    }); // ✅ closes .then(data => { ... })
-}         // ✅ closes the whole loadMap()
 loadMap();
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
