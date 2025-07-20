@@ -144,6 +144,7 @@
 
  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
+  let currentRoad = null;
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
   
   const supabase = createClient(
@@ -309,10 +310,8 @@ async function loadMap() {
          layer.on('click', function () {
   if (guessedSegmentIds.has(id)) return;
 
-  document.getElementById('guess-modal').style.display = 'block';
-  document.getElementById('guess-input').value = '';
-  document.getElementById('feedback-message').innerText = '';
-  document.getElementById('guess-input').focus();
+  const currentColor = layer.options.color;
+  if (currentColor !== 'black') return;
 
   currentRoad = {
     name: name,
@@ -320,7 +319,13 @@ async function loadMap() {
     attempts: 0,
     layer: layer
   };
+
+  document.getElementById('guess-modal').style.display = 'block';
+  document.getElementById('guess-input').value = '';
+  document.getElementById('feedback-message').innerText = '';
+  document.getElementById('guess-input').focus();
 });
+
 document.getElementById('give-up').onclick = async function () {
   if (!currentRoad) return;
 
@@ -356,6 +361,7 @@ loadMap();
 
 document.getElementById('submit-guess').onclick = async function () {
   if (!currentRoad) return;
+
   const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
   const actualName = normalizeName(currentRoad.name);
 
@@ -377,6 +383,29 @@ document.getElementById('submit-guess').onclick = async function () {
     }
   }
 };
+
+document.getElementById('give-up').onclick = async function () {
+  if (!currentRoad) return;
+
+  const actualName = normalizeName(currentRoad.name);
+
+  applyColorToAllSegments(actualName, 'red');
+  await saveGuessSegmentIds(actualName, false, false);
+
+  document.getElementById('feedback-message').innerText = "Marked as incorrect. Try again later.";
+  setTimeout(() => {
+    document.getElementById('guess-modal').style.display = 'none';
+    document.getElementById('feedback-message').innerText = '';
+    currentRoad = null;
+  }, 800);
+};
+  document.getElementById('guess-input').addEventListener('keypress', function (e) {
+  if (e.key === 'Enter') {
+    document.getElementById('submit-guess').click();
+  }
+});
+
+
 
 
 // 🎵 Web Audio API Seamless Loop Logic
