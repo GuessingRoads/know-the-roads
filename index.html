@@ -153,6 +153,10 @@
   );
 
   import { roadNameToIds } from './roadNameToIds.js';
+  const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
 
 const suffixMap = {
   st: 'street',
@@ -368,11 +372,6 @@ document.getElementById('give-up').onclick = async function () {
       }).addTo(map);
     });
 }
-
-const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
-}).addTo(map);
 loadMap();
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
