@@ -356,13 +356,14 @@ document.getElementById('submit-guess').onclick = async function () {
     }
   }
 
-  const ids = roadNameToIds[normalizedCorrect] || [];
-  for (const id of ids) {
-    const layer = nameToLayers[correctName].find(l => String(l.feature.id) === String(id));
-    if (layer) {
+  for (const key in nameToLayers) {
+  if (normalizeName(key) === normalizedCorrect) {
+    for (const layer of nameToLayers[key]) {
       layer.setStyle({ color: color, weight: 6 });
     }
   }
+}
+
 
   await saveGuessSegmentIds(correctName, isCorrect, usedHint);
 
