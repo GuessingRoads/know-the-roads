@@ -240,7 +240,7 @@ const ids = roadNameToIds[normalized] || [];
       const { error } = await supabase.from('road_guesses').insert([{
         user_id: currentUserId,
         road_id: stringId,
-        road_name: roadName,
+        road_name: normalized,
         correct: isCorrect,
         used_hint: usedHint
       }]);
