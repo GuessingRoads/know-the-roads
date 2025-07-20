@@ -330,6 +330,7 @@ async function loadMap() {
 
 // 🟩 SUBMIT button handler — NOT inside give-up!
 document.getElementById('submit-guess').onclick = async function () {
+  console.log('Submit button clicked');
   if (!currentRoad) return;
 
   const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
