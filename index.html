@@ -285,46 +285,43 @@ async function loadMap() {
     .then(res => res.json())
     .then(data => {
       L.geoJSON(data, {
-        onEachFeature: function (feature, layer) {
-          const id = String(feature.id);
-          const name = feature.properties.name || "";
-          if (!nameToLayers[name]) nameToLayers[name] = [];
-          nameToLayers[name].push(layer);
+       onEachFeature: function (feature, layer) {
+  const id = String(feature.id);
+  const name = feature.properties.name || "";
+  if (!nameToLayers[name]) nameToLayers[name] = [];
+  nameToLayers[name].push(layer);
 
-          if (segmentStateMap.has(id)) {
-            const state = segmentStateMap.get(id);
-            if (!state.correct) {
-              layer.setStyle({ color: 'red', weight: 6 });
-            } else if (state.used_hint) {
-              layer.setStyle({ color: 'orange', weight: 6 });
-              return;
-            } else {
-              layer.setStyle({ color: 'gray', weight: 6 });
-              return;
-            }
-          } else {
-            layer.setStyle({ color: 'black', weight: 6 });
-          }
+  if (segmentStateMap.has(id)) {
+    const state = segmentStateMap.get(id);
+    if (!state.correct) {
+      layer.setStyle({ color: 'red', weight: 6 });
+    } else if (state.used_hint) {
+      layer.setStyle({ color: 'orange', weight: 6 });
+    } else {
+      layer.setStyle({ color: 'gray', weight: 6 });
+    }
+  } else {
+    layer.setStyle({ color: 'black', weight: 6 });
+  }
 
-          let attempts = 0;
-        layer.on('click', function () {
-  if (guessedSegmentIds.has(id)) return;
+  layer.on('click', function () {
+    if (guessedSegmentIds.has(id)) return;
+    if (layer.options.color !== 'black') return;
 
-  const currentColor = layer.options.color;
-  if (currentColor !== 'black') return;
+    currentRoad = {
+      name: name,
+      id: id,
+      attempts: 0,
+      layer: layer
+    };
 
-  currentRoad = {
-    name: name,
-    id: id,
-    attempts: 0,
-    layer: layer
-  };
+    document.getElementById('guess-modal').style.display = 'block';
+    document.getElementById('guess-input').value = '';
+    document.getElementById('feedback-message').innerText = '';
+    document.getElementById('guess-input').focus();
+  });
+}
 
-  document.getElementById('guess-modal').style.display = 'block';
-  document.getElementById('guess-input').value = '';
-  document.getElementById('feedback-message').innerText = '';
-  document.getElementById('guess-input').focus();
-});
 
 // 🟩 SUBMIT button handler — NOT inside give-up!
 document.getElementById('submit-guess').onclick = async function () {
@@ -398,6 +395,46 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 loadMap();
+  document.getElementById('submit-guess').onclick = async function () {
+  if (!currentRoad) return;
+
+  const userGuess = normalizeName(document.getElementById('guess-input').value.trim());
+  const actualName = normalizeName(currentRoad.name);
+
+  if (userGuess === actualName) {
+    applyColorToAllSegments(actualName, 'gray');
+    guessedSegmentIds.add(currentRoad.id);
+    await saveGuessSegmentIds(actualName, true);
+    document.getElementById('guess-modal').style.display = 'none';
+    currentRoad = null;
+  } else if (suffixOnlyMismatch(userGuess, actualName)) {
+    applyColorToAllSegments(actualName, 'yellow');
+    document.getElementById('feedback-message').innerText = "Check the suffix!";
+  } else {
+    currentRoad.attempts++;
+    applyColorToAllSegments(actualName, 'red');
+    document.getElementById('feedback-message').innerText = "Incorrect";
+    if (currentRoad.attempts >= 3) {
+      document.getElementById('feedback-message').innerText = `Hint: Begins with ${actualName[0].toUpperCase()}`;
+    }
+  }
+};
+
+document.getElementById('give-up').onclick = async function () {
+  if (!currentRoad) return;
+
+  const actualName = normalizeName(currentRoad.name);
+  applyColorToAllSegments(actualName, 'red');
+  await saveGuessSegmentIds(actualName, false, false);
+
+  document.getElementById('feedback-message').innerText = "Marked as incorrect. Try again later.";
+  setTimeout(() => {
+    document.getElementById('guess-modal').style.display = 'none';
+    document.getElementById('feedback-message').innerText = '';
+    currentRoad = null;
+  }, 800);
+};
+
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
   if (e.key === 'Enter') {
