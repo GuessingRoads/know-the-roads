@@ -423,7 +423,9 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
   }
 
   await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
-
+  if (isCorrect || usedHint) {
+  completedRoads.add(normalizedCorrect);
+}
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
