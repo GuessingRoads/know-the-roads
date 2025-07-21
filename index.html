@@ -471,7 +471,7 @@ if (state?.correct || state?.used_hint) return;
 } // ✅ closes loadMap()
 
 // ✅ Submit handler defined OUTSIDE of loadMap
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('load', () => {
   document.getElementById('submit-guess').onclick = async function () {
     if (!currentRoad) return;
 
@@ -480,9 +480,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const normalizedGuess = normalizeName(userGuess);
     const normalizedCorrect = normalizeName(correctName);
 
-  let isCorrect = normalizedGuess === normalizedCorrect;
-  let usedHint = false;
-  let color = 'gray';
+    let isCorrect = normalizedGuess === normalizedCorrect;
+    let usedHint = false;
+    let color = 'gray';
 
   // Wrong suffix case
   if (!isCorrect && normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
