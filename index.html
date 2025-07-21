@@ -269,20 +269,25 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
 
 async function checkLogin() {
-  const { data: { session } } = await supabase.auth.getSession();
-  const loginBtn = document.getElementById('login-btn');
-  const logoutBtn = document.getElementById('logout-btn');
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
 
-  if (session?.user) {
-    currentUserId = session.user.id;
-    loginBtn.style.display = 'none';
-    logoutBtn.style.display = 'inline-block';
-    await loadGuessedSegmentIds();
-  } else {
-    loginBtn.style.display = 'inline-block';
-    logoutBtn.style.display = 'none';
+    if (session?.user) {
+      currentUserId = session.user.id;
+      loginBtn.style.display = 'none';
+      logoutBtn.style.display = 'inline-block';
+      await loadGuessedSegmentIds();
+    } else {
+      loginBtn.style.display = 'inline-block';
+      logoutBtn.style.display = 'none';
+    }
+  } catch (err) {
+    console.error("❌ Error in checkLogin():", err);
   }
 }
+
 
 
 async function loadGuessedSegmentIds() {
