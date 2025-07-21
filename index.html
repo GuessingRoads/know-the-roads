@@ -257,6 +257,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   const logoutBtn = document.getElementById('logout-btn');
 
   if (session?.user) {
+    console.log("✅ Logged in as", currentUserId);
     currentUserId = session.user.id;
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'inline-block';
