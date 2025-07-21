@@ -178,6 +178,7 @@ let nameToLayers = {};
 let guessedSegmentIds = new Set();
 let attemptCounts = {};  // Track attempts per segment ID
 let currentUserId = null;
+  const roadAttemptsMap = new Map(); // Tracks attempts per road name
 let segmentStateMap = new Map();
   const segmentIdToName = {};
 
@@ -440,7 +441,7 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     currentRoad = null;
   }, hideDelay);
 };
- document.getElementById('give-up').onclick = async function () {
+document.getElementById('give-up').onclick = async function () {
   if (!currentRoad) return;
 
   const correctName = currentRoad.name.trim();
@@ -450,16 +451,17 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
   );
   const segmentIds = roadNameToIds[normalizedKey];
 
-  // Track attempt
-  currentRoad.attempts += 1;
+  // Update attempts for this road
+  const prevAttempts = roadAttemptsMap.get(normalizedCorrect) || 0;
+  const newAttempts = prevAttempts + 1;
+  roadAttemptsMap.set(normalizedCorrect, newAttempts);
 
-  // If 4th attempt → show hint, mark orange, save to Supabase
-  if (currentRoad.attempts >= 4 && !currentRoad.hintGiven) {
-    currentRoad.hintGiven = true;
+  if (newAttempts >= 4) {
+    // Hint logic
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'orange', weight: 6 });
     }
-    await saveGuessSegmentIds(segmentIds, false, true); // Incorrect + hint
+    await saveGuessSegmentIds(segmentIds, false, true); // incorrect + hint
     alert(`Correct answer: ${correctName}`);
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
@@ -467,18 +469,17 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     return;
   }
 
-  // Otherwise, mark red and save as incorrect
+  // Regular incorrect guess (red)
   for (const layer of nameToLayers[normalizedKey] || []) {
     layer.setStyle({ color: 'red', weight: 6 });
   }
 
-  await saveGuessSegmentIds(segmentIds, false, false); // 🔴 Save as incorrect
+  await saveGuessSegmentIds(segmentIds, false, false); // incorrect no hint
 
   document.getElementById('guess-modal').style.display = 'none';
   document.getElementById('feedback-message').innerText = '';
   currentRoad = null;
 };
-
 
 loadMap();
 
