@@ -713,11 +713,13 @@ window.addEventListener('click', async () => {
 document.addEventListener('DOMContentLoaded', async () => {
   console.log("📦 DOMContentLoaded triggered");
   await checkLogin();
-  console.log("✅ checkLogin() complete");
+   console.log("✅ checkLogin() complete");
 });
 
+})(); // ✅ THIS LINE IS MISSING
 
-  </script>
+</script>
+
   <div id="auth-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
   <button id="login-btn" style="display: none;">Login with Google</button>
   <button id="logout-btn" style="display: none;">Logout</button>
