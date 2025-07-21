@@ -627,7 +627,12 @@ let musicModalVisible = false;
 
 musicBtn.onclick = () => {
   musicModalVisible = !musicModalVisible;
-  modal.style.display = musicModalVisible ? 'flex' : 'none';
+
+  if (musicModalVisible) {
+    modal.classList.add('show');
+  } else {
+    modal.classList.remove('show');
+  }
 };
 
 
