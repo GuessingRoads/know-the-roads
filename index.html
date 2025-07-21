@@ -275,16 +275,31 @@ async function loadGuessedSegmentIds() {
         guessedSegmentIds.add(stringId);
         segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
       }
-    } else if (isCorrect && !existing.correct) {
-      const { error } = await supabase
-        .from('road_guesses')
-        .update({ correct: true, used_hint: usedHint })
-        .eq('user_id', currentUserId)
-        .eq('road_id', stringId);
-      if (!error) {
-        segmentStateMap.set(stringId, { correct: true, used_hint: usedHint });
-      }
+} else {
+  const needsUpdate =
+    (isCorrect && !existing.correct) || 
+    (usedHint && !existing.used_hint);
+
+  if (needsUpdate) {
+    const { error } = await supabase
+      .from('road_guesses')
+      .update({
+        correct: isCorrect || existing.correct,  // don't overwrite true with false
+        used_hint: usedHint || existing.used_hint
+      })
+      .eq('user_id', currentUserId)
+      .eq('road_id', stringId);
+
+    if (!error) {
+      segmentStateMap.set(stringId, {
+        correct: isCorrect || existing.correct,
+        used_hint: usedHint || existing.used_hint
+      });
+    } else {
+      console.error("❌ Supabase update error:", error);
     }
+  }
+}
   }
 }
 
