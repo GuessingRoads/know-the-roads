@@ -337,8 +337,9 @@ async function loadMap() {
   }
 
   layer.on('click', function () {
-    if (guessedSegmentIds.has(id)) return;
-    if (layer.options.color !== 'black') return;
+  const state = segmentStateMap.get(id);
+if (state?.correct || state?.used_hint) return;
+
 
     currentRoad = {
       name: name,
