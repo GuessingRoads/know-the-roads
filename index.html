@@ -317,6 +317,7 @@ async function loadMap() {
        onEachFeature: function (feature, layer) {
   const id = String(feature.id);
   const name = feature.properties.name || "";
+         segmentIdToName[id] = name;
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
 
