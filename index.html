@@ -234,7 +234,7 @@ async function loadGuessedSegmentIds() {
   });
 }
 
- async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
+async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   for (const id of segmentIds) {
     const stringId = String(id);
     let normalized;
@@ -246,21 +246,33 @@ async function loadGuessedSegmentIds() {
       normalized = normalizeName(stringId);
     }
 
-    console.log("🔗 Matched segment IDs for road:", normalized, "→", stringId);
-    
-    const existing = segmentStateMap.get(stringId);
-    console.log("🔎 Existing value for road", stringId, "→", existing);
+    console.log("🔗 Handling segment:", { stringId, normalized, isCorrect, usedHint });
 
+    // Check for existing row in Supabase
+    const { data: existingRows, error: fetchError } = await supabase
+      .from('road_guesses')
+      .select('*')
+      .eq('user_id', currentUserId)
+      .eq('road_id', stringId);
+
+    if (fetchError) {
+      console.error("❌ Fetch error during saveGuessSegmentIds:", fetchError);
+      continue;
+    }
+
+    const existing = existingRows[0];
+
+    // CASE 1: No existing row → INSERT
     if (!existing) {
-      console.log("📝 Inserting guess →", {
-        currentUserId,
-        stringId,
-        normalized,
-        isCorrect,
-        usedHint
+      console.log("🆕 No existing guess found. Inserting new row:", {
+        user_id: currentUserId,
+        road_id: stringId,
+        road_name: normalized,
+        correct: isCorrect,
+        used_hint: usedHint
       });
 
-      const { error } = await supabase.from('road_guesses').insert([{
+      const { error: insertError } = await supabase.from('road_guesses').insert([{
         user_id: currentUserId,
         road_id: stringId,
         road_name: normalized,
@@ -268,38 +280,45 @@ async function loadGuessedSegmentIds() {
         used_hint: usedHint
       }]);
 
-      if (error) {
-        console.error("❌ Supabase insert error:", error);
-        console.log("Debug values →", { currentUserId, stringId, normalized, isCorrect, usedHint });
+      if (insertError) {
+        console.error("❌ Supabase insert error:", insertError);
       } else {
-        guessedSegmentIds.add(stringId);
         segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
       }
-} else {
-  const needsUpdate =
-    (isCorrect && !existing.correct) || 
-    (usedHint && !existing.used_hint);
 
-  if (needsUpdate) {
-    const { error } = await supabase
-      .from('road_guesses')
-      .update({
-        correct: isCorrect || existing.correct,  // don't overwrite true with false
-        used_hint: usedHint || existing.used_hint
-      })
-      .eq('user_id', currentUserId)
-      .eq('road_id', stringId);
-
-    if (!error) {
-      segmentStateMap.set(stringId, {
-        correct: isCorrect || existing.correct,
-        used_hint: usedHint || existing.used_hint
-      });
     } else {
-      console.error("❌ Supabase update error:", error);
+      // CASE 2: Row exists → may need UPDATE
+      const needsUpdate =
+        (isCorrect && !existing.correct) ||
+        (usedHint && !existing.used_hint);
+
+      if (needsUpdate) {
+        const updates = {
+          correct: isCorrect || existing.correct,
+          used_hint: usedHint || existing.used_hint
+        };
+
+        console.log("✏️ Updating existing guess:", {
+          user_id: currentUserId,
+          road_id: stringId,
+          updates
+        });
+
+        const { error: updateError } = await supabase
+          .from('road_guesses')
+          .update(updates)
+          .eq('user_id', currentUserId)
+          .eq('road_id', stringId);
+
+        if (updateError) {
+          console.error("❌ Supabase update error:", updateError);
+        } else {
+          segmentStateMap.set(stringId, updates);
+        }
+      } else {
+        console.log("✅ No update needed. Existing values already match.");
+      }
     }
-  }
-}
   }
 }
 
