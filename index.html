@@ -381,13 +381,23 @@ document.getElementById('submit-guess').onclick = async function () {
     }
   }
 
-  for (const key in nameToLayers) {
+ for (const key in nameToLayers) {
   if (normalizeName(key) === normalizedCorrect) {
     for (const layer of nameToLayers[key]) {
-      layer.setStyle({ color: color, weight: 6 });
+      // Don't lock yellow (suffix-only mismatch)
+      if (color !== 'yellow') {
+        layer.setStyle({ color: color, weight: 6 });
+      } else {
+        // Just flash yellow briefly, then return to black
+        layer.setStyle({ color: 'yellow', weight: 6 });
+        setTimeout(() => {
+          layer.setStyle({ color: 'black', weight: 6 });
+        }, 1000); // 1 second flash
+      }
     }
   }
 }
+
 const normalizedKey = Object.keys(roadNameToIds).find(
   k => normalizeName(k) === normalizedCorrect
 );
