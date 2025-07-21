@@ -645,10 +645,36 @@ let musicBuffer = null;
 let musicPlaying = false;
 let isMuted = false;
 
-const musicBtn = document.getElementById('music-btn');
-const modal = document.getElementById('music-modal');
-const muteBtn = document.getElementById('mute-btn');
-const skipBtn = document.getElementById('skip-btn');
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log("📦 DOMContentLoaded triggered");
+  await checkLogin();
+  console.log("✅ checkLogin() complete");
+
+  // 👇 Now safe to access DOM elements
+  const musicBtn = document.getElementById('music-btn');
+  const modal = document.getElementById('music-modal');
+  const muteBtn = document.getElementById('mute-btn');
+  const skipBtn = document.getElementById('skip-btn');
+
+  let musicModalVisible = false;
+
+  musicBtn.onclick = () => {
+    musicModalVisible = !musicModalVisible;
+    modal.classList.toggle('show', musicModalVisible);
+  };
+
+  muteBtn.onclick = () => {
+    isMuted = !isMuted;
+    muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
+    isMuted ? stopLoop() : playLoop();
+  };
+
+  skipBtn.onclick = () => {
+    stopLoop();
+    playLoop();
+  };
+
+});
 
 // Load audio buffer
 async function loadMusic() {
