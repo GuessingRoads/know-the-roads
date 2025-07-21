@@ -229,8 +229,9 @@ async function loadGuessedSegmentIds() {
   });
 }
 
+  async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
+  console.log("🧪 DEBUG roadName in saveGuessSegmentIds:", roadName); // 👈 ADD THIS
 
-async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
   const normalized = normalizeName(roadName);
   const ids = roadNameToIds[normalized] || [];
 
