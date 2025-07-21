@@ -697,26 +697,29 @@ muteBtn.onclick = () => {
   else playLoop();
 };
 (() => {
-skipBtn.onclick = () => {
-  stopLoop();
-  playLoop();
-};
-// Start audio on first interaction
-window.addEventListener('click', async () => {
-  if (!musicPlaying) {
-    await loadMusic();
+
+  skipBtn.onclick = () => {
+    stopLoop();
     playLoop();
-    musicPlaying = true;
-  }
-}, { once: true });
+  };
 
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log("📦 DOMContentLoaded triggered");
-  await checkLogin();
-   console.log("✅ checkLogin() complete");
-});
+  // Start audio on first interaction
+  window.addEventListener('click', async () => {
+    if (!musicPlaying) {
+      await loadMusic();
+      playLoop();
+      musicPlaying = true;
+    }
+  }, { once: true });
 
-})(); // ✅ THIS LINE IS MISSING
+  document.addEventListener('DOMContentLoaded', async () => {
+    console.log("📦 DOMContentLoaded triggered");
+    await checkLogin();
+    console.log("✅ checkLogin() complete");
+  });
+
+})(); // ✅ This must match the opening line
+
 
 </script>
 
