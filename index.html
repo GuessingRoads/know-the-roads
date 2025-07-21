@@ -176,6 +176,7 @@ const suffixMap = {
 
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
+let attemptCounts = {};  // Track attempts per segment ID
 let currentUserId = null;
 let segmentStateMap = new Map();
   const segmentIdToName = {};
