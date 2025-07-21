@@ -362,7 +362,6 @@ loadMap(); // ✅ called after it's defined
 
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
-  console.log('Submit button clicked');
   if (!currentRoad) return;
 
   const userGuess = document.getElementById('guess-input').value.trim();
@@ -372,67 +371,67 @@ document.getElementById('submit-guess').onclick = async function () {
 
   let isCorrect = normalizedGuess === normalizedCorrect;
   let usedHint = false;
-
   let color = 'gray';
-  if (!isCorrect) {
-    if (normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
-      color = 'yellow';
-    } else {
-      color = 'red';
+
+  // Wrong suffix case
+  if (!isCorrect && normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
+    color = 'yellow';
+    document.getElementById('feedback-message').innerText = 'Check the suffix!';
+    setTimeout(() => document.getElementById('feedback-message').innerText = '', 5000);
+    const key = Object.keys(nameToLayers).find(k => normalizeName(k) === normalizedCorrect);
+    for (const layer of nameToLayers[key] || []) {
+      layer.setStyle({ color: 'yellow', weight: 6 });
     }
+    return; // Don't count this as an attempt, and don't save to Supabase
   }
 
- for (const key in nameToLayers) {
-  if (normalizeName(key) === normalizedCorrect) {
-    for (const layer of nameToLayers[key]) {
-      // Don't lock yellow (suffix-only mismatch)
-      if (color !== 'yellow') {
-        layer.setStyle({ color: color, weight: 6 });
-      } else {
-        // Just flash yellow briefly, then return to black
-        layer.setStyle({ color: 'yellow', weight: 6 });
-        setTimeout(() => {
-          layer.setStyle({ color: 'black', weight: 6 });
-        }, 5000); // 1 second flash
-      }
-    }
+  // Track attempts
+  currentRoad.attempts += 1;
+
+  // If 4th attempt or more, trigger hint
+  if (currentRoad.attempts >= 4 && !currentRoad.hintGiven) {
+    currentRoad.hintGiven = true;
+    const firstLetter = correctName.charAt(0).toUpperCase();
+    document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+    return; // Wait for next guess
   }
-}
 
-const normalizedKey = Object.keys(roadNameToIds).find(
-  k => normalizeName(k) === normalizedCorrect
-);
-const segmentIds = roadNameToIds[normalizedKey];
-console.log("🔍 Lookup key found:", normalizedKey);
-console.log("📍 Segment IDs found:", segmentIds);
+  // If hint was given, flag it
+  if (currentRoad.hintGiven) {
+    usedHint = true;
+    color = 'orange';
+  } else if (!isCorrect) {
+    color = 'red';
+  }
 
+  // Color the correct road segments
+  const normalizedKey = Object.keys(roadNameToIds).find(
+    k => normalizeName(k) === normalizedCorrect
+  );
+  const segmentIds = roadNameToIds[normalizedKey];
+  for (const layer of nameToLayers[normalizedKey] || []) {
+    layer.setStyle({ color: color, weight: 6 });
+  }
 
-
-  console.log("🧪 About to save guess:", segmentIds, typeof segmentIds);
-if (color !== 'yellow') {
   await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
-} else {
-  console.log('⚠️ Yellow warning - suffix mismatch. Not saving.');
-}
 
+  // Show correct answer if hint was used but still wrong
+  if (usedHint && !isCorrect) {
+    alert(`Correct answer: ${correctName}`);
+  }
 
+  // Show feedback
+  document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
 
-
-  if (isCorrect) {
-  document.getElementById('feedback-message').innerText = 'Correct!';
-} else if (color === 'yellow') {
-  document.getElementById('feedback-message').innerText = 'Almost! Check the suffix.';
-} else {
-  document.getElementById('feedback-message').innerText = 'Incorrect';
-}
+  // Delay hide based on color
   let hideDelay = 800;
-if (color === 'yellow') hideDelay = 5000;
+  if (color === 'yellow') hideDelay = 5000;
 
-setTimeout(() => {
-  document.getElementById('guess-modal').style.display = 'none';
-  document.getElementById('feedback-message').innerText = '';
-  currentRoad = null;
-}, hideDelay);
+  setTimeout(() => {
+    document.getElementById('guess-modal').style.display = 'none';
+    document.getElementById('feedback-message').innerText = '';
+    currentRoad = null;
+  }, hideDelay);
 };
 loadMap();
 
