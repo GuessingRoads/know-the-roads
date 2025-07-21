@@ -451,17 +451,17 @@ document.getElementById('give-up').onclick = async function () {
   );
   const segmentIds = roadNameToIds[normalizedKey];
 
-  // Update attempts for this road
+  // Update attempts
   const prevAttempts = roadAttemptsMap.get(normalizedCorrect) || 0;
   const newAttempts = prevAttempts + 1;
   roadAttemptsMap.set(normalizedCorrect, newAttempts);
 
   if (newAttempts >= 4) {
-    // Hint logic
+    // Final attempt → reveal + mark as hint-used
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'orange', weight: 6 });
     }
-    await saveGuessSegmentIds(segmentIds, false, true); // incorrect + hint
+    await saveGuessSegmentIds(segmentIds, false, true); // incorrect + used hint
     alert(`Correct answer: ${correctName}`);
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
@@ -469,16 +469,15 @@ document.getElementById('give-up').onclick = async function () {
     return;
   }
 
-  // Regular incorrect guess (red)
+  // Otherwise: regular incorrect (red), still clickable
   for (const layer of nameToLayers[normalizedKey] || []) {
     layer.setStyle({ color: 'red', weight: 6 });
   }
 
   await saveGuessSegmentIds(segmentIds, false, false); // incorrect no hint
-
   document.getElementById('guess-modal').style.display = 'none';
   document.getElementById('feedback-message').innerText = '';
-  currentRoad = null;
+  // DO NOT null currentRoad so it's still guessable
 };
 
 loadMap();
