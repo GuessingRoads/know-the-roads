@@ -267,7 +267,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-
+console.log("🔍 Checking login status...");
 async function checkLogin() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
