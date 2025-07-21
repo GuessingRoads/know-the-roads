@@ -427,7 +427,6 @@ function suffixOnlyMismatch(guess, actual) {
 }
 
 async function loadMap() {
-  await checkLogin();
 
   fetch('roads_manheim_named_only.geojson')
     .then(res => res.json())
@@ -475,8 +474,6 @@ if (state?.correct || state?.used_hint) return;
                  }).addTo(map); // ✅ end of geoJSON block
       }); // ✅ closes .then(data => { ... })
 } // ✅ closes loadMap()
-
-loadMap(); // ✅ called after it's defined
 
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
@@ -622,10 +619,6 @@ document.getElementById('give-up').onclick = async function () {
   }, 800);
 };
 
-
-
-
-loadMap();
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
   if (e.key === 'Enter') {
