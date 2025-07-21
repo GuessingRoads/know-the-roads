@@ -613,9 +613,13 @@ function stopLoop() {
   }
 }
 
+let musicModalVisible = false;
+
 musicBtn.onclick = () => {
-  modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+  musicModalVisible = !musicModalVisible;
+  modal.style.display = musicModalVisible ? 'flex' : 'none';
 };
+
 
 muteBtn.onclick = () => {
   isMuted = !isMuted;
