@@ -557,6 +557,19 @@ loadMap();
     document.getElementById('submit-guess').click();
   }
 });
+document.getElementById('guess-input').addEventListener('input', async function (e) {
+  if (!currentRoad) return;
+
+  const userGuess = e.target.value.trim();
+  const correctName = currentRoad.name.trim();
+  const normalizedGuess = normalizeName(userGuess);
+  const normalizedCorrect = normalizeName(correctName);
+
+  if (normalizedGuess === normalizedCorrect) {
+    console.log("⚡ Auto-submitting correct guess:", userGuess);
+    document.getElementById('submit-guess').click();
+  }
+});
 
 
 
