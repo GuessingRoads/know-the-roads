@@ -386,7 +386,7 @@ const segmentIds = roadNameToIds[normalizedCorrect];
 console.log("🔍 Looking up road:", normalizedCorrect);
 console.log("📍 Segment IDs found:", segmentIds);
 
-  await saveGuessSegmentIds(userGuess, isCorrect, usedHint);
+  await saveGuessSegmentIds(correctName, isCorrect, usedHint);
 
   document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
   setTimeout(() => {
