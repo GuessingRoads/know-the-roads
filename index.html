@@ -471,13 +471,14 @@ if (state?.correct || state?.used_hint) return;
 } // ✅ closes loadMap()
 
 // ✅ Submit handler defined OUTSIDE of loadMap
-document.getElementById('submit-guess').onclick = async function () {
-  if (!currentRoad) return;
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('submit-guess').onclick = async function () {
+    if (!currentRoad) return;
 
-  const userGuess = document.getElementById('guess-input').value.trim();
-  const correctName = currentRoad.name.trim();
-  const normalizedGuess = normalizeName(userGuess);
-  const normalizedCorrect = normalizeName(correctName);
+    const userGuess = document.getElementById('guess-input').value.trim();
+    const correctName = currentRoad.name.trim();
+    const normalizedGuess = normalizeName(userGuess);
+    const normalizedCorrect = normalizeName(correctName);
 
   let isCorrect = normalizedGuess === normalizedCorrect;
   let usedHint = false;
