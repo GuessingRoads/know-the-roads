@@ -424,11 +424,14 @@ if (color !== 'yellow') {
 } else {
   document.getElementById('feedback-message').innerText = 'Incorrect';
 }
-  setTimeout(() => {
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
-    currentRoad = null;
-  }, 800);
+  let hideDelay = 800;
+if (color === 'yellow') hideDelay = 5000;
+
+setTimeout(() => {
+  document.getElementById('guess-modal').style.display = 'none';
+  document.getElementById('feedback-message').innerText = '';
+  currentRoad = null;
+}, hideDelay);
 };
 loadMap();
 
