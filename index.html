@@ -393,7 +393,8 @@ console.log("📍 Segment IDs found:", segmentIds);
 
 
   console.log("🧪 About to save guess:", segmentIds, typeof segmentIds);
-await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
+await saveGuessSegmentIds(correctName, isCorrect, usedHint);
+
 
 
   document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
