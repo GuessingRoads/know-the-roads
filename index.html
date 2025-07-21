@@ -696,7 +696,7 @@ muteBtn.onclick = () => {
   if (isMuted) stopLoop();
   else playLoop();
 };
-
+(() => {
 skipBtn.onclick = () => {
   stopLoop();
   playLoop();
