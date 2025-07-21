@@ -459,6 +459,7 @@ document.getElementById('give-up').onclick = async function () {
 
   if (newAttempts >= 4) {
     // Final attempt → reveal + mark as hint-used
+    completedRoads.add(normalizedCorrect);
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'orange', weight: 6 });
     }
