@@ -274,6 +274,7 @@ async function checkLogin() {
       loginBtn.style.display = 'none';
       logoutBtn.style.display = 'inline-block';
       await loadGuessedSegmentIds();
+      loadMap();
     } else {
       loginBtn.style.display = 'inline-block';
       logoutBtn.style.display = 'none';
@@ -710,7 +711,6 @@ window.addEventListener('click', async () => {
 }, { once: true });
   document.addEventListener('DOMContentLoaded', async () => {
   await checkLogin();  // ensures DOM is ready for buttons
-  loadMap();           // ensures road map loads after login setup
 });
 
   </script>
