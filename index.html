@@ -721,6 +721,11 @@ window.addEventListener('click', async () => {
     musicPlaying = true;
   }
 }, { once: true });
+  document.addEventListener('DOMContentLoaded', async () => {
+  await checkLogin();  // ensures DOM is ready for buttons
+  loadMap();           // ensures road map loads after login setup
+});
+
   </script>
 </body>
 </html>
