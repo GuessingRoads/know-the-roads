@@ -382,9 +382,13 @@ document.getElementById('submit-guess').onclick = async function () {
     }
   }
 }
-const segmentIds = roadNameToIds[normalizeName(correctName)];
-console.log("🔍 Looking up road:", normalizeName(correctName));
+const normalizedKey = Object.keys(roadNameToIds).find(
+  k => normalizeName(k) === normalizedCorrect
+);
+const segmentIds = roadNameToIds[normalizedKey];
+console.log("🔍 Lookup key found:", normalizedKey);
 console.log("📍 Segment IDs found:", segmentIds);
+
 
 
   await saveGuessSegmentIds(correctName, isCorrect, usedHint);
