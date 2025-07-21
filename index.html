@@ -231,52 +231,47 @@ async function loadGuessedSegmentIds() {
   });
 }
 
-  async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
-  console.log("🧪 DEBUG roadName in saveGuessSegmentIds:", roadName); // 👈 ADD THIS
-
- let normalized;
-if (roadName.startsWith('way/')) {
-  // Lookup actual name if it's a segment ID
-  const rawName = segmentIdToName[roadName] || "";
-  normalized = normalizeName(rawName);
-} else {
-  normalized = normalizeName(roadName);
-}
-  const ids = roadNameToIds[normalized] || [];
-
-  console.log("🔗 Matched segment IDs for road:", normalized, "→", ids);
-
-
-  for (const id of ids) {
+ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
+  for (const id of segmentIds) {
     const stringId = String(id);
-    const existing = segmentStateMap.get(stringId);
+    let normalized;
 
-    console.log("🔎 Existing value for road", stringId, "→", existing); // ⬅️ ADD THIS
+    if (stringId.startsWith('way/')) {
+      const rawName = segmentIdToName[stringId] || "";
+      normalized = normalizeName(rawName);
+    } else {
+      normalized = normalizeName(stringId);
+    }
+
+    console.log("🔗 Matched segment IDs for road:", normalized, "→", stringId);
+    
+    const existing = segmentStateMap.get(stringId);
+    console.log("🔎 Existing value for road", stringId, "→", existing);
 
     if (!existing) {
-  console.log("📝 Inserting guess →", {
-    currentUserId,
-    stringId,
-    normalized,
-    isCorrect,
-    usedHint
-  });
+      console.log("📝 Inserting guess →", {
+        currentUserId,
+        stringId,
+        normalized,
+        isCorrect,
+        usedHint
+      });
 
-  const { error } = await supabase.from('road_guesses').insert([{
-    user_id: currentUserId,
-    road_id: stringId,
-    road_name: normalized,
-    correct: isCorrect,
-    used_hint: usedHint
-  }]);
+      const { error } = await supabase.from('road_guesses').insert([{
+        user_id: currentUserId,
+        road_id: stringId,
+        road_name: normalized,
+        correct: isCorrect,
+        used_hint: usedHint
+      }]);
 
       if (error) {
-  console.error("❌ Supabase insert error:", error);
-  console.log("Debug values →", { currentUserId, stringId, normalized, isCorrect, usedHint });
-} else {
-  guessedSegmentIds.add(stringId);
-  segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
-}
+        console.error("❌ Supabase insert error:", error);
+        console.log("Debug values →", { currentUserId, stringId, normalized, isCorrect, usedHint });
+      } else {
+        guessedSegmentIds.add(stringId);
+        segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+      }
     } else if (isCorrect && !existing.correct) {
       const { error } = await supabase
         .from('road_guesses')
