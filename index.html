@@ -178,6 +178,8 @@ let nameToLayers = {};
 let guessedSegmentIds = new Set();
 let currentUserId = null;
 let segmentStateMap = new Map();
+  const segmentIdToName = {};
+
 
 document.getElementById('login-btn').onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
