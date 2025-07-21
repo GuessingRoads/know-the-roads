@@ -417,7 +417,13 @@ if (color !== 'yellow') {
 
 
 
-  document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
+  if (isCorrect) {
+  document.getElementById('feedback-message').innerText = 'Correct!';
+} else if (color === 'yellow') {
+  document.getElementById('feedback-message').innerText = 'Almost! Check the suffix.';
+} else {
+  document.getElementById('feedback-message').innerText = 'Incorrect';
+}
   setTimeout(() => {
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
