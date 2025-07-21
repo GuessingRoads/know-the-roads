@@ -274,11 +274,11 @@ async function checkLogin() {
       loginBtn.style.display = 'none';
       logoutBtn.style.display = 'inline-block';
       await loadGuessedSegmentIds();
-      loadMap();
     } else {
       loginBtn.style.display = 'inline-block';
       logoutBtn.style.display = 'none';
     }
+    loadmap();
   } catch (err) {
     console.error("❌ Error in checkLogin():", err);
   }
