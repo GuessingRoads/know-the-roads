@@ -455,49 +455,59 @@ document.getElementById('give-up').onclick = async function () {
   );
   const segmentIds = roadNameToIds[normalizedKey];
 
-  // Update global attempt tracking
+  // Update global attempts (road-based)
   const prevAttempts = roadAttemptsMap.get(normalizedCorrect) || 0;
   const newAttempts = prevAttempts + 1;
   roadAttemptsMap.set(normalizedCorrect, newAttempts);
 
-  // Also update per-segment ID count (syncs with submit logic)
+  // Also update segment-based attempt count (matches submit logic)
   if (!attemptCounts[currentRoad.id]) {
     attemptCounts[currentRoad.id] = 1;
   } else {
     attemptCounts[currentRoad.id] += 1;
   }
 
-  // Final give-up logic
+  let usedHint = false;
+
   if (newAttempts >= 4) {
-    // Flag hint used, mark as orange, and disable clicking
-    currentRoad.hintGiven = true;
+    // FINAL GIVE-UP (4th+ try)
+    usedHint = true;
     completedRoads.add(normalizedCorrect);
+    currentRoad.hintGiven = true;
+
+    // Update internal state map before saving
+    for (const id of segmentIds) {
+      segmentStateMap.set(String(id), { correct: false, used_hint: true });
+    }
 
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'orange', weight: 6 });
     }
 
-    await saveGuessSegmentIds(segmentIds, false, true);  // ❗ incorrect + used_hint
+    await saveGuessSegmentIds(segmentIds, false, true);
 
     alert(`Correct answer: ${correctName}`);
   } else {
-    // Early give-up (before 4th): mark red, keep clickable
+    // EARLY GIVE-UP (< 4 tries)
+    usedHint = false;
+
+    // Don't mark completed; allow future attempts
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'red', weight: 6 });
     }
 
-    await saveGuessSegmentIds(segmentIds, false, false);  // ❗ incorrect only
-
+    await saveGuessSegmentIds(segmentIds, false, false);
     document.getElementById('feedback-message').innerText = 'Incorrect';
   }
 
-  // Always close modal
+  // Close modal regardless
   setTimeout(() => {
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
     currentRoad = null;
   }, 800);
 };
+
 
 
 
