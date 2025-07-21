@@ -385,16 +385,17 @@ document.getElementById('submit-guess').onclick = async function () {
     return; // Don't count this as an attempt, and don't save to Supabase
   }
 
-  // Track attempts
-  currentRoad.attempts += 1;
+ // Track attempts by road ID
+if (!attemptCounts[currentRoad.id]) attemptCounts[currentRoad.id] = 1;
+else attemptCounts[currentRoad.id] += 1;
 
-  // If 4th attempt or more, trigger hint
-  if (currentRoad.attempts >= 4 && !currentRoad.hintGiven) {
-    currentRoad.hintGiven = true;
-    const firstLetter = correctName.charAt(0).toUpperCase();
-    document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
-    return; // Wait for next guess
-  }
+if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
+  currentRoad.hintGiven = true;
+  const firstLetter = correctName.charAt(0).toUpperCase();
+  document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+  return; // Wait for next guess
+}
+
 
   // If hint was given, flag it
   if (currentRoad.hintGiven) {
