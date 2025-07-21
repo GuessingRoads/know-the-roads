@@ -234,7 +234,14 @@ async function loadGuessedSegmentIds() {
   async function saveGuessSegmentIds(roadName, isCorrect, usedHint = false) {
   console.log("🧪 DEBUG roadName in saveGuessSegmentIds:", roadName); // 👈 ADD THIS
 
-  const normalized = normalizeName(roadName);
+ let normalized;
+if (roadName.startsWith('way/')) {
+  // Lookup actual name if it's a segment ID
+  const rawName = segmentIdToName[roadName] || "";
+  normalized = normalizeName(rawName);
+} else {
+  normalized = normalizeName(roadName);
+}
   const ids = roadNameToIds[normalized] || [];
 
   console.log("🔗 Matched segment IDs for road:", normalized, "→", ids);
