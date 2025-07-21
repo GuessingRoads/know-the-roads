@@ -391,7 +391,7 @@ console.log("📍 Segment IDs found:", segmentIds);
 
 
 
-  await saveGuessSegmentIds(correctName, isCorrect, usedHint);
+  await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
 
   document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
   setTimeout(() => {
