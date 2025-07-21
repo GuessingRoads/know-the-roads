@@ -382,7 +382,9 @@ document.getElementById('submit-guess').onclick = async function () {
     }
   }
 }
-
+const segmentIds = roadNameToIds[normalizedCorrect];
+console.log("🔍 Looking up road:", normalizedCorrect);
+console.log("📍 Segment IDs found:", segmentIds);
 
   await saveGuessSegmentIds(userGuess, isCorrect, usedHint);
 
