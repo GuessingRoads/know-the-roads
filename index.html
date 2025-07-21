@@ -328,13 +328,14 @@ async function loadMap() {
 
   if (segmentStateMap.has(id)) {
     const state = segmentStateMap.get(id);
-    if (!state.correct) {
-      layer.setStyle({ color: 'red', weight: 6 });
-    } else if (state.used_hint) {
-      layer.setStyle({ color: 'orange', weight: 6 });
-    } else {
-      layer.setStyle({ color: 'gray', weight: 6 });
-    }
+    if (state.used_hint) {
+  layer.setStyle({ color: 'orange', weight: 6 });
+} else if (state.correct) {
+  layer.setStyle({ color: 'gray', weight: 6 });
+} else {
+  layer.setStyle({ color: 'red', weight: 6 });
+}
+
   } else {
     layer.setStyle({ color: 'black', weight: 6 });
   }
