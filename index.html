@@ -466,6 +466,11 @@ document.getElementById('give-up').onclick = async function () {
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'orange', weight: 6 });
     }
+console.log("🔥 GIVE UP FINAL ATTEMPT", {
+  segmentIds,
+  isCorrect: false,
+  usedHint: true,
+});
 
     await saveGuessSegmentIds(segmentIds, false, true);  // 👈 key line: incorrect + used hint
 
