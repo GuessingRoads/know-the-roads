@@ -710,8 +710,11 @@ window.addEventListener('click', async () => {
   }
 }, { once: true });
   document.addEventListener('DOMContentLoaded', async () => {
-  await checkLogin();  // ensures DOM is ready for buttons
+  console.log("📦 DOMContentLoaded triggered");
+  await checkLogin();
+  console.log("✅ checkLogin() complete");
 });
+
 
   </script>
   <div id="auth-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
