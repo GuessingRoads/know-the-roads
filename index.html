@@ -95,12 +95,17 @@
       text-align: center;
     }
 
-    #guess-modal input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 8px;
-      font-size: 16px;
-    }
+   #guess-modal input {
+  display: block;
+  width: calc(100% - 16px); /* prevents overflow */
+  margin: 0 auto 8px auto;
+  padding: 8px;
+  font-size: 16px;
+  box-sizing: border-box;  /* crucial for padding */
+  border: 1px solid #aaa;
+  border-radius: 4px;
+}
+
 
     #guess-modal button {
       padding: 6px 12px;
