@@ -252,9 +252,21 @@ document.getElementById('logout-btn').onclick = async () => {
   else location.reload();
 };
 
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log("Auth event:", event, "Session:", session);
+supabase.auth.onAuthStateChange(async (event, session) => {
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  if (session?.user) {
+    currentUserId = session.user.id;
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline-block';
+    await loadGuessedSegmentIds();
+  } else {
+    loginBtn.style.display = 'inline-block';
+    logoutBtn.style.display = 'none';
+  }
 });
+
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
