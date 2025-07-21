@@ -179,6 +179,7 @@ let guessedSegmentIds = new Set();
 let attemptCounts = {};  // Track attempts per segment ID
 let currentUserId = null;
   const roadAttemptsMap = new Map(); // Tracks attempts per road name
+  const completedRoads = new Set(); // Tracks roads finalized via correct guess or 4th attempt
 let segmentStateMap = new Map();
   const segmentIdToName = {};
 
