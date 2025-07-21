@@ -398,7 +398,12 @@ console.log("📍 Segment IDs found:", segmentIds);
 
 
   console.log("🧪 About to save guess:", segmentIds, typeof segmentIds);
-await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
+if (color !== 'yellow') {
+  await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
+} else {
+  console.log('⚠️ Yellow warning - suffix mismatch. Not saving.');
+}
+
 
 
 
