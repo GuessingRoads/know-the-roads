@@ -440,7 +440,7 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     currentRoad = null;
   }, hideDelay);
 };
-  document.getElementById('give-up').onclick = async function () {
+ document.getElementById('give-up').onclick = async function () {
   if (!currentRoad) return;
 
   const correctName = currentRoad.name.trim();
@@ -459,7 +459,7 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'orange', weight: 6 });
     }
-    await saveGuessSegmentIds(segmentIds, false, true); // Save as incorrect with hint
+    await saveGuessSegmentIds(segmentIds, false, true); // Incorrect + hint
     alert(`Correct answer: ${correctName}`);
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
@@ -467,14 +467,18 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     return;
   }
 
-  // Otherwise, mark red (not saved), allow future attempts
+  // Otherwise, mark red and save as incorrect
   for (const layer of nameToLayers[normalizedKey] || []) {
     layer.setStyle({ color: 'red', weight: 6 });
   }
 
+  await saveGuessSegmentIds(segmentIds, false, false); // 🔴 Save as incorrect
+
   document.getElementById('guess-modal').style.display = 'none';
   document.getElementById('feedback-message').innerText = '';
+  currentRoad = null;
 };
+
 
 loadMap();
 
