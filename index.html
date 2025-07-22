@@ -698,10 +698,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     else playLoop();
   };
 
+ if (skipBtn) {
   skipBtn.onclick = () => {
     stopLoop();
     playLoop();
   };
+}
+
 
   // Start music on first interaction
   window.addEventListener('click', async () => {
