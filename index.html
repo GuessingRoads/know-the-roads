@@ -686,10 +686,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Attach modal behavior
   let musicModalVisible = false;
+  if (musicBtn && modal) {
   musicBtn.onclick = () => {
     musicModalVisible = !musicModalVisible;
     modal.classList.toggle('show', musicModalVisible);
   };
+}
 
   if (muteBtn) {
   muteBtn.onclick = () => {
