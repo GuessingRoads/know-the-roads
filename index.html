@@ -233,22 +233,6 @@ let currentUserId = null;
 let segmentStateMap = new Map();
   const segmentIdToName = {};
 
-console.log('loginBtn:', loginBtn);
-document.getElementById('login-btn').onclick = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.origin }
-  });
-  if (error) alert('Login error: ' + error.message);
-};
-
-console.log('logoutBtn:', logoutBtn);
-document.getElementById('logout-btn').onclick = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) alert('Logout error: ' + error.message);
-  else location.reload();
-};
-
 supabase.auth.onAuthStateChange(async (event, session) => {
   const loginBtn = document.getElementById('login-btn');
   const logoutBtn = document.getElementById('logout-btn');
