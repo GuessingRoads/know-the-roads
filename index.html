@@ -691,12 +691,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     modal.classList.toggle('show', musicModalVisible);
   };
 
+  if (muteBtn) {
   muteBtn.onclick = () => {
     isMuted = !isMuted;
     muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
     if (isMuted) stopLoop();
     else playLoop();
   };
+}
+
 
  if (skipBtn) {
   skipBtn.onclick = () => {
