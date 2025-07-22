@@ -669,23 +669,31 @@ document.getElementById('guess-input').addEventListener('input', async function 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("📜 DOMContentLoaded triggered");
 
-    // 🔐 Setup login/logout buttons after DOM is ready
-    loginBtn = document.getElementById('login-btn');
-    logoutBtn = document.getElementById('logout-btn');
+  // 🔐 Setup login/logout buttons safely
+loginBtn = document.getElementById('login-btn');
+logoutBtn = document.getElementById('logout-btn');
 
-    loginBtn.onclick = async () => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin }
-      });
-      if (error) alert('Login error: ' + error.message);
-    };
+console.log("loginBtn:", loginBtn);
+console.log("logoutBtn:", logoutBtn);
 
-    logoutBtn.onclick = async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) alert('Logout error: ' + error.message);
-      else location.reload();
-    };
+if (loginBtn) {
+  loginBtn.onclick = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+    if (error) alert('Login error: ' + error.message);
+  };
+}
+
+if (logoutBtn) {
+  logoutBtn.onclick = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) alert('Logout error: ' + error.message);
+    else location.reload();
+  };
+}
+
 
     // ... everything else continues here
 
@@ -695,8 +703,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   modal = document.getElementById('music-modal');
   muteBtn = document.getElementById('mute-btn');
   skipBtn = document.getElementById('skip-btn');
- loginBtn = document.getElementById('login-btn');
-logoutBtn = document.getElementById('logout-btn');
 
   // Attach modal behavior
   let musicModalVisible = false;
