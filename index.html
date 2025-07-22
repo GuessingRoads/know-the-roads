@@ -690,6 +690,16 @@ window.addEventListener('click', async () => {
     musicPlaying = true;
   }
 }, { once: true });
+  document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    if (musicPlaying && !isMuted) {
+      console.log("🔁 Page returned to focus — resuming music");
+      stopLoop();
+      playLoop();
+    }
+  }
+});
+
   </script>
 </body>
 </html>
