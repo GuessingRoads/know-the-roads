@@ -699,11 +699,17 @@ window.addEventListener('click', async () => {
 }, { once: true });
   document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible') {
-    if (musicPlaying && !isMuted) {
-      console.log("🔁 Page returned to focus — resuming music");
-      stopLoop();
-      playLoop();
-    }
+   if (musicPlaying && !isMuted) {
+  console.log("🔁 Page returned to focus — attempting to resume music");
+  try {
+    await audioContext.resume();
+    stopLoop();
+    playLoop();
+  } catch (e) {
+    console.error("❌ Failed to resume audio context:", e);
+  }
+}
+
   }
 });
 
