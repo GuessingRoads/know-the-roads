@@ -239,8 +239,9 @@ let segmentStateMap = new Map();
   const segmentIdToName = {};
 
 supabase.auth.onAuthStateChange(async (event, session) => {
-  const loginBtn = document.getElementById('login-btn');
-  const logoutBtn = document.getElementById('logout-btn');
+loginBtn = document.getElementById('login-btn');
+logoutBtn = document.getElementById('logout-btn');
+
 
   if (session?.user) {
     console.log("✅ Logged in as", currentUserId);
