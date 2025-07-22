@@ -419,59 +419,60 @@ function suffixOnlyMismatch(guess, actual) {
 }
 
 async function loadMap() {
+  const response = await fetch('roads_manheim_named_only.geojson');
+  const data = await response.json();
 
-  fetch('roads_manheim_named_only.geojson')
-    .then(res => res.json())
-    .then(data => {
-     L.geoJSON(data, {
-  onEachFeature: function (feature, layer) {
-    const id = String(feature.id);
-    const name = feature.properties.name || "";
-    segmentIdToName[id] = name;
-    if (!nameToLayers[name]) nameToLayers[name] = [];
-    nameToLayers[name].push(layer);
+  L.geoJSON(data, {
+    onEachFeature: function (feature, layer) {
+      const id = String(feature.id);
+      const name = feature.properties.name || "";
 
-    console.log(`🟡 Feature ID: ${id} | Name: ${name}`);
-    console.log(`🔍 segmentStateMap.has(${id}) →`, segmentStateMap.has(id));
-  }
+      // Map ID to name
+      segmentIdToName[id] = name;
 
+      // Group layers by name
+      if (!nameToLayers[name]) nameToLayers[name] = [];
+      nameToLayers[name].push(layer);
 
+      // Debug logs
+      console.log(`🟡 Feature ID: ${id} | Name: ${name}`);
+      console.log(`🔍 segmentStateMap.has(${id}) →`, segmentStateMap.has(id));
 
-  if (segmentStateMap.has(id)) {
-    const state = segmentStateMap.get(id);
-    if (state.used_hint) {
-  layer.setStyle({ color: 'orange', weight: 6 });
-} else if (state.correct) {
-  layer.setStyle({ color: 'gray', weight: 6 });
-} else {
-  layer.setStyle({ color: 'red', weight: 6 });
+      // Apply initial color
+      if (segmentStateMap.has(id)) {
+        const state = segmentStateMap.get(id);
+        if (state.used_hint) {
+          layer.setStyle({ color: 'orange', weight: 6 });
+        } else if (state.correct) {
+          layer.setStyle({ color: 'gray', weight: 6 });
+        } else {
+          layer.setStyle({ color: 'red', weight: 6 });
+        }
+      } else {
+        layer.setStyle({ color: 'black', weight: 6 });
+      }
+
+      // Click handler
+      layer.on('click', function () {
+        const state = segmentStateMap.get(id);
+        if (state?.correct || state?.used_hint) return;
+
+        currentRoad = {
+          name: name,
+          id: id,
+          attempts: 0,
+          layer: layer
+        };
+
+        document.getElementById('guess-modal').style.display = 'block';
+        document.getElementById('guess-input').value = '';
+        document.getElementById('feedback-message').innerText = '';
+        document.getElementById('guess-input').focus();
+      });
+    }
+  }).addTo(map); // ✅ This is correct here
 }
 
-  } else {
-    layer.setStyle({ color: 'black', weight: 6 });
-  }
-
-  layer.on('click', function () {
-  const state = segmentStateMap.get(id);
-if (state?.correct || state?.used_hint) return;
-
-
-    currentRoad = {
-      name: name,
-      id: id,
-      attempts: 0,
-      layer: layer
-    };
-
-    document.getElementById('guess-modal').style.display = 'block';
-    document.getElementById('guess-input').value = '';
-    document.getElementById('feedback-message').innerText = '';
-    document.getElementById('guess-input').focus();
-  });
-}
-                 }).addTo(map); // ✅ end of geoJSON block
-      }); // ✅ closes .then(data => { ... })
-} // ✅ closes loadMap()
 
 // ✅ Submit handler defined OUTSIDE of loadMap
 window.addEventListener('load', () => {
