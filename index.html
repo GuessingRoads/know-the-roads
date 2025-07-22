@@ -423,17 +423,19 @@ async function loadMap() {
   fetch('roads_manheim_named_only.geojson')
     .then(res => res.json())
     .then(data => {
-      L.geoJSON(data, {
-       onEachFeature: function (feature, layer) {
-  const id = String(feature.id);
-  const name = feature.properties.name || "";
-  segmentIdToName[id] = name;
-  if (!nameToLayers[name]) nameToLayers[name] = [];
-  nameToLayers[name].push(layer);
+     L.geoJSON(data, {
+  onEachFeature: function (feature, layer) {
+    const id = String(feature.id);
+    const name = feature.properties.name || "";
+    segmentIdToName[id] = name;
+    if (!nameToLayers[name]) nameToLayers[name] = [];
+    nameToLayers[name].push(layer);
 
-  console.log(`🟡 Feature ID: ${id} | Name: ${name}`);
-  console.log(`🔍 segmentStateMap.has(${id}) →`, segmentStateMap.has(id));
-}
+    console.log(`🟡 Feature ID: ${id} | Name: ${name}`);
+    console.log(`🔍 segmentStateMap.has(${id}) →`, segmentStateMap.has(id));
+  }
+}).addTo(map); // ✅ THIS LINE WAS MISSING
+
 
 
   if (segmentStateMap.has(id)) {
