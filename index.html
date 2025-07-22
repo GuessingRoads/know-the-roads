@@ -638,7 +638,6 @@ document.getElementById('guess-input').addEventListener('input', async function 
 
 
 
-
 // ✅ JS startup logic begins here
   // 🎵 Web Audio API Seamless Loop Logic
   let audioContext = null;
@@ -647,7 +646,9 @@ document.getElementById('guess-input').addEventListener('input', async function 
   let musicPlaying = false;
   let isMuted = false;
 
-  let musicBtn, modal, muteBtn, skipBtn;
+  let musicBtn, modal, muteBtn, skipBtn, loginBtn, logoutBtn;
+
+  
 
   async function loadMusic() {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -682,8 +683,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   modal = document.getElementById('music-modal');
   muteBtn = document.getElementById('mute-btn');
   skipBtn = document.getElementById('skip-btn');
-  const loginBtn = document.getElementById('login-btn');
-  const logoutBtn = document.getElementById('logout-btn');
+ loginBtn = document.getElementById('login-btn');
+logoutBtn = document.getElementById('logout-btn');
 
   // Attach modal behavior
   let musicModalVisible = false;
