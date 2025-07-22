@@ -586,6 +586,7 @@ document.getElementById('give-up').onclick = async function () {
   setTimeout(() => {
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     currentRoad = null;
   }, 800);
 };
