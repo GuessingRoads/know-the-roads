@@ -697,21 +697,24 @@ window.addEventListener('click', async () => {
     musicPlaying = true;
   }
 }, { once: true });
-  document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible') {
-   if (musicPlaying && !isMuted) {
-  console.log("🔁 Page returned to focus — attempting to resume music");
-  try {
-    await audioContext.resume();
-    stopLoop();
-    playLoop();
-  } catch (e) {
-    console.error("❌ Failed to resume audio context:", e);
-  }
-}
-
+  document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && musicPlaying && !isMuted) {
+    console.log("👆 Page returned to focus. Waiting for user tap to resume music...");
+    const resumeHandler = async () => {
+      try {
+        await audioContext.resume();
+        stopLoop();
+        playLoop();
+        console.log("✅ Music resumed after user tap.");
+      } catch (e) {
+        console.error("❌ Resume failed:", e);
+      }
+      window.removeEventListener('click', resumeHandler);
+    };
+    window.addEventListener('click', resumeHandler);
   }
 });
+
 
   </script>
 </body>
