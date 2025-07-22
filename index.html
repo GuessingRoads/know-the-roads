@@ -672,54 +672,52 @@ document.getElementById('guess-input').addEventListener('input', async function 
     }
   }
 
-  // ⬇️ DOM-Dependent Code (Executes Safely After DOM Loads)
-  document.addEventListener('DOMContentLoaded', async () => {
-    console.log("📦 DOMContentLoaded triggered");
+ // ✅ Run logic after DOM is fully loaded
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log("📦 DOMContentLoaded triggered");
 
-    // Get DOM elements safely
-    musicBtn = document.getElementById('music-btn');
-    modal = document.getElementById('music-modal');
-    muteBtn = document.getElementById('mute-btn');
-    skipBtn = document.getElementById('skip-btn');
+  // Get DOM elements
+  musicBtn = document.getElementById('music-btn');
+  modal = document.getElementById('music-modal');
+  muteBtn = document.getElementById('mute-btn');
+  skipBtn = document.getElementById('skip-btn');
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
 
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
+  // Attach modal behavior
+  let musicModalVisible = false;
+  musicBtn.onclick = () => {
+    musicModalVisible = !musicModalVisible;
+    modal.classList.toggle('show', musicModalVisible);
+  };
 
-    // ✅ Attach Music Modal Behavior
-    let musicModalVisible = false;
-    musicBtn.onclick = () => {
-      musicModalVisible = !musicModalVisible;
-      modal.classList.toggle('show', musicModalVisible);
-    };
+  muteBtn.onclick = () => {
+    isMuted = !isMuted;
+    muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
+    if (isMuted) stopLoop();
+    else playLoop();
+  };
 
-    muteBtn.onclick = () => {
-      isMuted = !isMuted;
-      muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
-      if (isMuted) stopLoop();
-      else playLoop();
-    };
+  skipBtn.onclick = () => {
+    stopLoop();
+    playLoop();
+  };
 
-    skipBtn.onclick = () => {
-      stopLoop();
+  // Start music on first interaction
+  window.addEventListener('click', async () => {
+    if (!musicPlaying) {
+      await loadMusic();
       playLoop();
-    };
+      musicPlaying = true;
+    }
+  }, { once: true });
 
-    // ✅ Start music on first user interaction
-    window.addEventListener('click', async () => {
-      if (!musicPlaying) {
-        await loadMusic();
-        playLoop();
-        musicPlaying = true;
-      }
-    }, { once: true });
+  // ✅ Supabase + map
+  await checkLogin();
+  console.log("✅ checkLogin() complete");
+  await loadMap();
+});
 
-    // ✅ Supabase Login
-    await checkLogin();
-    console.log("✅ checkLogin() complete");
-
-    // ✅ Load the map
-    await loadMap();
-  });
 </script>
 
 <!-- Login buttons -->
