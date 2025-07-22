@@ -231,7 +231,7 @@ let currentUserId = null;
 let segmentStateMap = new Map();
   const segmentIdToName = {};
 
-
+console.log('loginBtn:', loginBtn);
 document.getElementById('login-btn').onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -240,6 +240,7 @@ document.getElementById('login-btn').onclick = async () => {
   if (error) alert('Login error: ' + error.message);
 };
 
+console.log('logoutBtn:', logoutBtn);
 document.getElementById('logout-btn').onclick = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) alert('Logout error: ' + error.message);
@@ -693,6 +694,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 }
 
+  console.log('muteBtn:', muteBtn);
   if (muteBtn) {
   muteBtn.onclick = () => {
     isMuted = !isMuted;
@@ -702,7 +704,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 }
 
-
+ console.log('skipBtn:', skipBtn);
  if (skipBtn) {
   skipBtn.onclick = () => {
     stopLoop();
