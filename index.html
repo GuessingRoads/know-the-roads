@@ -75,7 +75,8 @@
 
     #music-modal {
   position: absolute;
-  top: 205px;
+  top: 190px;
+  top: 210px;
   left: 10px;
   background: white;
   border: 1px solid #ccc;
@@ -124,22 +125,7 @@
       display: none;
       width: 260px;
       text-align: center;
-
     }
-     #auth-controls button {
-    padding: 6px 12px;
-    margin-bottom: 6px;
-    background: white;
-    border: 1px solid #333;
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.2s ease;
-  }
-
-  #auth-controls button:hover {
-    background: #f0f0f0;
-  }
 
    #guess-modal input {
   display: block;
@@ -182,28 +168,23 @@
   <div class="legend-item"><div class="legend-color" style="background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet); border: none;"></div>Ultra-Hard Mode</div>
 </div>
 
-<div id="guess-modal">
-  <input type="text" id="guess-input" placeholder="Enter road name" />
-  <div>
-    <button id="submit-guess">Submit</button>
-    <button id="give-up">Give Up</button>
+  <button id="login-btn">Login with Google</button>
+  <button id="logout-btn">Logout</button>
+
+  <div id="guess-modal">
+    <input type="text" id="guess-input" placeholder="Enter road name" />
+    <div>
+      <button id="submit-guess">Submit</button>
+      <button id="give-up">Give Up</button>
+    </div>
+    <div id="feedback-message" style="margin-top: 8px; font-size: 14px;"></div>
   </div>
-  <div id="feedback-message" style="margin-top: 8px; font-size: 14px;"></div>
-</div>
-
-  <div id="auth-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
-  <button id="login-btn" style="display: none;">Login with Google</button>
-  <button id="logout-btn" style="display: none;">Logout</button>
-</div>
-
 
  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
   let currentRoad = null;
-  let musicBtn, modal, muteBtn, skipBtn, loginBtn, logoutBtn;
-
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-  
+
   const supabase = createClient(
     'https://yulvzmznvnctgaiwuypb.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
@@ -240,48 +221,33 @@ let currentUserId = null;
 let segmentStateMap = new Map();
   const segmentIdToName = {};
 
-supabase.auth.onAuthStateChange(async (event, session) => {
-loginBtn = document.getElementById('login-btn');
-logoutBtn = document.getElementById('logout-btn');
 
+document.getElementById('login-btn').onclick = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin }
+  });
+  if (error) alert('Login error: ' + error.message);
+};
 
-if (session?.user) {
-  currentUserId = session.user.id;
-  console.log("✅ Logged in as", currentUserId);
+document.getElementById('logout-btn').onclick = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) alert('Logout error: ' + error.message);
+  else location.reload();
+};
 
-    loginBtn.style.display = 'none';
-    logoutBtn.style.display = 'inline-block';
-    await loadGuessedSegmentIds();
-  } else {
-    loginBtn.style.display = 'inline-block';
-    logoutBtn.style.display = 'none';
-  }
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log("Auth event:", event, "Session:", session);
 });
 
-console.log("🔍 Checking login status...");
 async function checkLogin() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-  loginBtn = document.getElementById('login-btn');
-logoutBtn = document.getElementById('logout-btn');
-
-
-    if (session?.user) {
-      currentUserId = session.user.id;
-      loginBtn.style.display = 'none';
-      logoutBtn.style.display = 'inline-block';
-      await loadGuessedSegmentIds();
-    } else {
-      loginBtn.style.display = 'inline-block';
-      logoutBtn.style.display = 'none';
-    }
-    loadMap();
-  } catch (err) {
-    console.error("❌ Error in checkLogin():", err);
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+  if (user) {
+    currentUserId = user.id;
+    await loadGuessedSegmentIds();
   }
 }
-
-
 
 async function loadGuessedSegmentIds() {
   const { data, error } = await supabase
@@ -419,74 +385,69 @@ function suffixOnlyMismatch(guess, actual) {
 }
 
 async function loadMap() {
-  const response = await fetch('roads_manheim_named_only.geojson');
-  const data = await response.json();
+  await checkLogin();
 
-  L.geoJSON(data, {
-    onEachFeature: function (feature, layer) {
-      const id = String(feature.id);
-      const name = feature.properties.name || "";
+  fetch('roads_manheim_named_only.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+       onEachFeature: function (feature, layer) {
+  const id = String(feature.id);
+  const name = feature.properties.name || "";
+         segmentIdToName[id] = name;
+  if (!nameToLayers[name]) nameToLayers[name] = [];
+  nameToLayers[name].push(layer);
 
-      // Map ID to name
-      segmentIdToName[id] = name;
-
-      // Group layers by name
-      if (!nameToLayers[name]) nameToLayers[name] = [];
-      nameToLayers[name].push(layer);
-
-      // Debug logs
-      console.log(`🟡 Feature ID: ${id} | Name: ${name}`);
-      console.log(`🔍 segmentStateMap.has(${id}) →`, segmentStateMap.has(id));
-
-      // Apply initial color
-      if (segmentStateMap.has(id)) {
-        const state = segmentStateMap.get(id);
-        if (state.used_hint) {
-          layer.setStyle({ color: 'orange', weight: 6 });
-        } else if (state.correct) {
-          layer.setStyle({ color: 'gray', weight: 6 });
-        } else {
-          layer.setStyle({ color: 'red', weight: 6 });
-        }
-      } else {
-        layer.setStyle({ color: 'black', weight: 6 });
-      }
-
-      // Click handler
-      layer.on('click', function () {
-        const state = segmentStateMap.get(id);
-        if (state?.correct || state?.used_hint) return;
-
-        currentRoad = {
-          name: name,
-          id: id,
-          attempts: 0,
-          layer: layer
-        };
-
-        document.getElementById('guess-modal').style.display = 'block';
-        document.getElementById('guess-input').value = '';
-        document.getElementById('feedback-message').innerText = '';
-        document.getElementById('guess-input').focus();
-      });
-    }
-  }).addTo(map); // ✅ This is correct here
+  if (segmentStateMap.has(id)) {
+    const state = segmentStateMap.get(id);
+    if (state.used_hint) {
+  layer.setStyle({ color: 'orange', weight: 6 });
+} else if (state.correct) {
+  layer.setStyle({ color: 'gray', weight: 6 });
+} else {
+  layer.setStyle({ color: 'red', weight: 6 });
 }
 
+  } else {
+    layer.setStyle({ color: 'black', weight: 6 });
+  }
+
+  layer.on('click', function () {
+  const state = segmentStateMap.get(id);
+if (state?.correct || state?.used_hint) return;
+
+
+    currentRoad = {
+      name: name,
+      id: id,
+      attempts: 0,
+      layer: layer
+    };
+
+    document.getElementById('guess-modal').style.display = 'block';
+    document.getElementById('guess-input').value = '';
+    document.getElementById('feedback-message').innerText = '';
+    document.getElementById('guess-input').focus();
+  });
+}
+                 }).addTo(map); // ✅ end of geoJSON block
+      }); // ✅ closes .then(data => { ... })
+} // ✅ closes loadMap()
+
+loadMap(); // ✅ called after it's defined
 
 // ✅ Submit handler defined OUTSIDE of loadMap
-window.addEventListener('load', () => {
-  document.getElementById('submit-guess').onclick = async function () {
-    if (!currentRoad) return;
+document.getElementById('submit-guess').onclick = async function () {
+  if (!currentRoad) return;
 
-    const userGuess = document.getElementById('guess-input').value.trim();
-    const correctName = currentRoad.name.trim();
-    const normalizedGuess = normalizeName(userGuess);
-    const normalizedCorrect = normalizeName(correctName);
+  const userGuess = document.getElementById('guess-input').value.trim();
+  const correctName = currentRoad.name.trim();
+  const normalizedGuess = normalizeName(userGuess);
+  const normalizedCorrect = normalizeName(correctName);
 
-    let isCorrect = normalizedGuess === normalizedCorrect;
-    let usedHint = false;
-    let color = 'gray';
+  let isCorrect = normalizedGuess === normalizedCorrect;
+  let usedHint = false;
+  let color = 'gray';
 
   // Wrong suffix case
   if (!isCorrect && normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
@@ -620,6 +581,10 @@ document.getElementById('give-up').onclick = async function () {
 };
 
 
+
+
+loadMap();
+
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
   if (e.key === 'Enter') {
     document.getElementById('submit-guess').click();
@@ -641,125 +606,79 @@ document.getElementById('guess-input').addEventListener('input', async function 
 
 
 
-// ✅ JS startup logic begins here
-  // 🎵 Web Audio API Seamless Loop Logic
-  let audioContext = null;
-  let sourceNode = null;
-  let musicBuffer = null;
-  let musicPlaying = false;
-  let isMuted = false;
 
-  
+// 🎵 Web Audio API Seamless Loop Logic
+let audioContext = null;
+let sourceNode = null;
+let musicBuffer = null;
+let musicPlaying = false;
+let isMuted = false;
 
-  async function loadMusic() {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const response = await fetch('music/Lofi_1.wav');
-    const arrayBuffer = await response.arrayBuffer();
-    musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
+const musicBtn = document.getElementById('music-btn');
+const modal = document.getElementById('music-modal');
+const muteBtn = document.getElementById('mute-btn');
+const skipBtn = document.getElementById('skip-btn');
+
+// Load audio buffer
+async function loadMusic() {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const response = await fetch('music/Lofi_1.wav');
+  const arrayBuffer = await response.arrayBuffer();
+  musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
+}
+
+// Start playing loop
+function playLoop() {
+  if (!musicBuffer || isMuted) return;
+  sourceNode = audioContext.createBufferSource();
+  sourceNode.buffer = musicBuffer;
+  sourceNode.connect(audioContext.destination);
+  sourceNode.loop = true;
+  sourceNode.start(0);
+}
+
+// Stop loop
+function stopLoop() {
+  if (sourceNode) {
+    sourceNode.stop(0);
+    sourceNode.disconnect();
+    sourceNode = null;
   }
+}
 
-  function playLoop() {
-    if (!musicBuffer || isMuted) return;
-    sourceNode = audioContext.createBufferSource();
-    sourceNode.buffer = musicBuffer;
-    sourceNode.connect(audioContext.destination);
-    sourceNode.loop = true;
-    sourceNode.start(0);
+let musicModalVisible = false;
+
+musicBtn.onclick = () => {
+  musicModalVisible = !musicModalVisible;
+
+  if (musicModalVisible) {
+    modal.classList.add('show');
+  } else {
+    modal.classList.remove('show');
   }
-
-  function stopLoop() {
-    if (sourceNode) {
-      sourceNode.stop(0);
-      sourceNode.disconnect();
-      sourceNode = null;
-    }
-  }
-
- // ✅ Run logic after DOM is fully loaded
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log("📜 DOMContentLoaded triggered");
-
-  // 🔐 Setup login/logout buttons safely
-loginBtn = document.getElementById('login-btn');
-logoutBtn = document.getElementById('logout-btn');
-
-console.log("loginBtn:", loginBtn);
-console.log("logoutBtn:", logoutBtn);
-
-if (loginBtn) {
-  loginBtn.onclick = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin }
-    });
-    if (error) alert('Login error: ' + error.message);
-  };
-}
-
-if (logoutBtn) {
-  logoutBtn.onclick = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) alert('Logout error: ' + error.message);
-    else location.reload();
-  };
-}
+};
 
 
-    // ... everything else continues here
+muteBtn.onclick = () => {
+  isMuted = !isMuted;
+  muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
+  if (isMuted) stopLoop();
+  else playLoop();
+};
 
+skipBtn.onclick = () => {
+  stopLoop();
+  playLoop();
+};
 
-  // Get DOM elements
-  musicBtn = document.getElementById('music-btn');
-  modal = document.getElementById('music-modal');
-  muteBtn = document.getElementById('mute-btn');
-  skipBtn = document.getElementById('skip-btn');
-
-  // Attach modal behavior
-  let musicModalVisible = false;
-  console.log('musicBtn:', musicBtn);
-  if (musicBtn && modal) {
-  musicBtn.onclick = () => {
-    musicModalVisible = !musicModalVisible;
-    modal.classList.toggle('show', musicModalVisible);
-  };
-}
-
-  console.log('muteBtn:', muteBtn);
-  if (muteBtn) {
-  muteBtn.onclick = () => {
-    isMuted = !isMuted;
-    muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
-    if (isMuted) stopLoop();
-    else playLoop();
-  };
-}
-
- console.log('skipBtn:', skipBtn);
- if (skipBtn) {
-  skipBtn.onclick = () => {
-    stopLoop();
+// Start audio on first interaction
+window.addEventListener('click', async () => {
+  if (!musicPlaying) {
+    await loadMusic();
     playLoop();
-  };
-}
-
-
-  // Start music on first interaction
-  window.addEventListener('click', async () => {
-    if (!musicPlaying) {
-      await loadMusic();
-      playLoop();
-      musicPlaying = true;
-    }
-  }, { once: true });
-
-  // ✅ Supabase + map
-  await checkLogin();
-  console.log("✅ checkLogin() complete");
-     await loadMap();
-  });  // This closes the click event
-
-});  // ✅ This closes DOMContentLoaded
-
-</script>
+    musicPlaying = true;
+  }
+}, { once: true });
+  </script>
 </body>
 </html>
