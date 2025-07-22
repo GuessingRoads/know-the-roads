@@ -193,6 +193,8 @@
  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
   let currentRoad = null;
+  let musicBtn, modal, muteBtn, skipBtn, loginBtn, logoutBtn;
+
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
   
   const supabase = createClient(
@@ -645,8 +647,6 @@ document.getElementById('guess-input').addEventListener('input', async function 
   let musicBuffer = null;
   let musicPlaying = false;
   let isMuted = false;
-
-  let musicBtn, modal, muteBtn, skipBtn, loginBtn, logoutBtn;
 
   
 
