@@ -245,9 +245,10 @@ loginBtn = document.getElementById('login-btn');
 logoutBtn = document.getElementById('logout-btn');
 
 
-  if (session?.user) {
-    console.log("✅ Logged in as", currentUserId);
-    currentUserId = session.user.id;
+if (session?.user) {
+  currentUserId = session.user.id;
+  console.log("✅ Logged in as", currentUserId);
+
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'inline-block';
     await loadGuessedSegmentIds();
