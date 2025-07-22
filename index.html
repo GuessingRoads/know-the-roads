@@ -715,8 +715,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ✅ Supabase + map
   await checkLogin();
   console.log("✅ checkLogin() complete");
-  await loadMap();
-});
+     await loadMap();
+  });  // This closes the click event
+
+});  // ✅ This closes DOMContentLoaded
 
 </script>
 
