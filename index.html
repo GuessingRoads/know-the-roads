@@ -259,8 +259,9 @@ console.log("🔍 Checking login status...");
 async function checkLogin() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
+  loginBtn = document.getElementById('login-btn');
+logoutBtn = document.getElementById('logout-btn');
+
 
     if (session?.user) {
       currentUserId = session.user.id;
