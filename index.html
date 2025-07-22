@@ -427,9 +427,14 @@ async function loadMap() {
        onEachFeature: function (feature, layer) {
   const id = String(feature.id);
   const name = feature.properties.name || "";
-         segmentIdToName[id] = name;
+  segmentIdToName[id] = name;
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
+
+  console.log(`🟡 Feature ID: ${id} | Name: ${name}`);
+  console.log(`🔍 segmentStateMap.has(${id}) →`, segmentStateMap.has(id));
+}
+
 
   if (segmentStateMap.has(id)) {
     const state = segmentStateMap.get(id);
