@@ -182,13 +182,15 @@
   <div class="legend-item"><div class="legend-color" style="background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet); border: none;"></div>Ultra-Hard Mode</div>
 </div>
 
-  <div id="guess-modal">
-    <input type="text" id="guess-input" placeholder="Enter road name" />
-    <div>
-
-    </div>
-    <div id="feedback-message" style="margin-top: 8px; font-size: 14px;"></div>
+<div id="guess-modal">
+  <input type="text" id="guess-input" placeholder="Enter road name" />
+  <div>
+    <button id="submit-guess">Submit</button>
+    <button id="give-up">Give Up</button>
   </div>
+  <div id="feedback-message" style="margin-top: 8px; font-size: 14px;"></div>
+</div>
+
   <div id="auth-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
   <button id="login-btn" style="display: none;">Login with Google</button>
   <button id="logout-btn" style="display: none;">Logout</button>
