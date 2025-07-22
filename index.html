@@ -278,7 +278,7 @@ async function checkLogin() {
       loginBtn.style.display = 'inline-block';
       logoutBtn.style.display = 'none';
     }
-    loadmap();
+    loadMap();
   } catch (err) {
     console.error("❌ Error in checkLogin():", err);
   }
@@ -638,118 +638,93 @@ document.getElementById('guess-input').addEventListener('input', async function 
 
 
 
-// 🎵 Web Audio API Seamless Loop Logic
-let audioContext = null;
-let sourceNode = null;
-let musicBuffer = null;
-let musicPlaying = false;
-let isMuted = false;
+<!-- BEGIN: JavaScript for music, login, and app startup -->
+<script type="module">
+  // 🎵 Web Audio API Seamless Loop Logic
+  let audioContext = null;
+  let sourceNode = null;
+  let musicBuffer = null;
+  let musicPlaying = false;
+  let isMuted = false;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log("📦 DOMContentLoaded triggered");
-  await checkLogin();
-  console.log("✅ checkLogin() complete");
+  let musicBtn, modal, muteBtn, skipBtn;
 
-  // 👇 Now safe to access DOM elements
-  const musicBtn = document.getElementById('music-btn');
-  const modal = document.getElementById('music-modal');
-  const muteBtn = document.getElementById('mute-btn');
-  const skipBtn = document.getElementById('skip-btn');
-
-  let musicModalVisible = false;
-
-  musicBtn.onclick = () => {
-    musicModalVisible = !musicModalVisible;
-    modal.classList.toggle('show', musicModalVisible);
-  };
-
-  muteBtn.onclick = () => {
-    isMuted = !isMuted;
-    muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
-    isMuted ? stopLoop() : playLoop();
-  };
-
-  skipBtn.onclick = () => {
-    stopLoop();
-    playLoop();
-  };
-
-});
-
-// Load audio buffer
-async function loadMusic() {
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const response = await fetch('music/Lofi_1.wav');
-  const arrayBuffer = await response.arrayBuffer();
-  musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
-}
-
-// Start playing loop
-function playLoop() {
-  if (!musicBuffer || isMuted) return;
-  sourceNode = audioContext.createBufferSource();
-  sourceNode.buffer = musicBuffer;
-  sourceNode.connect(audioContext.destination);
-  sourceNode.loop = true;
-  sourceNode.start(0);
-}
-
-// Stop loop
-function stopLoop() {
-  if (sourceNode) {
-    sourceNode.stop(0);
-    sourceNode.disconnect();
-    sourceNode = null;
+  async function loadMusic() {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const response = await fetch('music/Lofi_1.wav');
+    const arrayBuffer = await response.arrayBuffer();
+    musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
   }
-}
 
-let musicModalVisible = false;
-
-musicBtn.onclick = () => {
-  musicModalVisible = !musicModalVisible;
-
-  if (musicModalVisible) {
-    modal.classList.add('show');
-  } else {
-    modal.classList.remove('show');
+  function playLoop() {
+    if (!musicBuffer || isMuted) return;
+    sourceNode = audioContext.createBufferSource();
+    sourceNode.buffer = musicBuffer;
+    sourceNode.connect(audioContext.destination);
+    sourceNode.loop = true;
+    sourceNode.start(0);
   }
-};
 
-
-muteBtn.onclick = () => {
-  isMuted = !isMuted;
-  muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
-  if (isMuted) stopLoop();
-  else playLoop();
-};
-(() => {
-
-  skipBtn.onclick = () => {
-    stopLoop();
-    playLoop();
-  };
-
-  // Start audio on first interaction
-  window.addEventListener('click', async () => {
-    if (!musicPlaying) {
-      await loadMusic();
-      playLoop();
-      musicPlaying = true;
+  function stopLoop() {
+    if (sourceNode) {
+      sourceNode.stop(0);
+      sourceNode.disconnect();
+      sourceNode = null;
     }
-  }, { once: true });
+  }
 
+  // ⬇️ DOM-Dependent Code (Executes Safely After DOM Loads)
   document.addEventListener('DOMContentLoaded', async () => {
     console.log("📦 DOMContentLoaded triggered");
+
+    // Get DOM elements safely
+    musicBtn = document.getElementById('music-btn');
+    modal = document.getElementById('music-modal');
+    muteBtn = document.getElementById('mute-btn');
+    skipBtn = document.getElementById('skip-btn');
+
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // ✅ Attach Music Modal Behavior
+    let musicModalVisible = false;
+    musicBtn.onclick = () => {
+      musicModalVisible = !musicModalVisible;
+      modal.classList.toggle('show', musicModalVisible);
+    };
+
+    muteBtn.onclick = () => {
+      isMuted = !isMuted;
+      muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
+      if (isMuted) stopLoop();
+      else playLoop();
+    };
+
+    skipBtn.onclick = () => {
+      stopLoop();
+      playLoop();
+    };
+
+    // ✅ Start music on first user interaction
+    window.addEventListener('click', async () => {
+      if (!musicPlaying) {
+        await loadMusic();
+        playLoop();
+        musicPlaying = true;
+      }
+    }, { once: true });
+
+    // ✅ Supabase Login
     await checkLogin();
     console.log("✅ checkLogin() complete");
+
+    // ✅ Load the map
+    await loadMap();
   });
-
-})(); // ✅ This must match the opening line
-
-
 </script>
 
-  <div id="auth-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
+<!-- Login buttons -->
+<div id="auth-controls" style="position: absolute; top: 10px; right: 10px; z-index: 1001;">
   <button id="login-btn" style="display: none;">Login with Google</button>
   <button id="logout-btn" style="display: none;">Logout</button>
 </div>
