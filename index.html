@@ -676,7 +676,28 @@ document.getElementById('guess-input').addEventListener('input', async function 
 
  // ✅ Run logic after DOM is fully loaded
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log("📦 DOMContentLoaded triggered");
+    console.log("📜 DOMContentLoaded triggered");
+
+    // 🔐 Setup login/logout buttons after DOM is ready
+    loginBtn = document.getElementById('login-btn');
+    logoutBtn = document.getElementById('logout-btn');
+
+    loginBtn.onclick = async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      });
+      if (error) alert('Login error: ' + error.message);
+    };
+
+    logoutBtn.onclick = async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) alert('Logout error: ' + error.message);
+      else location.reload();
+    };
+
+    // ... everything else continues here
+
 
   // Get DOM elements
   musicBtn = document.getElementById('music-btn');
