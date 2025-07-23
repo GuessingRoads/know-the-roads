@@ -577,14 +577,10 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     layer.setStyle({ color: color, weight: 6 });
   }
 
- if (currentUserId) {
+if (currentUserId) {
   await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
 } else {
-  preLoginGuesses.push({
-    segmentIds,
-    isCorrect,
-    usedHint
-  });
+  savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
   if (isCorrect || usedHint) {
