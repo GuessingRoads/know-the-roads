@@ -293,7 +293,17 @@ logoutBtn.onclick = async () => {
 
 supabase.auth.onAuthStateChange((event, session) => {
   updateAuthUI(session?.user);
+
+  const loginNote = document.getElementById('login-note');
+  if (!loginNote) return;
+
+  if (event === 'SIGNED_IN') {
+    loginNote.style.display = 'none';
+  } else if (event === 'SIGNED_OUT') {
+    loginNote.style.display = 'block';
+  }
 });
+
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
