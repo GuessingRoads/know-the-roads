@@ -239,7 +239,11 @@ let segmentStateMap = new Map();
   const segmentIdToName = {};
 
 
-document.getElementById('login-btn').onclick = async () => {
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const authMessage = document.getElementById('auth-message');
+
+loginBtn.onclick = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin }
@@ -247,15 +251,39 @@ document.getElementById('login-btn').onclick = async () => {
   if (error) alert('Login error: ' + error.message);
 };
 
-document.getElementById('logout-btn').onclick = async () => {
+logoutBtn.onclick = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) alert('Logout error: ' + error.message);
   else location.reload();
 };
 
 supabase.auth.onAuthStateChange((event, session) => {
-  console.log("Auth event:", event, "Session:", session);
+  updateAuthUI(session?.user);
 });
+
+async function checkLogin() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+  if (user) {
+    currentUserId = user.id;
+    await loadGuessedSegmentIds();
+  }
+  updateAuthUI(user);
+}
+
+function updateAuthUI(user) {
+  if (user) {
+    const name = user.user_metadata?.full_name?.split(' ')[0] || 'User';
+    authMessage.innerText = `Hello, ${name}`;
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline-block';
+  } else {
+    authMessage.innerText = `You're not logged in.`;
+    loginBtn.style.display = 'inline-block';
+    logoutBtn.style.display = 'none';
+  }
+}
+
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
