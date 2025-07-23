@@ -520,6 +520,37 @@ async function loadMap() {
   } else {
     layer.setStyle({ color: 'black', weight: 6 });
   }
+// Hover effect
+layer.on('mouseover', function () {
+  const currentColor = layer.options.color;
+  if (['black', 'red', 'yellow'].includes(currentColor)) {
+    layer.setStyle({
+      color: '#ffd700', // gold/yellow
+      weight: 7,
+      opacity: 1
+    });
+    layer.bringToFront?.();
+  }
+});
+
+layer.on('mouseout', function () {
+  const currentColor = layer.options.color;
+  if (['black', 'red', 'yellow'].includes(currentColor)) {
+    // Reset to original color
+    const id = String(feature.id);
+    const state = segmentStateMap.get(id);
+
+    if (state?.used_hint) {
+      layer.setStyle({ color: 'orange', weight: 6 });
+    } else if (state?.correct) {
+      layer.setStyle({ color: 'gray', weight: 6 });
+    } else if (state) {
+      layer.setStyle({ color: 'red', weight: 6 });
+    } else {
+      layer.setStyle({ color: 'black', weight: 6 });
+    }
+  }
+});
 
   layer.on('click', function () {
   const state = segmentStateMap.get(id);
