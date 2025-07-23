@@ -753,6 +753,17 @@ window.addEventListener('click', async () => {
     window.addEventListener('click', resumeHandler);
   }
 });
+let interactionCount = 0;
+
+function maybeShowEncouragement() {
+  const session = supabase.auth.getSession();
+  session.then(({ data }) => {
+    if (!data.session && interactionCount === 3) {
+      const modal = document.getElementById('encouragement-modal');
+      if (modal) modal.style.display = 'block';
+    }
+  });
+}
 
 
   </script>
