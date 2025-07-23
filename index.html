@@ -287,9 +287,14 @@ async function checkLogin() {
 
   // ✅ Save any guesses made before login
   for (const guess of preLoginGuesses) {
-    console.log('Saving pre-login guess:', guess);
-    await saveGuessSegmentIds(guess.segmentIds, guess.isCorrect, guess.usedHint);
+    try {
+      console.log('⚡ Auto-submitting correct guess:', guess.segmentIds);
+      await saveGuessSegmentIds(guess.segmentIds, guess.isCorrect, guess.usedHint);
+    } catch (error) {
+      console.error('❌ Failed to save pre-login guess:', guess, error);
+    }
   }
+
   preLoginGuesses = [];
 
   await loadGuessedSegmentIds();
