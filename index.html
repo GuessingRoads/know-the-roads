@@ -283,9 +283,17 @@ async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
   if (user) {
-    currentUserId = user.id;
-    await loadGuessedSegmentIds();
+  currentUserId = user.id;
+
+  // ✅ Save any guesses made before login
+  for (const guess of preLoginGuesses) {
+    await saveGuessSegmentIds(guess.segmentIds, guess.isCorrect, guess.usedHint);
   }
+  preLoginGuesses = [];
+
+  await loadGuessedSegmentIds();
+}
+
   updateAuthUI(user);
 }
 
