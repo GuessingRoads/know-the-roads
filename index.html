@@ -307,6 +307,10 @@ supabase.auth.onAuthStateChange((event, session) => {
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
+  const loginNote = document.getElementById('login-note');
+if (loginNote) {
+  loginNote.style.display = session ? 'none' : 'block';
+}
   const user = session?.user;
   if (user) {
   currentUserId = user.id;
