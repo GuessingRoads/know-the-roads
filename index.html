@@ -297,17 +297,17 @@ async function checkLogin() {
   if (user) {
   currentUserId = user.id;
 
-  // ✅ Save any guesses made before login
-  for (const guess of preLoginGuesses) {
+ // Submit any saved pre-login guesses from localStorage
+  const savedGuesses = getPreLoginGuesses();
+  for (const guess of savedGuesses) {
     try {
-      console.log('⚡ Auto-submitting correct guess:', guess.segmentIds);
+      console.log('⚡ Auto-submitting pre-login guess:', guess.segmentIds);
       await saveGuessSegmentIds(guess.segmentIds, guess.isCorrect, guess.usedHint);
     } catch (error) {
-      console.error('❌ Failed to save pre-login guess:', guess, error);
+      console.error('❌ Failed to submit pre-login guess:', guess, error);
     }
   }
-
-  preLoginGuesses = [];
+  clearPreLoginGuesses();
 
   await loadGuessedSegmentIds();
 }
