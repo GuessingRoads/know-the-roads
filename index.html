@@ -245,7 +245,8 @@ const suffixMap = {
   ter: 'terrace',
   pl: 'place'
 };
-
+  
+let preLoginGuesses = [];
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
 let attemptCounts = {};  // Track attempts per segment ID
