@@ -285,15 +285,6 @@ function updateAuthUI(user) {
 }
 
 
-async function checkLogin() {
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
-  if (user) {
-    currentUserId = user.id;
-    await loadGuessedSegmentIds();
-  }
-}
-
 async function loadGuessedSegmentIds() {
   const { data, error } = await supabase
     .from('road_guesses')
