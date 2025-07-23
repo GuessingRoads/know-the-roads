@@ -390,13 +390,16 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
         used_hint: usedHint
       });
 
-      const { error: insertError } = await supabase.from('road_guesses').insert([{
-        user_id: currentUserId,
-        road_id: stringId,
-        road_name: normalized,
-        correct: isCorrect,
-        used_hint: usedHint
-      }]);
+      const { error: insertError } = await supabase.from('road_guesses').upsert([{
+  user_id: currentUserId,
+  road_id: stringId,
+  road_name: normalized,
+  correct: isCorrect,
+  used_hint: usedHint
+}], {
+  onConflict: 'user_id,road_id'
+});
+
 
       if (insertError) {
         console.error("❌ Supabase insert error:", insertError);
