@@ -476,6 +476,8 @@ if (state?.correct || state?.used_hint) return;
       attempts: 0,
       layer: layer
     };
+    interactionCount++;
+    maybeShowEncouragement();
 
     document.getElementById('guess-modal').style.display = 'block';
     document.getElementById('guess-input').value = '';
