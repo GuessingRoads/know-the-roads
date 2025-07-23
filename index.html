@@ -255,7 +255,20 @@ let currentUserId = null;
   const completedRoads = new Set(); // Tracks roads finalized via correct guess or 4th attempt
 let segmentStateMap = new Map();
   const segmentIdToName = {};
+  function getPreLoginGuesses() {
+  const stored = localStorage.getItem('preLoginGuesses');
+  return stored ? JSON.parse(stored) : [];
+}
 
+function savePreLoginGuess(guess) {
+  const guesses = getPreLoginGuesses();
+  guesses.push(guess);
+  localStorage.setItem('preLoginGuesses', JSON.stringify(guesses));
+}
+
+function clearPreLoginGuesses() {
+  localStorage.removeItem('preLoginGuesses');
+}
 
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
