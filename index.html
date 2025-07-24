@@ -633,6 +633,8 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
   const segmentIds = roadNameToIds[normalizedKey];
   for (const layer of nameToLayers[normalizedKey] || []) {
     layer.setStyle({ color: color, weight: 6 });
+    layer._originalColor = color;
+
   }
 
 if (currentUserId) {
