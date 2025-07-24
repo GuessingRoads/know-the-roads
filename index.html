@@ -560,7 +560,6 @@ if (state?.correct || state?.used_hint) return;
       attempts: 0,
       layer: layer
     };
-    interactionCount++;
 
     document.getElementById('guess-modal').style.display = 'block';
     document.getElementById('guess-input').value = '';
@@ -577,6 +576,12 @@ loadMap(); // ✅ called after it's defined
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
   if (!currentRoad) return;
+
+  const userGuess = document.getElementById('guess-input').value.trim();
+  if (!userGuess) return;
+
+  interactionCount++;
+  maybeShowEncouragement();
 
   const userGuess = document.getElementById('guess-input').value.trim();
   const correctName = currentRoad.name.trim();
