@@ -850,6 +850,17 @@ window.addEventListener('click', async () => {
 });
 let interactionCount = 0;
 
+  function maybeShowEncouragement() {
+  const session = supabase.auth.getSession();
+  session.then(({ data }) => {
+    if (!data.session && interactionCount === 3) {
+      const inlineEnc = document.getElementById('inline-encouragement');
+      if (inlineEnc) inlineEnc.style.display = 'block';
+    }
+  });
+}
+
+
 
   </script>
 </body>
