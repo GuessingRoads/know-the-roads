@@ -583,7 +583,6 @@ document.getElementById('submit-guess').onclick = async function () {
   interactionCount++;
   maybeShowEncouragement();
 
-  const userGuess = document.getElementById('guess-input').value.trim();
   const correctName = currentRoad.name.trim();
   const normalizedGuess = normalizeName(userGuess);
   const normalizedCorrect = normalizeName(correctName);
