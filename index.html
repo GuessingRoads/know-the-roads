@@ -562,6 +562,29 @@ if (state?.correct || state?.used_hint) return;
     };
 
     document.getElementById('guess-modal').style.display = 'block';
+    // Highlight active (selected) road when modal appears
+if (activeRoadName && nameToLayers[activeRoadName]) {
+  for (const l of nameToLayers[activeRoadName]) {
+    const id = String(l.feature.id);
+    const state = segmentStateMap.get(id);
+    if (state?.correct) {
+      l.setStyle({ color: 'gray', weight: 6 });
+    } else if (state?.used_hint) {
+      l.setStyle({ color: 'orange', weight: 6 });
+    } else if (state?.incorrect) {
+      l.setStyle({ color: 'red', weight: 6 });
+    } else {
+      l.setStyle({ color: 'black', weight: 6 });
+    }
+  }
+}
+
+// Highlight current selection in blue
+for (const l of nameToLayers[name] || []) {
+  l.setStyle({ color: '#00ccff', weight: 8 });
+}
+activeRoadName = name;
+
     document.getElementById('guess-input').value = '';
     document.getElementById('feedback-message').innerText = '';
     document.getElementById('guess-input').focus();
