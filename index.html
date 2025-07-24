@@ -518,36 +518,45 @@ layer.on('mouseover', function () {
   const name = feature.properties.name || "";
   const matchingLayers = nameToLayers[name] || [];
 
+  // Don't hover-highlight if this road is the actively selected one
+  if (activeRoadName === name) return;
+
   for (const l of matchingLayers) {
     const currentColor = l._originalColor;
     if (['black', 'red', 'yellow'].includes(currentColor)) {
       l.setStyle({
-        color: '#ffd700',   // gold
+        color: '#ffd700', // gold
         weight: 8,
         opacity: 1,
         lineCap: 'round'
       });
-      l.bringToFront?.();
     }
+    l.bringToFront?.();
   }
 });
+
 
 
 layer.on('mouseout', function () {
   const name = feature.properties.name || "";
   const matchingLayers = nameToLayers[name] || [];
 
+  // Don't reset style if the road is actively selected
+  if (activeRoadName === name) return;
+
   for (const l of matchingLayers) {
-    const original = l._originalColor;
-    if (['black', 'red', 'yellow'].includes(original)) {
+    const currentColor = l._originalColor;
+    if (['black', 'red', 'yellow'].includes(currentColor)) {
       l.setStyle({
-        color: original,
+        color: currentColor,
         weight: 6,
-        opacity: 1
+        opacity: 1,
+        lineCap: 'round'
       });
     }
   }
 });
+
 
 
 
