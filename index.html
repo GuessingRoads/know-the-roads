@@ -702,6 +702,7 @@ document.getElementById('give-up').onclick = async function () {
 
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'orange', weight: 6 });
+      layer._originalColor = 'orange';
     }
 
     await saveGuessSegmentIds(segmentIds, false, true);
@@ -714,6 +715,7 @@ document.getElementById('give-up').onclick = async function () {
     // Don't mark completed; allow future attempts
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'red', weight: 6 });
+      layer._originalColor = 'red';
     }
 
     await saveGuessSegmentIds(segmentIds, false, false);
