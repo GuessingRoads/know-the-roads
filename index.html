@@ -526,7 +526,7 @@ async function loadMap() {
   }
 // Hover effect
 layer.on('mouseover', function () {
-  const currentColor = layer.options.color;
+  const currentColor = layer._originalColor;
   if (['black', 'red', 'yellow'].includes(currentColor)) {
     layer.setStyle({
       color: '#ffd700', // gold/yellow
@@ -538,7 +538,7 @@ layer.on('mouseover', function () {
 });
 
 layer.on('mouseout', function () {
-  const currentColor = layer.options.color;
+  const currentColor = layer._originalColor;
   if (['black', 'red', 'yellow'].includes(currentColor)) {
     // Reset to original color
     const id = String(feature.id);
