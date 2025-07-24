@@ -540,21 +540,14 @@ layer.on('mouseover', function () {
 layer.on('mouseout', function () {
   const currentColor = layer._originalColor;
   if (['black', 'red', 'yellow'].includes(currentColor)) {
-    // Reset to original color
-    const id = String(feature.id);
-    const state = segmentStateMap.get(id);
-
-    if (state?.used_hint) {
-      layer.setStyle({ color: 'orange', weight: 6 });
-    } else if (state?.correct) {
-      layer.setStyle({ color: 'gray', weight: 6 });
-    } else if (state) {
-      layer.setStyle({ color: 'red', weight: 6 });
-    } else {
-      layer.setStyle({ color: 'black', weight: 6 });
-    }
+    layer.setStyle({
+      color: currentColor,
+      weight: 6,
+      opacity: 1
+    });
   }
 });
+
 
   layer.on('click', function () {
   const state = segmentStateMap.get(id);
