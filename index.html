@@ -560,6 +560,16 @@ if (state?.correct || state?.used_hint) return;
       attempts: 0,
       layer: layer
     };
+// Flash clicked road(s) in blue to indicate active selection
+const matchingLayers = nameToLayers[name] || [];
+for (const l of matchingLayers) {
+  if (['black', 'red', 'yellow'].includes(l._originalColor)) {
+    l.setStyle({ color: '#3399ff', weight: 8, opacity: 1 });
+    setTimeout(() => {
+      l.setStyle({ color: l._originalColor, weight: 6, opacity: 1 });
+    }, 300);
+  }
+}
 
     document.getElementById('guess-modal').style.display = 'block';
     document.getElementById('guess-input').value = '';
