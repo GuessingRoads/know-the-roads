@@ -683,10 +683,7 @@ if (currentUserId) {
   // Delay hide based on color
   let hideDelay = 800;
   if (color === 'yellow') hideDelay = 5001;
-
-  setTimeout(() => {
-    // Reset blue active highlight before closing modal
-if (activeRoadName && nameToLayers[activeRoadName]) {
+  if (activeRoadName && nameToLayers[activeRoadName]) {
   for (const l of nameToLayers[activeRoadName]) {
     const id = String(l.feature.id);
     const state = segmentStateMap.get(id);
@@ -702,6 +699,10 @@ if (activeRoadName && nameToLayers[activeRoadName]) {
   }
   activeRoadName = null;
 }
+
+  setTimeout(() => {
+    // Reset blue active highlight before closing modal
+
 
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
