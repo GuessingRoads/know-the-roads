@@ -596,6 +596,7 @@ document.getElementById('submit-guess').onclick = async function () {
     const key = Object.keys(nameToLayers).find(k => normalizeName(k) === normalizedCorrect);
     for (const layer of nameToLayers[key] || []) {
       layer.setStyle({ color: 'yellow', weight: 6 });
+      layer._originalColor = 'yellow';
     }
     return; // Don't count this as an attempt, and don't save to Supabase
   }
