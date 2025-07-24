@@ -683,22 +683,6 @@ if (currentUserId) {
   // Delay hide based on color
   let hideDelay = 800;
   if (color === 'yellow') hideDelay = 5001;
-  if (activeRoadName && nameToLayers[activeRoadName]) {
-  for (const l of nameToLayers[activeRoadName]) {
-    const id = String(l.feature.id);
-    const state = segmentStateMap.get(id);
-    if (state?.correct) {
-      l.setStyle({ color: 'gray', weight: 6 });
-    } else if (state?.used_hint) {
-      l.setStyle({ color: 'orange', weight: 6 });
-    } else if (state?.incorrect) {
-      l.setStyle({ color: 'red', weight: 6 });
-    } else {
-      l.setStyle({ color: 'black', weight: 6 });
-    }
-  }
-  activeRoadName = null;
-}
 
   setTimeout(() => {
     // Reset blue active highlight before closing modal
