@@ -511,14 +511,18 @@ async function loadMap() {
     const state = segmentStateMap.get(id);
     if (state.used_hint) {
   layer.setStyle({ color: 'orange', weight: 6 });
+      layer._originalColor = 'orange';
 } else if (state.correct) {
   layer.setStyle({ color: 'gray', weight: 6 });
+      layer._originalColor = 'gray';
 } else {
   layer.setStyle({ color: 'red', weight: 6 });
+      layer._originalColor = 'red';
 }
 
   } else {
     layer.setStyle({ color: 'black', weight: 6 });
+    layer._originalColor = 'black';
   }
 // Hover effect
 layer.on('mouseover', function () {
