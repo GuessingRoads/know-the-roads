@@ -735,11 +735,15 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     k => normalizeName(k) === normalizedCorrect
   );
   const segmentIds = roadNameToIds[normalizedKey];
-  for (const layer of nameToLayers[normalizedKey] || []) {
+ for (const layer of nameToLayers[normalizedKey] || []) {
+  if (isCorrect && !usedHint) {
+    // Do nothing – animation handles styling
+  } else {
     layer.setStyle({ color: color, weight: 6 });
     layer._originalColor = color;
-
   }
+}
+
 
 if (currentUserId) {
   await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
