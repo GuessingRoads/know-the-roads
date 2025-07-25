@@ -668,7 +668,7 @@ document.getElementById('submit-guess').onclick = async function () {
 
   let isCorrect = normalizedGuess === normalizedCorrect;
   let usedHint = false;
-  let color = 'gray';
+  let color = null; // we'll handle correct case separately
 
   // Wrong suffix case
   if (!isCorrect && normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
