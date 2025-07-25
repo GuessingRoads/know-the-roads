@@ -698,10 +698,15 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
   );
   const segmentIds = roadNameToIds[normalizedKey];
   for (const layer of nameToLayers[normalizedKey] || []) {
+  if (isCorrect) {
+    triggerCorrectDissolveAnimation(layer);
+    layer._originalColor = 'greenish'; // Not used visually, just marks as unclickable
+  } else {
     layer.setStyle({ color: color, weight: 6 });
     layer._originalColor = color;
-
   }
+}
+
 
 if (currentUserId) {
   await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
