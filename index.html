@@ -695,9 +695,34 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
-  if (isCorrect || usedHint) {
+ if (isCorrect || usedHint) {
   completedRoads.add(normalizedCorrect);
+
+  for (const l of nameToLayers[normalizedCorrect] || []) {
+    const originalCoords = l.getLatLngs();
+    const totalPoints = originalCoords.length;
+
+    if (totalPoints < 2) continue;
+
+    let index = 0;
+    const dissolveInterval = setInterval(() => {
+      if (index >= totalPoints) {
+        clearInterval(dissolveInterval);
+        return;
+      }
+
+      const newCoords = originalCoords.slice(index);
+      l.setLatLngs(newCoords);
+      index++;
+
+      if (index === totalPoints) {
+        clearInterval(dissolveInterval);
+        addGreenOverlay(l.feature); // ✅ Step 2 function
+      }
+    }, 40);
+  }
 }
+
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
