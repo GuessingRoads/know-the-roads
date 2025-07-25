@@ -400,7 +400,8 @@ async function loadGuessedSegmentIds() {
   });
 }
 function runCorrectGuessAnimation(latlng) {
-  const mapContainer = document.getElementById('map');
+  const mapContainer = map.getContainer();
+
 
   // Convert lat/lng to screen coordinates
   const point = map.latLngToContainerPoint(latlng);
