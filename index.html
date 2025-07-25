@@ -246,8 +246,7 @@ const suffixMap = {
   ter: 'terrace',
   pl: 'place'
 };
-
-const greenOverlayLayer = L.layerGroup().addTo(map);
+  
 let preLoginGuesses = [];
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
@@ -367,16 +366,6 @@ async function loadGuessedSegmentIds() {
     });
   });
 }
-function addGreenOverlay(segment) {
-  const coords = segment.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-  const greenLine = L.polyline(coords, {
-    color: '#00ff00', // Bright green
-    weight: 8,
-    opacity: 0.35,
-    lineCap: 'round'
-  });
-  greenOverlayLayer.addLayer(greenLine);
-}
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   for (const id of segmentIds) {
@@ -469,40 +458,9 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   }
 }
 
-function fadeOutLineAndAddGreenGlow(layer) {
-  let opacity = 1.0;
-  const fadeDuration = 300; // in ms
-  const fadeStep = 50;
-  const steps = fadeDuration / fadeStep;
-  const opacityStep = opacity / steps;
-
-  const fadeInterval = setInterval(() => {
-    opacity -= opacityStep;
-    if (opacity <= 0) {
-      clearInterval(fadeInterval);
-      // Add glowing green overlay
-      layer.setStyle({
-        color: 'rgba(0, 255, 0, 0.3)',
-        weight: 10,
-        opacity: 1,
-        className: 'green-glow'
-      });
-    } else {
-      layer.setStyle({
-        opacity: opacity,
-        weight: 6
-      });
-    }
-  }, fadeStep);
-}
-
 
 function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
-console.log('nameToLayers keys:', Object.keys(nameToLayers));
-console.log('Trying to animate:', normalizedCorrect);
-console.log('Found layers:', nameToLayers[normalizedCorrect]);
-
   for (const l of nameToLayers[name]) {
     l.setStyle({ color });
   }
@@ -538,22 +496,23 @@ async function loadMap() {
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
 
- if (segmentStateMap.has(id)) {
-  const state = segmentStateMap.get(id);
-  if (state.used_hint) {
-    layer.setStyle({ color: 'orange', weight: 6 });
-    layer._originalColor = 'orange';
-  } else if (state.correct) {
-    addGreenOverlay(feature); // Show permanent green overlay
-  } else {
-    layer.setStyle({ color: 'red', weight: 6 });
-    layer._originalColor = 'red';
-  }
+  if (segmentStateMap.has(id)) {
+    const state = segmentStateMap.get(id);
+    if (state.used_hint) {
+  layer.setStyle({ color: 'orange', weight: 6 });
+      layer._originalColor = 'orange';
+} else if (state.correct) {
+  layer.setStyle({ color: 'gray', weight: 6 });
+      layer._originalColor = 'gray';
 } else {
-  layer.setStyle({ color: 'black', weight: 6 });
-  layer._originalColor = 'black';
+  layer.setStyle({ color: 'red', weight: 6 });
+      layer._originalColor = 'red';
 }
 
+  } else {
+    layer.setStyle({ color: 'black', weight: 6 });
+    layer._originalColor = 'black';
+  }
 // Hover effect
 layer.on('mouseover', function () {
   const name = feature.properties.name || "";
@@ -611,7 +570,7 @@ layer.on('click', function () {
       const segmentId = String(l.feature.id);
       const s = segmentStateMap.get(segmentId);
       if (s?.correct) {
-       fadeOutLineAndAddGreenGlow(l);
+        l.setStyle({ color: 'gray', weight: 6 });
       } else if (s?.used_hint) {
         l.setStyle({ color: 'orange', weight: 6 });
       } else if (s?.incorrect) {
@@ -668,7 +627,7 @@ document.getElementById('submit-guess').onclick = async function () {
 
   let isCorrect = normalizedGuess === normalizedCorrect;
   let usedHint = false;
-  let color = null; // we'll handle correct case separately
+  let color = 'gray';
 
   // Wrong suffix case
   if (!isCorrect && normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
@@ -725,58 +684,9 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
-if (isCorrect || usedHint) {
+  if (isCorrect || usedHint) {
   completedRoads.add(normalizedCorrect);
-
-  for (const l of nameToLayers[normalizedCorrect] || []) {
-    const originalCoords = l.getLatLngs();
-    if (originalCoords.length < 2) continue;
-
-    // Remove the original black road from the map
-    console.log("Animating road:", normalizedCorrect);
-    console.log("Original coords:", originalCoords);
-
-    map.removeLayer(l);
-
-    // Create a dissolving green line that animates left to right
-    let step = 1;
-    const totalSteps = 30;
-    const dissolveLine = L.polyline([], {
-      color: 'black',
-      weight: 6,
-      opacity: 1,
-      pane: 'shadowPane' // render below main roads if needed
-    }).addTo(map);
-
-    const interval = setInterval(() => {
-      const cutoff = Math.floor((originalCoords.length * step) / totalSteps);
-      dissolveLine.setLatLngs(originalCoords.slice(0, cutoff));
-      console.log("Step", step, "coords shown:", dissolveLine.getLatLngs());
-      step++;
-
-      if (step > totalSteps) {
-        clearInterval(interval);
-
-        // Add the transparent green overlay (static, non-animated)
-        L.polyline(originalCoords, {
-          color: '#2e8b57', // dark green
-          weight: 6,
-          opacity: 0.3,
-          dashArray: null
-        }).addTo(map);
-        console.log("Green overlay added for", normalizedCorrect);
-
-
-        // Remove the dissolve line
-        map.removeLayer(dissolveLine);
-      }
-    }, 66); // ~2 seconds total (30 steps x 66ms)
-  }
 }
-
-
-
-
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
@@ -864,7 +774,7 @@ if (activeRoadName && nameToLayers[activeRoadName]) {
     const id = String(l.feature.id);
     const state = segmentStateMap.get(id);
     if (state?.correct) {
-     fadeOutLineAndAddGreenGlow(layer);
+      l.setStyle({ color: 'gray', weight: 6 });
     } else if (state?.used_hint) {
       l.setStyle({ color: 'orange', weight: 6 });
     } else if (state?.incorrect) {
