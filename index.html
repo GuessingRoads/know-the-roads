@@ -469,6 +469,33 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   }
 }
 
+function fadeOutLineAndAddGreenGlow(layer) {
+  // Start with full gray line
+  layer.setStyle({ color: 'gray', weight: 6 });
+
+  // Fade to transparent over 0.4s
+  const el = layer.getElement?.();
+  if (!el) return;
+
+  el.style.transition = 'stroke 0.4s ease-out';
+  el.style.stroke = 'transparent';
+
+  // After the fade, add green glow stroke
+  setTimeout(() => {
+    layer.setStyle({
+      color: '#00ff88',
+      weight: 5,
+      opacity: 0.8,
+      dashArray: 'none'
+    });
+
+    const el2 = layer.getElement?.();
+    if (el2) {
+      el2.style.stroke = '#00ff88';
+      el2.style.filter = 'drop-shadow(0 0 5px #00ff88)';
+    }
+  }, 400);
+}
 
 function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
