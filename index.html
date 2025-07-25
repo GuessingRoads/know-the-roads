@@ -750,19 +750,25 @@ if (isCorrect && !usedHint) {
     // Start dissolve
     console.log('Path element:', layer._path);
     layer._path.classList.add('dissolve-stroke');
+    console.log('ClassList before animation:', layer._path.classList.value);
+
 
     // Switch to green after 2s
     setTimeout(() => {
       console.log('Path element:', layer._path);
       layer._path.classList.remove('dissolve-stroke');
+      console.log('ClassList before animation:', layer._path.classList.value);
       console.log('Path element:', layer._path);
       layer._path.classList.add('fade-green-stroke');
+      console.log('ClassList before animation:', layer._path.classList.value);
+
     }, 2000);
 
     // Final state after 5s
     setTimeout(() => {
       console.log('Path element:', layer._path);
       layer._path.classList.remove('fade-green-stroke');
+      console.log('ClassList before animation:', layer._path.classList.value);
       layer.setStyle({
         color: '#355E3B',
         weight: 6,
