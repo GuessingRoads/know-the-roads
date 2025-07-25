@@ -713,6 +713,7 @@ if (isCorrect && !usedHint) {
 
       const newCoords = originalCoords.slice(0, index + 1);
       l.setLatLngs(newCoords);
+      console.log('Dissolve step:', index, 'of', totalPoints);
       index++;
 
       if (index === totalPoints) {
