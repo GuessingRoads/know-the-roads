@@ -703,15 +703,44 @@ if (isCorrect || usedHint) {
 
   for (const l of nameToLayers[normalizedCorrect] || []) {
     const originalCoords = l.getLatLngs();
-    const totalPoints = originalCoords.length;
-    if (totalPoints < 2) continue;
+    if (originalCoords.length < 2) continue;
 
-    const half = Math.floor(totalPoints / 2);
-    const newCoords = originalCoords.slice(half); // Keep only second half
-    console.log("💥 Forcing latLng shrink:", newCoords.length, "of", totalPoints);
-    l.setLatLngs(newCoords);
+    // Remove the original black road from the map
+    map.removeLayer(l);
+
+    // Create a dissolving green line that animates left to right
+    let step = 1;
+    const totalSteps = 30;
+    const dissolveLine = L.polyline([], {
+      color: 'black',
+      weight: 6,
+      opacity: 1,
+      pane: 'shadowPane' // render below main roads if needed
+    }).addTo(map);
+
+    const interval = setInterval(() => {
+      const cutoff = Math.floor((originalCoords.length * step) / totalSteps);
+      dissolveLine.setLatLngs(originalCoords.slice(0, cutoff));
+      step++;
+
+      if (step > totalSteps) {
+        clearInterval(interval);
+
+        // Add the transparent green overlay (static, non-animated)
+        L.polyline(originalCoords, {
+          color: '#2e8b57', // dark green
+          weight: 6,
+          opacity: 0.3,
+          dashArray: null
+        }).addTo(map);
+
+        // Remove the dissolve line
+        map.removeLayer(dissolveLine);
+      }
+    }, 66); // ~2 seconds total (30 steps x 66ms)
   }
 }
+
 
 
 
