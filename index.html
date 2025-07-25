@@ -472,6 +472,10 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
 
 function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
+console.log('nameToLayers keys:', Object.keys(nameToLayers));
+console.log('Trying to animate:', normalizedCorrect);
+console.log('Found layers:', nameToLayers[normalizedCorrect]);
+
   for (const l of nameToLayers[name]) {
     l.setStyle({ color });
   }
