@@ -154,39 +154,6 @@
       cursor: pointer;
       margin: 4px;
     }
-    /* Animate dissolve (black stroke disappearing left to right) */
-.dissolve-stroke {
-  stroke: black !important;
-  stroke-width: 4 !important;
-  stroke-dasharray: 1000 !important;
-  stroke-dashoffset: 0 !important;
-  animation: dashFade 2s ease forwards !important;
-}
-
-.fade-green-stroke {
-  stroke: #355E3B !important;
-  stroke-width: 4 !important;
-  stroke-opacity: 0 !important;
-  stroke-dasharray: 1000 !important;
-  stroke-dashoffset: 1000 !important;
-  animation: fadeGreenStroke 2s ease forwards !important;
-  animation-delay: 2s !important;
-}
-
-@keyframes dashFade {
-  to {
-    stroke-dashoffset: 1000;
-    stroke-opacity: 0;
-  }
-}
-
-@keyframes fadeGreenStroke {
-  to {
-    stroke-dashoffset: 0;
-    stroke-opacity: 0.7;
-  }
-}
-
   </style>
 </head>
 <body>
@@ -398,26 +365,6 @@ async function loadGuessedSegmentIds() {
       used_hint: row.used_hint
     });
   });
-}
-function animateRoadSuccess(layer) {
-  if (!layer || !layer._path) return;
-
-  const path = layer._path;
-
-  // Clear any previous styles
-  path.classList.remove('dissolve-stroke', 'fade-green-stroke');
-
-  // Trigger reflow to restart animation if needed
-  void path.offsetWidth;
-
-  // First: dissolve stroke (black → gone)
-  path.classList.add('dissolve-stroke');
-
-  // After dissolve ends, green fade begins
-  setTimeout(() => {
-    path.classList.remove('dissolve-stroke');
-    path.classList.add('fade-green-stroke');
-  }, 2000);
 }
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
@@ -725,13 +672,11 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     k => normalizeName(k) === normalizedCorrect
   );
   const segmentIds = roadNameToIds[normalizedKey];
-  if (!(isCorrect && !usedHint)) {
   for (const layer of nameToLayers[normalizedKey] || []) {
     layer.setStyle({ color: color, weight: 6 });
     layer._originalColor = color;
-  }
-}
 
+  }
 
 if (currentUserId) {
   await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
@@ -739,57 +684,9 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
-if (isCorrect && !usedHint) {
-  if (layer._path) {
-  console.log("🎯 Adding animation classes to layer._path");
-  layer._path.classList.add("dissolve-stroke");
-  
-  // Delay adding green stroke until dissolve finishes
-  setTimeout(() => {
-    layer._path.classList.remove("dissolve-stroke");
-    layer._path.classList.add("fade-green-stroke");
-  }, 2000);
+  if (isCorrect || usedHint) {
+  completedRoads.add(normalizedCorrect);
 }
-
-  for (const layer of nameToLayers[normalizedCorrect] || []) {
-    if (!layer._path) {
-      console.warn('No path on layer:', layer);
-      continue;
-    }
-
-    // Start dissolve
-    console.log('Path element:', layer._path);
-    layer._path.classList.add('dissolve-stroke');
-    console.log('ClassList before animation:', layer._path.classList.value);
-
-
-    // Switch to green after 2s
-    setTimeout(() => {
-      console.log('Path element:', layer._path);
-      layer._path.classList.remove('dissolve-stroke');
-      console.log('ClassList before animation:', layer._path.classList.value);
-      console.log('Path element:', layer._path);
-      layer._path.classList.add('fade-green-stroke');
-      console.log('ClassList before animation:', layer._path.classList.value);
-
-    }, 2000);
-
-    // Final state after 5s
-    setTimeout(() => {
-      console.log('Path element:', layer._path);
-      layer._path.classList.remove('fade-green-stroke');
-      console.log('ClassList before animation:', layer._path.classList.value);
-      layer.setStyle({
-        color: '#355E3B',
-        weight: 6,
-        opacity: 0.7,
-      });
-      layer._originalColor = '#355E3B';
-    }, 5000);
-  }
-}
-
-
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
@@ -799,7 +696,7 @@ if (isCorrect && !usedHint) {
   document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
 
   // Delay hide based on color
-  let hideDelay = 5000;
+  let hideDelay = 800;
   if (color === 'yellow') hideDelay = 5001;
 
   setTimeout(() => {
