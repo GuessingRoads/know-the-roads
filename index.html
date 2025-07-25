@@ -757,9 +757,8 @@ if (currentUserId) {
 
 if (isCorrect && !usedHint) {
   runCorrectGuessAnimation(currentRoad.layer.getBounds().getCenter());
-  map.removeLayer(currentRoad.layer); // Completely removes blue-highlighted layer
   for (const l of nameToLayers[normalizedCorrect] || []) {
-    l.setStyle({ weight: 0 });
+    map.removeLayer(l); // This replaces all gray/blue lines
   }
 }
 
