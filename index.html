@@ -154,38 +154,6 @@
       cursor: pointer;
       margin: 4px;
     }
-    /* Correct guess dissolve and overlay animation */
-.dissolve-road {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: black;
-  animation: dissolve 2s forwards;
-  pointer-events: none;
-  z-index: 9999; /* BOOSTED */
-}
-
-.green-overlay {
-  position: absolute;
-  width: 0%;
-  height: 100%;
-  background: #355E3B;
-  opacity: 0.7;
-  animation: fadeGreen 2s 2s forwards;
-  pointer-events: none;
-  z-index: 9998; /* BOOSTED */
-}
-
-@keyframes dissolve {
-  0% { clip-path: inset(0% 0% 0% 0%); opacity: 1; }
-  100% { clip-path: inset(0% 100% 0% 0%); opacity: 0; }
-}
-
-@keyframes fadeGreen {
-  0% { width: 0%; opacity: 0; }
-  100% { width: 100%; opacity: 0.7; }
-}
-
   </style>
 </head>
 <body>
@@ -260,7 +228,6 @@
   import { roadNameToIds } from './roadNameToIds.js';
   console.log("Loaded roadNameToIds:", Object.keys(roadNameToIds));
   const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
-  window._leaflet_map_instance = map;
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
@@ -399,39 +366,6 @@ async function loadGuessedSegmentIds() {
     });
   });
 }
-function runCorrectGuessAnimation(latlng) {
-  const mapContainer = map.getContainer();
-
-
-  // Convert lat/lng to screen coordinates
-  const point = map.latLngToContainerPoint(latlng);
-
-  // Create wrapper div to hold both layers
-  const wrapper = document.createElement('div');
-  wrapper.style.position = 'absolute';
-  wrapper.style.left = `${point.x - 50}px`;
-  wrapper.style.top = `${point.y - 10}px`;
-  wrapper.style.width = `100px`;
-  wrapper.style.height = `20px`;
-  wrapper.style.pointerEvents = 'none';
-
-  // Black dissolve layer
-  const dissolve = document.createElement('div');
-  dissolve.className = 'dissolve-road';
-
-  // Green overlay fade
-  const overlay = document.createElement('div');
-  overlay.className = 'green-overlay';
-
-  wrapper.appendChild(dissolve);
-  wrapper.appendChild(overlay);
-  mapContainer.appendChild(wrapper);
-
-  // Optional: clean up after animation finishes
-  setTimeout(() => {
-    mapContainer.removeChild(wrapper);
-  }, 5000); // gives enough time for both animations to finish
-}
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   for (const id of segmentIds) {
@@ -568,7 +502,8 @@ async function loadMap() {
   layer.setStyle({ color: 'orange', weight: 6 });
       layer._originalColor = 'orange';
 } else if (state.correct) {
-
+  layer.setStyle({ color: 'gray', weight: 6 });
+      layer._originalColor = 'gray';
 } else {
   layer.setStyle({ color: 'red', weight: 6 });
       layer._originalColor = 'red';
@@ -635,7 +570,7 @@ layer.on('click', function () {
       const segmentId = String(l.feature.id);
       const s = segmentStateMap.get(segmentId);
       if (s?.correct) {
-      
+        l.setStyle({ color: 'gray', weight: 6 });
       } else if (s?.used_hint) {
         l.setStyle({ color: 'orange', weight: 6 });
       } else if (s?.incorrect) {
@@ -737,15 +672,11 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     k => normalizeName(k) === normalizedCorrect
   );
   const segmentIds = roadNameToIds[normalizedKey];
- for (const layer of nameToLayers[normalizedKey] || []) {
-  if (isCorrect && !usedHint) {
-    // Do nothing – animation handles styling
-  } else {
+  for (const layer of nameToLayers[normalizedKey] || []) {
     layer.setStyle({ color: color, weight: 6 });
     layer._originalColor = color;
-  }
-}
 
+  }
 
 if (currentUserId) {
   await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
@@ -753,29 +684,9 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
- if (isCorrect || usedHint) {
+  if (isCorrect || usedHint) {
   completedRoads.add(normalizedCorrect);
 }
-
-if (isCorrect && !usedHint) {
-  // Clear blue highlight
-  if (activeRoadName && nameToLayers[activeRoadName]) {
-    for (const l of nameToLayers[activeRoadName]) {
-      l.setStyle({ color: 'transparent', weight: 0 });
-    }
-    activeRoadName = null;
-  }
-
-  runCorrectGuessAnimation(currentRoad.layer.getBounds().getCenter());
-
-  // Remove all segments from the map
-  for (const l of nameToLayers[normalizedCorrect] || []) {
-    map.removeLayer(l);
-  }
-}
-
-
-
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
@@ -863,7 +774,7 @@ if (activeRoadName && nameToLayers[activeRoadName]) {
     const id = String(l.feature.id);
     const state = segmentStateMap.get(id);
     if (state?.correct) {
-    
+      l.setStyle({ color: 'gray', weight: 6 });
     } else if (state?.used_hint) {
       l.setStyle({ color: 'orange', weight: 6 });
     } else if (state?.incorrect) {
