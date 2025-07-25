@@ -584,7 +584,7 @@ layer.on('click', function () {
       const segmentId = String(l.feature.id);
       const s = segmentStateMap.get(segmentId);
       if (s?.correct) {
-        l.setStyle({ color: 'gray', weight: 6 });
+       fadeOutLineAndAddGreenGlow(l);
       } else if (s?.used_hint) {
         l.setStyle({ color: 'orange', weight: 6 });
       } else if (s?.incorrect) {
