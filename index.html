@@ -742,7 +742,7 @@ if (currentUserId) {
 if (isCorrect && !usedHint) {
   for (const layer of nameToLayers[normalizedCorrect] || []) {
     if (!layer._path) {
-      console.warn('Layer path missing:', layer);
+      console.warn('No path on layer:', layer);
       continue;
     }
 
