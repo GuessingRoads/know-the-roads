@@ -757,6 +757,7 @@ if (currentUserId) {
 
 if (isCorrect && !usedHint) {
   runCorrectGuessAnimation(currentRoad.layer.getBounds().getCenter());
+  currentRoad.layer.setStyle({ weight: 0 });  // <- Remove the blue highlight
   for (const l of nameToLayers[normalizedCorrect] || []) {
     l.setStyle({ weight: 0 });
   }
