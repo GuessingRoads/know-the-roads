@@ -694,7 +694,7 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
- if (isCorrect || usedHint) {
+if (isCorrect && !usedHint) {
   completedRoads.add(normalizedCorrect);
 
   for (const l of nameToLayers[normalizedCorrect] || []) {
