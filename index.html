@@ -738,9 +738,25 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
-  if (isCorrect || usedHint) {
+ if (isCorrect) {
   completedRoads.add(normalizedCorrect);
+
+  if (!usedHint) {
+    for (const layer of nameToLayers[normalizedCorrect] || []) {
+      layer._path.classList.add('dissolve-stroke');
+
+      setTimeout(() => {
+        layer._path.classList.remove('dissolve-stroke');
+        layer._path.classList.add('fade-green-stroke');
+      }, 2000);
+
+      setTimeout(() => {
+        layer._path.classList.remove('fade-green-stroke');
+      }, 5000);
+    }
+  }
 }
+
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
