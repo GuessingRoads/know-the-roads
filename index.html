@@ -698,35 +698,30 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
-if (isCorrect && !usedHint) {
+if (isCorrect && usedHint) {
   completedRoads.add(normalizedCorrect);
 
   for (const l of nameToLayers[normalizedCorrect] || []) {
-    console.log('Animating dissolve for:', normalizedCorrect);
     const originalCoords = l.getLatLngs();
     const totalPoints = originalCoords.length;
-
     if (totalPoints < 2) continue;
 
     let index = 0;
     const dissolveInterval = setInterval(() => {
       if (index >= totalPoints) {
         clearInterval(dissolveInterval);
+        console.log("✅ Finished dissolving road");
         return;
       }
 
-      const newCoords = originalCoords.slice(0, index + 1);
+      const newCoords = originalCoords.slice(index);
       l.setLatLngs(newCoords);
-      console.log('Dissolve step:', index, 'of', totalPoints);
+      console.log(`Dissolving: index ${index} / ${totalPoints}`);
       index++;
-
-      if (index === totalPoints) {
-        clearInterval(dissolveInterval);
-        addGreenOverlay(l.feature); // ✅ Step 2 function
-      }
-    }, 40);
+    }, 150); // Slow for visibility
   }
 }
+
 
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
