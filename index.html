@@ -367,6 +367,16 @@ async function loadGuessedSegmentIds() {
     });
   });
 }
+function addGreenOverlay(segment) {
+  const coords = segment.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+  const greenLine = L.polyline(coords, {
+    color: '#2e7d32', // Dark green
+    weight: 8,
+    opacity: 0.35,
+    lineCap: 'round'
+  });
+  greenOverlayLayer.addLayer(greenLine);
+}
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   for (const id of segmentIds) {
