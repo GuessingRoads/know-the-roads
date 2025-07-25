@@ -740,6 +740,17 @@ if (currentUserId) {
 }
 
 if (isCorrect && !usedHint) {
+  if (layer._path) {
+  console.log("🎯 Adding animation classes to layer._path");
+  layer._path.classList.add("dissolve-stroke");
+  
+  // Delay adding green stroke until dissolve finishes
+  setTimeout(() => {
+    layer._path.classList.remove("dissolve-stroke");
+    layer._path.classList.add("fade-green-stroke");
+  }, 2000);
+}
+
   for (const layer of nameToLayers[normalizedCorrect] || []) {
     if (!layer._path) {
       console.warn('No path on layer:', layer);
