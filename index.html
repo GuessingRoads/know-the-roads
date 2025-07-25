@@ -706,6 +706,9 @@ if (isCorrect || usedHint) {
     if (originalCoords.length < 2) continue;
 
     // Remove the original black road from the map
+    console.log("Animating road:", normalizedCorrect);
+    console.log("Original coords:", originalCoords);
+
     map.removeLayer(l);
 
     // Create a dissolving green line that animates left to right
@@ -721,6 +724,7 @@ if (isCorrect || usedHint) {
     const interval = setInterval(() => {
       const cutoff = Math.floor((originalCoords.length * step) / totalSteps);
       dissolveLine.setLatLngs(originalCoords.slice(0, cutoff));
+      console.log("Step", step, "coords shown:", dissolveLine.getLatLngs());
       step++;
 
       if (step > totalSteps) {
@@ -733,6 +737,8 @@ if (isCorrect || usedHint) {
           opacity: 0.3,
           dashArray: null
         }).addTo(map);
+        console.log("Green overlay added for", normalizedCorrect);
+
 
         // Remove the dissolve line
         map.removeLayer(dissolveLine);
