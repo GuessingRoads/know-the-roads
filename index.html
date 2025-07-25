@@ -757,8 +757,9 @@ if (currentUserId) {
 
 if (isCorrect && !usedHint) {
   runCorrectGuessAnimation(currentRoad.layer.getBounds().getCenter());
-for (const l of nameToLayers[normalizedCorrect] || []) {
-  l.setStyle({ weight: 0 });
+  for (const l of nameToLayers[normalizedCorrect] || []) {
+    l.setStyle({ weight: 0 });
+  }
 }
 
   // Show correct answer if hint was used but still wrong
