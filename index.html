@@ -757,11 +757,12 @@ if (currentUserId) {
 
 if (isCorrect && !usedHint) {
   runCorrectGuessAnimation(currentRoad.layer.getBounds().getCenter());
-  currentRoad.layer.setStyle({ weight: 0 });  // <- Remove the blue highlight
+  map.removeLayer(currentRoad.layer); // Completely removes blue-highlighted layer
   for (const l of nameToLayers[normalizedCorrect] || []) {
     l.setStyle({ weight: 0 });
   }
 }
+
 
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
