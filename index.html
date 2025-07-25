@@ -396,6 +396,38 @@ async function loadGuessedSegmentIds() {
     });
   });
 }
+function runCorrectGuessAnimation(latlng) {
+  const mapContainer = document.getElementById('map');
+
+  // Convert lat/lng to screen coordinates
+  const point = map.latLngToContainerPoint(latlng);
+
+  // Create wrapper div to hold both layers
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = `${point.x - 50}px`;
+  wrapper.style.top = `${point.y - 10}px`;
+  wrapper.style.width = `100px`;
+  wrapper.style.height = `20px`;
+  wrapper.style.pointerEvents = 'none';
+
+  // Black dissolve layer
+  const dissolve = document.createElement('div');
+  dissolve.className = 'dissolve-road';
+
+  // Green overlay fade
+  const overlay = document.createElement('div');
+  overlay.className = 'green-overlay';
+
+  wrapper.appendChild(dissolve);
+  wrapper.appendChild(overlay);
+  mapContainer.appendChild(wrapper);
+
+  // Optional: clean up after animation finishes
+  setTimeout(() => {
+    mapContainer.removeChild(wrapper);
+  }, 5000); // gives enough time for both animations to finish
+}
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   for (const id of segmentIds) {
