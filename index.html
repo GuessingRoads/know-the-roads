@@ -746,6 +746,10 @@ if (currentUserId) {
   if (!usedHint) {
     for (const layer of nameToLayers[normalizedCorrect] || []) {
       layer._path.classList.add('dissolve-stroke');
+      if (!layer._path) {
+  console.warn('Layer path missing:', layer);
+}
+
 
       setTimeout(() => {
         layer._path.classList.remove('dissolve-stroke');
