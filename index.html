@@ -710,7 +710,7 @@ if (isCorrect && !usedHint) {
         return;
       }
 
-      const newCoords = originalCoords.slice(index);
+      const newCoords = originalCoords.slice(0, index + 1);
       l.setLatLngs(newCoords);
       index++;
 
