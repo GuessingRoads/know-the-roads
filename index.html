@@ -246,7 +246,8 @@ const suffixMap = {
   ter: 'terrace',
   pl: 'place'
 };
-  
+
+const greenOverlayLayer = L.layerGroup().addTo(map);
 let preLoginGuesses = [];
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
