@@ -746,9 +746,14 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
-  if (isCorrect || usedHint) {
+ if (isCorrect || usedHint) {
   completedRoads.add(normalizedCorrect);
 }
+
+if (isCorrect && !usedHint) {
+  runCorrectGuessAnimation(currentRoad.layer.getBounds().getCenter());
+}
+
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
