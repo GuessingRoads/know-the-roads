@@ -740,28 +740,35 @@ if (currentUserId) {
   savePreLoginGuess({ segmentIds, isCorrect, usedHint });
 }
 
- if (isCorrect) {
-  completedRoads.add(normalizedCorrect);
-
-  if (!usedHint) {
-    for (const layer of nameToLayers[normalizedCorrect] || []) {
-      layer._path.classList.add('dissolve-stroke');
-      if (!layer._path) {
-  console.warn('Layer path missing:', layer);
-}
-
-
-      setTimeout(() => {
-        layer._path.classList.remove('dissolve-stroke');
-        layer._path.classList.add('fade-green-stroke');
-      }, 2000);
-
-      setTimeout(() => {
-        layer._path.classList.remove('fade-green-stroke');
-      }, 5000);
+if (isCorrect && !usedHint) {
+  for (const layer of nameToLayers[normalizedCorrect] || []) {
+    if (!layer._path) {
+      console.warn('Layer path missing:', layer);
+      continue;
     }
+
+    // Start dissolve
+    layer._path.classList.add('dissolve-stroke');
+
+    // Switch to green after 2s
+    setTimeout(() => {
+      layer._path.classList.remove('dissolve-stroke');
+      layer._path.classList.add('fade-green-stroke');
+    }, 2000);
+
+    // Final state after 5s
+    setTimeout(() => {
+      layer._path.classList.remove('fade-green-stroke');
+      layer.setStyle({
+        color: '#355E3B',
+        weight: 6,
+        opacity: 0.7,
+      });
+      layer._originalColor = '#355E3B';
+    }, 5000);
   }
 }
+
 
   // Show correct answer if hint was used but still wrong
   if (usedHint && !isCorrect) {
