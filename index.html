@@ -756,11 +756,22 @@ if (currentUserId) {
 }
 
 if (isCorrect && !usedHint) {
+  // Clear blue highlight
+  if (activeRoadName && nameToLayers[activeRoadName]) {
+    for (const l of nameToLayers[activeRoadName]) {
+      l.setStyle({ color: 'transparent', weight: 0 });
+    }
+    activeRoadName = null;
+  }
+
   runCorrectGuessAnimation(currentRoad.layer.getBounds().getCenter());
+
+  // Remove all segments from the map
   for (const l of nameToLayers[normalizedCorrect] || []) {
-    map.removeLayer(l); // This replaces all gray/blue lines
+    map.removeLayer(l);
   }
 }
+
 
 
   // Show correct answer if hint was used but still wrong
