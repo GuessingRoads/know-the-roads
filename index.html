@@ -156,22 +156,21 @@
     }
     /* Animate dissolve (black stroke disappearing left to right) */
 .dissolve-stroke {
-  stroke: black;
-  stroke-width: 4;
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 0;
-  animation: dashFade 2s ease forwards;
+  stroke: black !important;
+  stroke-width: 4 !important;
+  stroke-dasharray: 1000 !important;
+  stroke-dashoffset: 0 !important;
+  animation: dashFade 2s ease forwards !important;
 }
 
-/* Animate green fade-in from right to left */
 .fade-green-stroke {
-  stroke: #355E3B;
-  stroke-width: 4;
-  stroke-opacity: 0;
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: fadeGreenStroke 2s ease forwards;
-  animation-delay: 2s;
+  stroke: #355E3B !important;
+  stroke-width: 4 !important;
+  stroke-opacity: 0 !important;
+  stroke-dasharray: 1000 !important;
+  stroke-dashoffset: 1000 !important;
+  animation: fadeGreenStroke 2s ease forwards !important;
+  animation-delay: 2s !important;
 }
 
 @keyframes dashFade {
