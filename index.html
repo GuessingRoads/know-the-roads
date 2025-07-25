@@ -154,6 +154,19 @@
       cursor: pointer;
       margin: 4px;
     }
+    /* Dissolve animation for correct road */
+.correct-dissolve {
+  transition: opacity 0.4s ease-out;
+  opacity: 0;
+}
+
+.correct-final {
+  transition: opacity 0.4s ease-in;
+  stroke: rgba(0, 255, 0, 0.4); /* translucent green */
+  opacity: 0.4;
+  pointer-events: none;
+}
+
   </style>
 </head>
 <body>
