@@ -400,6 +400,26 @@ async function loadGuessedSegmentIds() {
     });
   });
 }
+function animateRoadSuccess(layer) {
+  if (!layer || !layer._path) return;
+
+  const path = layer._path;
+
+  // Clear any previous styles
+  path.classList.remove('dissolve-stroke', 'fade-green-stroke');
+
+  // Trigger reflow to restart animation if needed
+  void path.offsetWidth;
+
+  // First: dissolve stroke (black → gone)
+  path.classList.add('dissolve-stroke');
+
+  // After dissolve ends, green fade begins
+  setTimeout(() => {
+    path.classList.remove('dissolve-stroke');
+    path.classList.add('fade-green-stroke');
+  }, 2000);
+}
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   for (const id of segmentIds) {
