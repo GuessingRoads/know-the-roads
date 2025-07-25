@@ -698,6 +698,7 @@ if (isCorrect && !usedHint) {
   completedRoads.add(normalizedCorrect);
 
   for (const l of nameToLayers[normalizedCorrect] || []) {
+    console.log('Animating dissolve for:', normalizedCorrect);
     const originalCoords = l.getLatLngs();
     const totalPoints = originalCoords.length;
 
