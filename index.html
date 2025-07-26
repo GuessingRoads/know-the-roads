@@ -518,33 +518,32 @@ async function loadMap() {
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
 
- if (segmentStateMap.has(id)) {
+if (segmentStateMap.has(id)) {
   const state = segmentStateMap.get(id);
 
-if (state.used_hint) {
-  layer.setStyle({ weight: 6 }); // Skip color, use CSS class
+  if (state.used_hint) {
+    layer.setStyle({ weight: 6 }); // Skip color, use CSS class
 
-  setTimeout(() => {
-    if (layer._path) {
-      layer._path.style.opacity = '';
-      layer._path.classList.add('hint-used-final');
-    }
-  }, 0);
+    setTimeout(() => {
+      if (layer._path) {
+        layer._path.style.opacity = '';
+        layer._path.classList.add('hint-used-final');
+      }
+    }, 0);
 
-  layer._originalColor = 'orangeish';
+    layer._originalColor = 'orangeish';
 
-} else if (state.correct) {
-  layer.setStyle({ weight: 6 }); // Don't set color directly
-  layer._originalColor = 'greenish';
+  } else if (state.correct) {
+    layer.setStyle({ weight: 6 }); // Don't set color directly
 
-  setTimeout(() => {
-    if (layer._path) {
-      layer._path.style.opacity = '';
-      layer._path.classList.add('correct-final');
-    }
-  }, 0);
-}
+    setTimeout(() => {
+      if (layer._path) {
+        layer._path.style.opacity = '';
+        layer._path.classList.add('correct-final');
+      }
+    }, 0);
 
+    layer._originalColor = 'greenish';
 
   } else {
     layer.setStyle({ color: 'red', weight: 6 });
@@ -555,6 +554,7 @@ if (state.used_hint) {
   layer.setStyle({ color: 'black', weight: 6 });
   layer._originalColor = 'black';
 }
+
 
 
 // Hover effect
