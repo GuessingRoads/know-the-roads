@@ -515,17 +515,17 @@ async function loadMap() {
   layer.setStyle({ color: 'orange', weight: 6 });
       layer._originalColor = 'orange';
 } else if (state.correct) {
-  layer.setStyle({ weight: 6 }); // Don't set color; CSS handles it
+  layer.setStyle({ weight: 6 }); // Don't set color directly
   layer._originalColor = 'greenish';
 
   setTimeout(() => {
-    const path = layer._path;
-    if (path) {
-      path.style.opacity = '';
-      path.classList.add('correct-final');
+    if (layer._path) {
+      layer._path.style.opacity = '';
+      layer._path.classList.add('correct-final');
     }
-  }, 50); // slight delay ensures SVG is rendered
+  }, 0);
 }
+
 
 } else {
   layer.setStyle({ color: 'red', weight: 6 });
