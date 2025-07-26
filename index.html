@@ -509,33 +509,35 @@ async function loadMap() {
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
 
-  if (segmentStateMap.has(id)) {
-    const state = segmentStateMap.get(id);
-    if (state.used_hint) {
-  layer.setStyle({ color: 'orange', weight: 6 });
-      layer._originalColor = 'orange';
-} else if (state.correct) {
-  layer.setStyle({ weight: 6 }); // Don't set color directly
-  layer._originalColor = 'greenish';
+ if (segmentStateMap.has(id)) {
+  const state = segmentStateMap.get(id);
 
-  setTimeout(() => {
-    if (layer._path) {
-      layer._path.style.opacity = '';
-      layer._path.classList.add('correct-final');
-    }
-  }, 0);
-}
+  if (state.used_hint) {
+    layer.setStyle({ color: 'orange', weight: 6 });
+    layer._originalColor = 'orange';
 
+  } else if (state.correct) {
+    layer.setStyle({ weight: 6 }); // Don't set color directly
+    layer._originalColor = 'greenish';
 
-} else {
-  layer.setStyle({ color: 'red', weight: 6 });
-      layer._originalColor = 'red';
-}
+    setTimeout(() => {
+      if (layer._path) {
+        layer._path.style.opacity = '';
+        layer._path.classList.add('correct-final');
+      }
+    }, 0);
 
   } else {
-    layer.setStyle({ color: 'black', weight: 6 });
-    layer._originalColor = 'black';
+    layer.setStyle({ color: 'red', weight: 6 });
+    layer._originalColor = 'red';
   }
+
+} else {
+  layer.setStyle({ color: 'black', weight: 6 });
+  layer._originalColor = 'black';
+}
+
+
 // Hover effect
 layer.on('mouseover', function () {
   const name = feature.properties.name || "";
