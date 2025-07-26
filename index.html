@@ -40,8 +40,10 @@
   margin-right: 8px;
   border: 1px solid #666;
   display: inline-block;
-  vertical-align: middle; /* ✅ ensures box aligns to text */
+  vertical-align: middle;
+  box-sizing: border-box; /* ✅ forces equal sizing and alignment */
 }
+
 
     #auth-box {
   position: absolute;
@@ -182,7 +184,7 @@
   <div class="legend-item"><div class="legend-color" style="background: black;"></div>Unguessed</div>
   <div class="legend-item"><div class="legend-color" style="background: red;"></div>Incorrect</div>
   <div class="legend-item"><div class="legend-color" style="background: orange;"></div>Hint Used</div>
-  <div class="legend-color" style="background-color: rgba(0, 255, 0, 0.4);"></div>Correct
+  <div class="legend-color" style="background-color: rgba(0, 255, 0, 0.4); box-sizing: border-box;"></div>Correct
   <div class="legend-item"><div class="legend-color" style="background: yellow;"></div>Suffix Warning</div>
   <div class="legend-item"><div class="legend-color" style="background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet); border: none;"></div>Ultra-Hard Mode</div>
 </div>
