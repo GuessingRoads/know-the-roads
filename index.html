@@ -628,12 +628,14 @@ loadMap(); // ✅ called after it's defined
   const path = layer._path;
   if (!path) return;
 
+  path.style.opacity = ''; // Clear inline style so CSS takes over
   path.classList.add('correct-dissolve');
+
 
   setTimeout(() => {
     path.classList.remove('correct-dissolve');
     path.classList.add('correct-final');
-  }, 400);
+  }, 2000);
 }
 
 // ✅ Submit handler defined OUTSIDE of loadMap
