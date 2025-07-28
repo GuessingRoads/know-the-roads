@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  
+
   <title>Know The Roads</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -268,7 +268,7 @@ const suffixMap = {
   ter: 'terrace',
   pl: 'place'
 };
-  
+
 let preLoginGuesses = [];
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
@@ -507,7 +507,7 @@ function suffixOnlyMismatch(guess, actual) {
 async function loadMap() {
   await checkLogin();
 
-  fetch('roads_manheim_named_only.geojson')
+  fetch('Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
       L.geoJSON(data, {
@@ -651,7 +651,33 @@ layer.on('click', function () {
 }
                  }).addTo(map); // ✅ end of geoJSON block
       }); // ✅ closes .then(data => { ... })
+
+fetch('Boundaries_County_Lancaster_PA.geojson')
+  .then(res => res.json())
+  .then(data => {
+    const countyLayer = L.geoJSON(data, {
+  color: '#0080ff',
+  weight: 3,
+  fillColor: '#cce6ff',
+  fillOpacity: 0.3
+},
+
+      onEachFeature: function (feature, layer) {
+        layer.bindTooltip("Lancaster County", {
+          permanent: false,
+          direction: "center",
+          className: "county-tooltip"
+        });
+
+        layer.on('click', function () {
+          map.fitBounds(layer.getBounds());
+        });
+      }
+    }).addTo(map);
+  });
+
 } // ✅ closes loadMap()
+
 
 loadMap(); // ✅ called after it's defined
 
