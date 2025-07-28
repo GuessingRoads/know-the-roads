@@ -697,6 +697,7 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
     // 🆕 Trigger "insideLancaster" mode (future use)
     insideLancaster = true;
+    map.removeLayer(layer); // Remove Lancaster polygon so it's no longer blocking clicks
     applyOutsideGrayMask(data); // Use the same GeoJSON object used to draw Lancaster
 
 
