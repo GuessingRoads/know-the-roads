@@ -714,20 +714,26 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
 } // ✅ closes loadMap()
 function applyOutsideGrayMask(countyGeoJSON) {
+  // Remove previous mask if it exists
+  if (outsideMaskLayer) {
+    map.removeLayer(outsideMaskLayer);
+  }
+
   const outer = [
     [[-90, -180], [-90, 180], [90, 180], [90, -180], [-90, -180]]
   ];
   const inner = countyGeoJSON.features[0].geometry.coordinates;
 
-  const maskedPolygon = L.polygon([...outer, ...inner], {
+  outsideMaskLayer = L.polygon([...outer, ...inner], {
     fillColor: 'gray',
     fillOpacity: 0.5,
     stroke: false,
     interactive: false
   });
 
-  maskedPolygon.addTo(map);
+  outsideMaskLayer.addTo(map);
 }
+
 
 
 loadMap(); // ✅ called after it's defined
