@@ -696,6 +696,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
     // 🆕 Trigger "insideLancaster" mode (future use)
     insideLancaster = true;
+    applyOutsideGrayMask(data); // Use the same GeoJSON object used to draw Lancaster
+
 
     // 🔜 Later: load township polygons here
   }, 500);
@@ -710,6 +712,21 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
 
 } // ✅ closes loadMap()
+function applyOutsideGrayMask(countyGeoJSON) {
+  const outer = [
+    [[-90, -180], [-90, 180], [90, 180], [90, -180], [-90, -180]]
+  ];
+  const inner = countyGeoJSON.features[0].geometry.coordinates;
+
+  const maskedPolygon = L.polygon([...outer, ...inner], {
+    fillColor: 'gray',
+    fillOpacity: 0.5,
+    stroke: false,
+    interactive: false
+  });
+
+  maskedPolygon.addTo(map);
+}
 
 
 loadMap(); // ✅ called after it's defined
