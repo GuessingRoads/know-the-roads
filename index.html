@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  
+
   <title>Know The Roads</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -268,7 +268,7 @@ const suffixMap = {
   ter: 'terrace',
   pl: 'place'
 };
-  
+
 let preLoginGuesses = [];
 let nameToLayers = {};
 let guessedSegmentIds = new Set();
@@ -657,12 +657,12 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
   .then(data => {
     const countyLayer = L.geoJSON(data, {
       style: {
-  color: '#0080ff',
-  weight: 3,
-  fillColor: '#cce6ff',
-  fillOpacity: 0.3
-}
-
+        color: '#0080ff',
+        weight: 3,
+        fillColor: '#cce6ff',
+        fillOpacity: 0.3
+        pane: 'overlayPane'
+      },
       onEachFeature: function (feature, layer) {
         layer.bindTooltip("Lancaster County", {
           permanent: false,
