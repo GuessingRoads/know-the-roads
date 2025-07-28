@@ -670,7 +670,11 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         });
 
         layer.on('click', function () {
-          map.fitBounds(layer.getBounds());
+          const bounds = layer.getLayers?.()
+  ? layer.getLayers()[0].getBounds()
+  : layer.getBounds();
+map.fitBounds(bounds);
+
         });
       }
     }).addTo(map);
