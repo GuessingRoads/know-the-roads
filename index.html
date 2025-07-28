@@ -271,6 +271,7 @@ const suffixMap = {
 
 let preLoginGuesses = [];
 let nameToLayers = {};
+let insideLancaster = false;
 let guessedSegmentIds = new Set();
 let attemptCounts = {};  // Track attempts per segment ID
 let currentUserId = null;
@@ -672,30 +673,34 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
 
-  // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
-    // Reset this layer's style (opacity must match original)
-    layer.setStyle({ fillOpacity: 0.3 });
+    // 🧽 Remove fill (clear gray overlay)
+    layer.setStyle({
+      fillOpacity: 0.0,
+    });
 
-    // 🔒 Disable focus/pointer temporarily
+    // 🧹 Remove focus ring
     const path = layer._path;
     if (path) {
-      path.style.outline = 'none'; // remove outline if browser applied
+      path.style.outline = 'none';
       path.style.pointerEvents = 'none';
     }
 
-    // 🪄 Blur the map container itself
     const mapContainer = map.getContainer();
-    if (mapContainer) {
-      mapContainer.blur(); // forces DOM-level blur
-    }
+    if (mapContainer) mapContainer.blur();
 
-    // ✅ Re-enable pointer after another short delay
+    // ✅ Restore pointer events after short delay
     setTimeout(() => {
       if (path) path.style.pointerEvents = '';
     }, 500);
+
+    // 🆕 Trigger "insideLancaster" mode (future use)
+    insideLancaster = true;
+
+    // 🔜 Later: load township polygons here
   }, 500);
 });
+
 
 
 
