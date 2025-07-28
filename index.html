@@ -672,15 +672,19 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
 
-  // ⏳ After 0.5s, simulate a click slightly outside to clear highlight
+  // ⏳ After 0.5s, simulate a click outside the polygon
   setTimeout(() => {
-    const offset = 0.0005;
-    const lat = e.latlng.lat + offset;
-    const lng = e.latlng.lng + offset;
+    const bounds = layer.getBounds();
+    const southWest = bounds.getSouthWest();
 
-    map.fire('click', { latlng: L.latLng(lat, lng) });
+    // Offset the SW corner slightly further southwest
+    const outsideLat = southWest.lat - 0.01;
+    const outsideLng = southWest.lng - 0.01;
+
+    map.fire('click', { latlng: L.latLng(outsideLat, outsideLng) });
   }, 500);
 });
+
 
       }
     }).addTo(map); // ✅ This was missing
