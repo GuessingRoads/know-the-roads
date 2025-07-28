@@ -651,6 +651,7 @@ layer.on('click', function () {
 }
                  }).addTo(map); // ✅ end of geoJSON block
       }); // ✅ closes .then(data => { ... })
+  }); // ✅ closes .then(data => { ... })
 
 fetch('Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
@@ -671,18 +672,12 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
         layer.on('click', function () {
           map.fitBounds(layer.getBounds());
-
-          // 🧹 Auto-remove focus/highlight after 0.5 seconds
-          setTimeout(() => {
-            map.fire('click'); // Triggers blur/unfocus on the map
-          }, 500);
         });
       }
-    });
-
-    countyLayer.addTo(map); // ✅ outside the onEachFeature
+    }).addTo(map);
   });
 
+} // ✅ closes loadMap()
 
 
 loadMap(); // ✅ called after it's defined
