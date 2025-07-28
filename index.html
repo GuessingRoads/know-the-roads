@@ -656,12 +656,12 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
   .then(data => {
     const countyLayer = L.geoJSON(data, {
-  color: '#0080ff',
-  weight: 3,
-  fillColor: '#cce6ff',
-  fillOpacity: 0.3
-},
-
+      style: {
+        color: '#0080ff',
+        weight: 3,
+        fillColor: '#cce6ff',
+        fillOpacity: 0.3
+      },
       onEachFeature: function (feature, layer) {
         layer.bindTooltip("Lancaster County", {
           permanent: false,
@@ -671,10 +671,16 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
         layer.on('click', function () {
           map.fitBounds(layer.getBounds());
+
+          // Auto-unfocus after 0.5s to remove highlight
+          setTimeout(() => {
+            map.fire('click');
+          }, 500);
         });
       }
-    }).addTo(map);
+    }).addTo(map); // ✅ This was missing
   });
+
 
 } // ✅ closes loadMap()
 
