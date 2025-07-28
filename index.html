@@ -669,27 +669,26 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
           className: "county-tooltip"
         });
 
-      layer.on('click', function (e) {
+     layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
 
   // 🧹 Auto-unselect polygon after 0.5s to prevent black highlight box
   setTimeout(() => {
     map.closePopup(); // Just in case
 
-    map.eachLayer(l => {
-      if (l instanceof L.Path && l !== layer) {
-        l.setStyle({ fillOpacity: l.options.fillOpacity });
-      }
+    // Reset this layer's style
+    layer.setStyle({
+      fillOpacity: 0.3 // or whatever your original fillOpacity is
     });
 
-    // Remove map focus by simulating a click slightly outside the polygon
+    // Remove map focus by simulating a click just outside the polygon
     const offset = 0.0005;
     const lat = e.latlng.lat + offset;
     const lng = e.latlng.lng + offset;
     map.fire('click', { latlng: L.latLng(lat, lng) });
-
   }, 500);
 });
+
         });
       }
     }).addTo(map); // ✅ This was missing
