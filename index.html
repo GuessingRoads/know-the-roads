@@ -675,7 +675,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         fillOpacity: 0.3
       },
       onEachFeature: function (feature, layer) {
-        layer.bindTooltip("Lancaster County", {
+        const countyName = feature.properties.name || "County";
+        layer.bindTooltip(countyName, {
           permanent: false,
           direction: "center",
           className: "county-tooltip"
