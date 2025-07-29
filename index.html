@@ -607,6 +607,7 @@ layer.on('mouseout', function () {
 
 
 layer.on('click', function () {
+  if (!insideLancaster) return; // ⛔ block clicks until user has entered Lancaster
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
 
