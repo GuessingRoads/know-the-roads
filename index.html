@@ -512,7 +512,16 @@ async function loadMap() {
   fetch('Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
-      L.geoJSON(data, {
+    L.geoJSON(data, {
+  style: {
+    fillColor: 'gray',
+    fillOpacity: 0.5,
+    color: null,
+    weight: 0
+  },
+  interactive: false
+}).addTo(map);
+
        onEachFeature: function (feature, layer) {
   const id = String(feature.id);
   const name = feature.properties.name || "";
