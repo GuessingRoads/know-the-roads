@@ -721,11 +721,20 @@ function applyOutsideGrayMask(countyGeoJSON) {
     map.removeLayer(outsideMaskLayer);
   }
 
+  // Define a large outer rectangle (world-sized)
   const outer = [
     [[-90, -180], [-90, 180], [90, 180], [90, -180], [-90, -180]]
   ];
-  const inner = countyGeoJSON.features[0].geometry.coordinates;
 
+  // Flatten nested geometry for the inner hole
+  const geometry = countyGeoJSON.features[0].geometry;
+  const inner = geometry.type === 'Polygon'
+    ? geometry.coordinates
+    : geometry.type === 'MultiPolygon'
+      ? geometry.coordinates.flat()
+      : [];
+
+  // Create the mask with outer and inner rings
   outsideMaskLayer = L.polygon([...outer, ...inner], {
     fillColor: 'gray',
     fillOpacity: 0.5,
@@ -735,6 +744,7 @@ function applyOutsideGrayMask(countyGeoJSON) {
 
   outsideMaskLayer.addTo(map);
 }
+
 
 
 
