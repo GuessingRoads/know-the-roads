@@ -271,8 +271,6 @@ const suffixMap = {
 
 let preLoginGuesses = [];
 let nameToLayers = {};
-let outsideMaskLayer = null;
-let insideLancaster = false;
 let guessedSegmentIds = new Set();
 let attemptCounts = {};  // Track attempts per segment ID
 let currentUserId = null;
@@ -607,7 +605,6 @@ layer.on('mouseout', function () {
 
 
 layer.on('click', function () {
-  if (!insideLancaster) return; // ⛔ block clicks until user has entered Lancaster
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
 
@@ -675,37 +672,30 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
 
+  // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
-    // 🧽 Remove fill (clear gray overlay)
-    layer.setStyle({
-      fillOpacity: 0.0,
-    });
+    // Reset this layer's style (opacity must match original)
+    layer.setStyle({ fillOpacity: 0.3 });
 
-    // 🧹 Remove focus ring
+    // 🔒 Disable focus/pointer temporarily
     const path = layer._path;
     if (path) {
-      path.style.outline = 'none';
+      path.style.outline = 'none'; // remove outline if browser applied
       path.style.pointerEvents = 'none';
     }
 
+    // 🪄 Blur the map container itself
     const mapContainer = map.getContainer();
-    if (mapContainer) mapContainer.blur();
+    if (mapContainer) {
+      mapContainer.blur(); // forces DOM-level blur
+    }
 
-    // ✅ Restore pointer events after short delay
+    // ✅ Re-enable pointer after another short delay
     setTimeout(() => {
       if (path) path.style.pointerEvents = '';
     }, 500);
-
-    // 🆕 Trigger "insideLancaster" mode (future use)
-    insideLancaster = true;
-    map.removeLayer(layer); // Remove Lancaster polygon so it's no longer blocking clicks
-    applyOutsideGrayMask(data); // Use the same GeoJSON object used to draw Lancaster
-
-
-    // 🔜 Later: load township polygons here
   }, 500);
 });
-
 
 
 
@@ -715,38 +705,6 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
 
 } // ✅ closes loadMap()
-function applyOutsideGrayMask(countyGeoJSON) {
-  // Remove previous mask if it exists
-  if (outsideMaskLayer) {
-    map.removeLayer(outsideMaskLayer);
-  }
-
-  // Define a large outer rectangle (world-sized)
-  const outer = [
-    [[-90, -180], [-90, 180], [90, 180], [90, -180], [-90, -180]]
-  ];
-  const inner = countyGeoJSON.features[0].geometry.coordinates;
-
-  // Flatten nested geometry for the inner hole
-  const geometry = countyGeoJSON.features[0].geometry;
-  const inner = geometry.type === 'Polygon'
-    ? geometry.coordinates
-    : geometry.type === 'MultiPolygon'
-      ? geometry.coordinates.flat()
-      : [];
-
-  // Create the mask with outer and inner rings
-  outsideMaskLayer = L.polygon([...outer, ...inner], {
-    fillColor: 'gray',
-    fillOpacity: 0.5,
-    stroke: false,
-    interactive: false
-  });
-
-  outsideMaskLayer.addTo(map);
-}
-
-
 
 
 loadMap(); // ✅ called after it's defined
@@ -856,7 +814,7 @@ if (currentUserId) {
 
   // Delay hide based on color
   let hideDelay = 800;
-  if (color === 'yellow') hideDelay = 5002;
+  if (color === 'yellow') hideDelay = 5001;
 
   setTimeout(() => {
     // Reset blue active highlight before closing modal
@@ -953,7 +911,7 @@ if (activeRoadName && nameToLayers[activeRoadName]) {
 };
 
 
-}
+
 
 loadMap();
 
