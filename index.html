@@ -630,7 +630,7 @@ layer.on('mouseout', function () {
 
 
 
-layer.on('click', function () {
+function handleRoadClick(e) {
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
 
