@@ -670,33 +670,34 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
           className: "county-tooltip"
         });
 
-    layer.on('click', function (e) {
-  if (insideLancaster) return; // Prevent repeated clicks
+   layer.on('click', function handleLancClick(e) {
+  if (insideLancaster) return; // ✅ Prevent further clicks
 
-  insideLancaster = true;
+  insideLancaster = true; // ✅ Flip state so it can't be triggered again
 
-  // Zoom into county bounds
+  // ✅ Zoom into the bounds of Lancaster County
   map.fitBounds(layer.getBounds());
 
-  // Remove gray fill from inside the polygon
+  // ✅ Remove gray fill from inside Lancaster polygon
   layer.setStyle({
     fillOpacity: 0,
     fillColor: null
   });
 
-  // Add a gray mask to everything *outside* the polygon
+  // ✅ Dim the outside world using the official mask function
   applyOutsideGrayMask(data);
 
-  // Remove tooltip to prevent future popups
+  // ✅ Remove the "Lancaster County" tooltip forever
   layer.unbindTooltip();
 
-  // Simulate a blur click to remove the black box
+  // ✅ Force focus out of the polygon to remove the black box
   setTimeout(() => {
     map.fire('click', {
-      latlng: L.latLng(0, 0) // Click outside the bounds
+      latlng: L.latLng(0, 0) // Outside any feature
     });
   }, 500);
 });
+
 
 
 
