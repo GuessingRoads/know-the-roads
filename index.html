@@ -698,39 +698,32 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
    layer.on('click', function () {
   if (insideLancaster) return; // ❌ Prevent second click
   insideLancaster = true;      // ✅ Flip state flag
-     // Enable roads now that we're inside Lancaster
-Object.values(nameToLayers).flat().forEach(layer => {
-  layer.options.interactive = true;
-  layer.on('click', layer._events.click[0].fn); // Reattach click if needed
-});
 
+  // ✅ 1. Visually fade Lancaster polygon
+  countyLayer.setStyle({ fillOpacity: 0 });
 
-
-  // 1. Remove Lancaster gray fill polygon
-countyLayer.setStyle({ fillOpacity: 0 });  // Visually hide it
-map.removeLayer(countyLayer);              // Fully remove from map
-
-
-
-  // 2. Apply gray outside mask
+  // ✅ 2. Apply gray outside mask
   applyOutsideGrayMask(data);
 
-  // 3. Enable road clickability
+  // ✅ 3. Enable road clickability cleanly
   Object.values(nameToLayers).flat().forEach(layer => {
     layer.options.interactive = true;
-    layer.on('click', onRoadClick); // Reattach your normal guess logic
+    layer.off('click'); // Clear any stale click handlers
+    layer.on('click', onRoadClick); // Attach real logic
   });
 
-  // 4. Remove hover tooltip (Lancaster box)
-  map.getContainer().style.cursor = ''; // Just in case
+  // ✅ 4. Remove tooltip & hover styles
+  map.getContainer().style.cursor = '';
+  layer.unbindTooltip();
   layer.off('mouseover');
   layer.off('mouseout');
 
-  // 5. Optional: remove focus after click (black box flicker)
+  // ✅ 5. Remove black box flicker
   setTimeout(() => {
     map.fire('click');
   }, 500);
 });
+
 
 
 
