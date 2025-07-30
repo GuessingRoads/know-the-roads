@@ -631,6 +631,10 @@ layer.on('mouseout', function () {
 
 
 function handleRoadClick(e) {
+  const layer = e.target;
+  const id = String(layer.feature.id);
+  const name = layer.feature.properties.road_name;
+
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
 
