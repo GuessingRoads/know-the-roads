@@ -670,29 +670,20 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
           className: "county-tooltip"
         });
 
-    layer.on('click', function (e) {
-  if (insideLancaster) return;
+    layer.on('click', function () {
+  // ✅ Step 0: Mark insideLancaster as true so roads are now guessable
   insideLancaster = true;
 
-  map.fitBounds(layer.getBounds());
+  // ✅ Step 1: Remove the gray fill over Lancaster County
+  map.removeLayer(countyLayer);
 
-  const blackBox = L.rectangle(layer.getBounds(), {
-    color: 'black',
-    weight: 0,
-    fillOpacity: 0.6
-  }).addTo(map);
-
-  setTimeout(() => {
-    map.removeLayer(blackBox);
-  }, 500);
-
-  layer.setStyle({
-    color: '#0080ff',
-    weight: 3,
-    fillOpacity: 0
-  });
-
+  // ✅ Step 2: Add the gray mask outside of Lancaster County
   applyOutsideGrayMask(data);
+
+  // ✅ Step 3: Clear focus/outline from polygon after short delay
+  setTimeout(() => {
+    map.fire('click'); // Clears outline from polygon
+  }, 500);
 });
 
 
