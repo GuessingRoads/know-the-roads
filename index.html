@@ -725,7 +725,7 @@ layer.on('click', function () {
   console.log("✅ Re-enabling roads");
   Object.values(nameToLayers).flat().forEach(layer => {
     layer.options.interactive = true;
-    layer.on('click', onRoadClick);
+    layer.on('click', handleRoadClick);
   });
 
   // 5. Clear focus
