@@ -541,6 +541,7 @@ async function loadMap() {
          segmentIdToName[id] = name;
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
+         layer.options.interactive = false;
 
 if (segmentStateMap.has(id)) {
   const state = segmentStateMap.get(id);
