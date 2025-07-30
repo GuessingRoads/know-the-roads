@@ -681,7 +681,7 @@ layer.on('click', function () {
 fetch('Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
   .then(data => {
-    const countyLayer = L.geoJSON(data, {
+    countyLayer = L.geoJSON(data, {
       style: {
         color: '#0080ff',
         weight: 3,
