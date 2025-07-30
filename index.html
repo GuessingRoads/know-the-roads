@@ -700,7 +700,9 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
      // Enable roads now that we're inside Lancaster
 Object.values(nameToLayers).flat().forEach(layer => {
   layer.options.interactive = true;
+  layer.on('click', layer._events.click[0].fn); // Reattach click if needed
 });
+
 
 
   // 1. Remove Lancaster gray fill polygon
