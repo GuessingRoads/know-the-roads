@@ -694,21 +694,32 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         });
 
    layer.on('click', function () {
-  if (insideLancaster) return; // 🚫 Prevent second click
+  if (insideLancaster) return; // ❌ Prevent second click
+  insideLancaster = true;      // ✅ Flip state flag
 
-  insideLancaster = true; // ✅ Flip flag
-
-  // 🧹 Step 1: Remove gray overlay on Lancaster
+  // 1. Remove Lancaster gray fill polygon
   map.removeLayer(countyLayer);
 
-  // 🎯 Step 2: Apply gray mask to the rest of the world
+  // 2. Apply gray outside mask
   applyOutsideGrayMask(data);
 
-  // ⏳ Step 3: Optional UI behavior
+  // 3. Enable road clickability
+  Object.values(nameToLayers).flat().forEach(layer => {
+    layer.options.interactive = true;
+    layer.on('click', onRoadClick); // Reattach your normal guess logic
+  });
+
+  // 4. Remove hover tooltip (Lancaster box)
+  map.getContainer().style.cursor = ''; // Just in case
+  layer.off('mouseover');
+  layer.off('mouseout');
+
+  // 5. Optional: remove focus after click (black box flicker)
   setTimeout(() => {
-    map.fire('click'); // clears polygon focus
+    map.fire('click');
   }, 500);
 });
+
 
 
       }
