@@ -671,6 +671,14 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
+          // ✅ Enable all road layers for permanent clickability
+Object.values(nameToLayers).flat().forEach(layer => {
+  layer.options.interactive = true;
+  if (!layer._events?.click) {
+    layer.on('click', handleRoadClick);
+  }
+});
+
 
   // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
