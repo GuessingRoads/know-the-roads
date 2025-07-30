@@ -271,6 +271,7 @@ const suffixMap = {
 
 let preLoginGuesses = [];
 let nameToLayers = {};
+let insideLancaster = false; // ⬅️ Put this at the top of your script (outside loadMap)
 let guessedSegmentIds = new Set();
 let attemptCounts = {};  // Track attempts per segment ID
 let currentUserId = null;
