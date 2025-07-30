@@ -517,6 +517,14 @@ async function loadMap() {
          segmentIdToName[id] = name;
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
+         // 🔒 Prepare all road layers to be clickable later
+Object.values(nameToLayers).flat().forEach(layer => {
+  layer.options.interactive = false; // keep them disabled until county is clicked
+  if (!layer._events?.click) {
+    layer.on('click', handleRoadClick); // attach once
+  }
+});
+
 
 if (segmentStateMap.has(id)) {
   const state = segmentStateMap.get(id);
