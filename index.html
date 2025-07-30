@@ -271,8 +271,6 @@ const suffixMap = {
 
 let preLoginGuesses = [];
 let nameToLayers = {};
-let countyLayer;
-let insideLancaster = false; // ⬅️ Put this at the top of your script (outside loadMap)
 let guessedSegmentIds = new Set();
 let attemptCounts = {};  // Track attempts per segment ID
 let currentUserId = null;
@@ -505,29 +503,6 @@ function suffixOnlyMismatch(guess, actual) {
   const diffSuffix = g[g.length - 1] !== a[a.length - 1];
   return sameBase && diffSuffix;
 }
-// Add this above loadMap()
-let outsideMaskLayer;
-
-function applyOutsideGrayMask(countyGeoJSON) {
-  // Remove previous mask if it exists
-  if (outsideMaskLayer) {
-    map.removeLayer(outsideMaskLayer);
-  }
-
-  const outer = [
-    [[-90, -180], [-90, 180], [90, 180], [90, -180], [-90, -180]]
-  ];
-  const inner = countyGeoJSON.features[0].geometry.coordinates;
-
-  outsideMaskLayer = L.polygon([...outer, ...inner], {
-    fillColor: 'gray',
-    fillOpacity: 0.5,
-    stroke: false,
-    interactive: false
-  });
-
-  outsideMaskLayer.addTo(map);
-}
 
 async function loadMap() {
   await checkLogin();
@@ -542,7 +517,6 @@ async function loadMap() {
          segmentIdToName[id] = name;
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
-         layer.options.interactive = false;
 
 if (segmentStateMap.has(id)) {
   const state = segmentStateMap.get(id);
@@ -630,10 +604,7 @@ layer.on('mouseout', function () {
 
 
 
-function handleRoadClick(e) {
-  const layer = e.target;
-  const id = String(layer.feature.id);
-  const name = normalizeName(layer.feature.properties.road_name);
+layer.on('click', function () {
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
 
@@ -684,7 +655,7 @@ function handleRoadClick(e) {
 fetch('Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
   .then(data => {
-    countyLayer = L.geoJSON(data, {
+    const countyLayer = L.geoJSON(data, {
       style: {
         color: '#0080ff',
         weight: 3,
@@ -698,44 +669,32 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
           className: "county-tooltip"
         });
 
-layer.on('click', function () {
-  console.log("✅ Clicked Lancaster polygon");
+        layer.on('click', function (e) {
+  map.fitBounds(layer.getBounds());
 
-  if (insideLancaster) {
-    console.log("🛑 Already inside Lancaster, ignoring click");
-    return;
-  }
-
-  insideLancaster = true;
-  console.log("✅ Entering Lancaster zone");
-
-  // 1. Visually hide the gray fill
-  console.log("🧹 Hiding countyLayer fill");
-  countyLayer.setStyle({ fillOpacity: 0 });
-
-  // 2. Remove tooltip
-  console.log("❌ Removing tooltip");
-  map.getContainer().style.cursor = '';
-  layer.off('mouseover');
-  layer.off('mouseout');
-  layer.unbindTooltip();
-
-  // 3. Apply gray outside mask
-  console.log("🕶️ Applying outside gray mask...");
-  applyOutsideGrayMask(data);
-
-  // 4. Enable road clickability
-  console.log("✅ Re-enabling roads");
-  Object.values(nameToLayers).flat().forEach(layer => {
-    layer.options.interactive = true;
-    layer.on('click', handleRoadClick);
-  });
-
-  // 5. Clear focus
-  console.log("🕳️ Removing black focus box");
+  // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
-    map.fire('click');
-  }, 10);
+    // Reset this layer's style (opacity must match original)
+    layer.setStyle({ fillOpacity: 0.3 });
+
+    // 🔒 Disable focus/pointer temporarily
+    const path = layer._path;
+    if (path) {
+      path.style.outline = 'none'; // remove outline if browser applied
+      path.style.pointerEvents = 'none';
+    }
+
+    // 🪄 Blur the map container itself
+    const mapContainer = map.getContainer();
+    if (mapContainer) {
+      mapContainer.blur(); // forces DOM-level blur
+    }
+
+    // ✅ Re-enable pointer after another short delay
+    setTimeout(() => {
+      if (path) path.style.pointerEvents = '';
+    }, 500);
+  }, 500);
 });
 
 
