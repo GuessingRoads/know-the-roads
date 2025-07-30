@@ -697,6 +697,11 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
    layer.on('click', function () {
   if (insideLancaster) return; // ❌ Prevent second click
   insideLancaster = true;      // ✅ Flip state flag
+     // Enable roads now that we're inside Lancaster
+Object.values(nameToLayers).flat().forEach(layer => {
+  layer.options.interactive = true;
+});
+
 
   // 1. Remove Lancaster gray fill polygon
   map.removeLayer(countyLayer);
