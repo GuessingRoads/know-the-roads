@@ -678,17 +678,22 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
           className: "county-tooltip"
         });
 
-        layer.on('click', function (e) {
+       layer.on('click', function (e) {
+  if (insideLancaster) return;
+  insideLancaster = true;
+
   map.fitBounds(layer.getBounds());
-          // ✅ Enable all road layers for permanent clickability
-setTimeout(() => {
-  Object.values(nameToLayers).flat().forEach(layer => {
-    layer.options.interactive = true;
-    if (!layer._events?.click) {
-      layer.on('click', handleRoadClick);
-    }
-  });
-}, 100); // 100ms delay
+  
+  // ✅ Enable all road layers for permanent clickability
+  setTimeout(() => {
+    Object.values(nameToLayers).flat().forEach(layer => {
+      layer.options.interactive = true;
+      if (!layer._events?.click) {
+        layer.on('click', handleRoadClick);
+      }
+    });
+  }, 100); // 100ms delay
+
 
 
 
