@@ -611,6 +611,25 @@ layer.on('mouseout', function () {
 });
 
 
+function enableRoadClickabilityWhenReady(attempts = 0) {
+  if (Object.keys(nameToLayers).length === 0) {
+    if (attempts < 10) {
+      requestAnimationFrame(() => enableRoadClickabilityWhenReady(attempts + 1));
+    } else {
+      console.warn("❌ Road layers not ready after 10 tries.");
+    }
+    return;
+  }
+
+  Object.values(nameToLayers).flat().forEach(layer => {
+    layer.options.interactive = true;
+    if (!layer._events?.click) {
+      layer.on('click', handleRoadClick);
+    }
+  });
+
+  console.log("✅ Roads are now clickable");
+}
 
 
 layer.on('click', function () {
