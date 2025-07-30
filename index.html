@@ -700,6 +700,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
   // 1. Remove Lancaster gray fill polygon
   map.removeLayer(countyLayer);
+     layer.setStyle({ fillOpacity: 0 });
+
 
   // 2. Apply gray outside mask
   applyOutsideGrayMask(data);
