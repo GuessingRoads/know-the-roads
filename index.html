@@ -705,7 +705,7 @@ Object.values(nameToLayers).flat().forEach(layer => {
 
   // 1. Remove Lancaster gray fill polygon
   map.removeLayer(countyLayer);
-     layer.setStyle({ fillOpacity: 0 });
+     countyLayer.setStyle({ fillOpacity: 0 });
 
 
   // 2. Apply gray outside mask
