@@ -738,16 +738,23 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
     [outer[0][0], outer[0][1]]
   ];
 
-  const lancShape = feature.geometry.coordinates;
+  // Get interior rings
+  let holes = [];
+  if (feature.geometry.type === 'Polygon') {
+    holes = feature.geometry.coordinates;
+  } else if (feature.geometry.type === 'MultiPolygon') {
+    holes = feature.geometry.coordinates.flat();
+  }
 
   return {
     type: "Feature",
     geometry: {
       type: "Polygon",
-      coordinates: [outerRing, ...lancShape]
+      coordinates: [outerRing, ...holes] // cut holes for Lancaster
     }
   };
 }
+
 
   });
 
