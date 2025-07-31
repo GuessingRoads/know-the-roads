@@ -519,10 +519,9 @@ async function loadMap() {
   nameToLayers[name].push(layer);
          // 🔒 Attach click handlers to all road layers (but enforce logic inside handler)
 Object.values(nameToLayers).flat().forEach(layer => {
-  if (!layer._events?.click) {
-    layer.on('click', handleRoadClick);
-  }
+  layer.options.interactive = true;
 });
+
 
 
 
