@@ -514,18 +514,20 @@ async function loadMap() {
     .then(res => res.json())
     .then(data => {
   L.geoJSON(data, {
-    onEachFeature: function (feature, layer) {
-      const id = String(feature.id);
-      const name = feature.properties.name || "";
+   onEachFeature: function (feature, layer) {
+  const id = String(feature.id);
+  const name = feature.properties.name || "";
 
-      segmentIdToName[id] = name;
-      if (!nameToLayers[name]) nameToLayers[name] = [];
-      nameToLayers[name].push(layer);
+  segmentIdToName[id] = name;
+  if (!nameToLayers[name]) nameToLayers[name] = [];
+  nameToLayers[name].push(layer);
 
-      // 🚫 Hide roads and disable click until Lancaster is entered
-      layer._path?.classList.add('hidden-road');
-      layer.options.interactive = false;
-    }
+  // 🚫 Hide roads and disable click until Lancaster is entered
+  setTimeout(() => {
+    layer._path?.classList.add('hidden-road');
+  }, 0);
+  layer.options.interactive = false;
+}
   });
 
   // ✅ AFTER all roads are loaded, attach click handlers
