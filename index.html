@@ -670,6 +670,7 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         fillColor: '#cce6ff',
         fillOpacity: 0.3
       },
+      
       onEachFeature: function (feature, layer) {
         layer.bindTooltip("Lancaster County", {
           permanent: false,
@@ -712,6 +713,32 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
       }
     }).addTo(map); // ✅ This was missing
+    function createWorldMask(feature) {
+  const bounds = map.getBounds().pad(1);
+  const outer = [
+    [bounds.getSouthWest().lat - 10, bounds.getSouthWest().lng - 10],
+    [bounds.getNorthEast().lat + 10, bounds.getNorthEast().lng + 10]
+  ];
+
+  const outerRing = [
+    [outer[0][0], outer[0][1]],
+    [outer[1][0], outer[0][1]],
+    [outer[1][0], outer[1][1]],
+    [outer[0][0], outer[1][1]],
+    [outer[0][0], outer[0][1]]
+  ];
+
+  const lancShape = feature.geometry.coordinates;
+
+  return {
+    type: "Feature",
+    geometry: {
+      type: "Polygon",
+      coordinates: [outerRing, ...lancShape]
+    }
+  };
+}
+
   });
 
 
