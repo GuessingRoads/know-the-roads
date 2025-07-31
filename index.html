@@ -699,39 +699,38 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
           className: "county-tooltip"
         });
 
-       layer.on('click', function (e) {
+  layer.on('click', function (e) {
   if (insideLancaster) return;
-  insideLancaster = true;
 
   map.fitBounds(layer.getBounds());
-  
- enableRoadClickabilityWhenReady();
 
+  enableRoadClickabilityWhenReady();
 
   // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
-    // Reset this layer's style (opacity must match original)
+    insideLancaster = true; // ✅ Now correctly delayed
+
+    // Reset this layer's style
     layer.setStyle({ fillOpacity: 0.3 });
 
     // 🔒 Disable focus/pointer temporarily
     const path = layer._path;
     if (path) {
-      path.style.outline = 'none'; // remove outline if browser applied
+      path.style.outline = 'none';
       path.style.pointerEvents = 'none';
     }
 
-    // 🪄 Blur the map container itself
     const mapContainer = map.getContainer();
     if (mapContainer) {
-      mapContainer.blur(); // forces DOM-level blur
+      mapContainer.blur();
     }
 
-    // ✅ Re-enable pointer after another short delay
     setTimeout(() => {
       if (path) path.style.pointerEvents = '';
     }, 500);
   }, 500);
 });
+
 
 
 
