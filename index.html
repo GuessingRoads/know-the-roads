@@ -634,6 +634,8 @@ function enableRoadClickabilityWhenReady(attempts = 0) {
 layer.on('click', function () {
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
+  if (!insideLancaster) return;
+
 
   // Reset any previously highlighted road (remove blue highlight)
   if (activeRoadName && nameToLayers[activeRoadName]) {
