@@ -512,7 +512,7 @@ async function loadMap() {
   fetch('Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
-      L.geoJSON(data, {
+      const roadLayer = L.geoJSON(data, {
        onEachFeature: function (feature, layer) {
   const id = String(feature.id);
   const name = feature.properties.name || "";
@@ -652,7 +652,10 @@ layer.on('click', function () {
 });
 
 }
-                 }).addTo(map); // ✅ end of geoJSON block
+                 }); // ❌ don't add to map yet
+
+roadsLayerGroup.addLayer(roadLayer); // ✅ add to layer group instead
+
       }); // ✅ closes .then(data => { ... })
 
 fetch('Boundaries_County_Lancaster_PA.geojson')
@@ -675,6 +678,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
   insideLancaster = true;
+  map.addLayer(roadsLayerGroup);
+
 
   // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
