@@ -673,6 +673,7 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
+  insideLancaster = true;
 
   // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
