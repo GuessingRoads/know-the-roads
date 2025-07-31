@@ -253,6 +253,8 @@
   import { roadNameToIds } from './roadNameToIds.js';
   console.log("Loaded roadNameToIds:", Object.keys(roadNameToIds));
   const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
+  map.createPane('maskPane'); // Create a custom pane for the gray mask
+  map.getPane('maskPane').style.zIndex = 299; // Ensure it renders below roads
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
