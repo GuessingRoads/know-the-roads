@@ -606,6 +606,7 @@ layer.on('mouseout', function () {
 
 
 layer.on('click', function () {
+  if (!insideLancaster) return; // 🔒 prevent guessing until polygon clicked
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
 
