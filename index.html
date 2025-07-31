@@ -611,15 +611,20 @@ layer.on('mouseout', function () {
 });
 
 
-function enableRoadClickabilityWhenReady(attempts = 0) {
-  if (Object.keys(nameToLayers).length === 0) {
-    if (attempts < 10) {
-      requestAnimationFrame(() => enableRoadClickabilityWhenReady(attempts + 1));
+function enableRoadClickabilityWhenReady(retries = 10) {
+  // Wait until nameToLayers is fully populated
+  const roadCount = Object.values(nameToLayers).flat().length;
+
+  if (roadCount < 600) { // Adjust this threshold if needed
+    if (retries > 0) {
+      setTimeout(() => enableRoadClickabilityWhenReady(retries - 1), 100);
     } else {
-      console.warn("❌ Road layers not ready after 10 tries.");
+      console.warn("⚠️ Gave up waiting for roads to load.");
     }
     return;
   }
+
+  console.log("✅ Roads are now clickable");
 
   Object.values(nameToLayers).flat().forEach(layer => {
     layer.options.interactive = true;
@@ -627,9 +632,8 @@ function enableRoadClickabilityWhenReady(attempts = 0) {
       layer.on('click', handleRoadClick);
     }
   });
-
-  console.log("✅ Roads are now clickable");
 }
+
 
 
 layer.on('click', function () {
