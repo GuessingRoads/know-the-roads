@@ -561,6 +561,7 @@ if (segmentStateMap.has(id)) {
 
 // Hover effect
 layer.on('mouseover', function () {
+  if (!insideLancaster) return; // 🔒 block hover effects too
   const name = feature.properties.name || "";
   const matchingLayers = nameToLayers[name] || [];
 
