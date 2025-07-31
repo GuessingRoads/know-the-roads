@@ -682,14 +682,22 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
   map.fitBounds(layer.getBounds());
   insideLancaster = true;
   map.addLayer(roadsLayerGroup);
-          if (!worldMask) {
+         if (!worldMask) {
   worldMask = L.geoJSON(createWorldMask(feature), {
     style: {
       fillColor: '#cccccc',
       fillOpacity: 0.7,
-      stroke: false
+      stroke: false,
+      pane: 'overlayPane'
     }
   }).addTo(map);
+
+  worldMask.eachLayer(layer => {
+    const el = layer.getElement();
+    if (el) el.style.pointerEvents = 'none';
+  });
+}
+
 }
 
 
