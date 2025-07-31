@@ -941,6 +941,10 @@ document.getElementById('give-up').onclick = async function () {
     }
 
     await saveGuessSegmentIds(segmentIds, false, false);
+    for (const id of segmentIds) {
+  segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
+}
+
     document.getElementById('feedback-message').innerText = 'Incorrect';
   }
 
