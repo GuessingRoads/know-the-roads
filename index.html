@@ -43,9 +43,7 @@
   vertical-align: middle;
   box-sizing: border-box; /* ✅ forces equal sizing and alignment */
 }
-.hidden-road {
-  display: none !important;
-}
+
 
     #auth-box {
   position: absolute;
@@ -200,7 +198,7 @@
 <div id="auth-box" class="legend" style="right: 10px; left: auto;">
   <div id="auth-message">Checking login...</div>
   <button id="login-btn" style="margin-top: 2px;">Login with Google</button>
-  
+
 <p id="login-note" style="
   font-size: 12px;
   color: #888;
@@ -273,7 +271,6 @@ const suffixMap = {
 
 let preLoginGuesses = [];
 let nameToLayers = {};
-let insideLancaster = false;
 let guessedSegmentIds = new Set();
 let attemptCounts = {};  // Track attempts per segment ID
 let currentUserId = null;
@@ -513,30 +510,20 @@ async function loadMap() {
   fetch('Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
-  L.geoJSON(data, {
-   onEachFeature: function (feature, layer) {
+      L.geoJSON(data, {
+       onEachFeature: function (feature, layer) {
   const id = String(feature.id);
   const name = feature.properties.name || "";
-
-  segmentIdToName[id] = name;
+         segmentIdToName[id] = name;
   if (!nameToLayers[name]) nameToLayers[name] = [];
   nameToLayers[name].push(layer);
-
-  // 🚫 Hide roads and disable click until Lancaster is entered
-  setTimeout(() => {
-    layer.getElement()?.classList.add('hidden-road');
-  }, 0);
-  layer.options.interactive = false;
-}
-  });
-
-  // ✅ AFTER all roads are loaded, attach click handlers
-  Object.values(nameToLayers).flat().forEach(layer => {
-    layer.options.interactive = false; // disable until polygon click
-    layer.on('click', handleRoadClick); // still attach logic (gated inside)
-  });
+         // 🔒 Attach click handlers to all road layers (but enforce logic inside handler)
+Object.values(nameToLayers).flat().forEach(layer => {
+  if (!layer._events?.click) {
+    layer.on('click', handleRoadClick);
+  }
+  layer.options.interactive = true;
 });
-
 
 
 
@@ -626,20 +613,15 @@ layer.on('mouseout', function () {
 });
 
 
-function enableRoadClickabilityWhenReady(retries = 10) {
-  // Wait until nameToLayers is fully populated
-  const roadCount = Object.values(nameToLayers).flat().length;
-
-  if (roadCount < 600) { // Adjust this threshold if needed
-    if (retries > 0) {
-      setTimeout(() => enableRoadClickabilityWhenReady(retries - 1), 100);
+function enableRoadClickabilityWhenReady(attempts = 0) {
+  if (Object.keys(nameToLayers).length === 0) {
+    if (attempts < 10) {
+      requestAnimationFrame(() => enableRoadClickabilityWhenReady(attempts + 1));
     } else {
-      console.warn("⚠️ Gave up waiting for roads to load.");
+      console.warn("❌ Road layers not ready after 10 tries.");
     }
     return;
   }
-
-  console.log("✅ Roads are now clickable");
 
   Object.values(nameToLayers).flat().forEach(layer => {
     layer.options.interactive = true;
@@ -647,15 +629,14 @@ function enableRoadClickabilityWhenReady(retries = 10) {
       layer.on('click', handleRoadClick);
     }
   });
-}
 
+  console.log("✅ Roads are now clickable");
+}
 
 
 layer.on('click', function () {
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
-  if (!insideLancaster) return;
-
 
   // Reset any previously highlighted road (remove blue highlight)
   if (activeRoadName && nameToLayers[activeRoadName]) {
@@ -718,40 +699,39 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
           className: "county-tooltip"
         });
 
- layer.on('click', function (e) {
+       layer.on('click', function (e) {
   if (insideLancaster) return;
   insideLancaster = true;
 
   map.fitBounds(layer.getBounds());
 
-  // ✅ Show and activate roads after entering Lancaster
-  Object.values(nameToLayers).flat().forEach(layer => {
-    layer.options.interactive = true;
-    layer._path?.classList.remove('hidden-road');
-  });
+ enableRoadClickabilityWhenReady();
+
 
   // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
+    // Reset this layer's style (opacity must match original)
     layer.setStyle({ fillOpacity: 0.3 });
 
+    // 🔒 Disable focus/pointer temporarily
     const path = layer._path;
     if (path) {
-      path.style.outline = 'none';
+      path.style.outline = 'none'; // remove outline if browser applied
       path.style.pointerEvents = 'none';
     }
 
+    // 🪄 Blur the map container itself
     const mapContainer = map.getContainer();
     if (mapContainer) {
-      mapContainer.blur();
+      mapContainer.blur(); // forces DOM-level blur
     }
 
+    // ✅ Re-enable pointer after another short delay
     setTimeout(() => {
       if (path) path.style.pointerEvents = '';
     }, 500);
   }, 500);
 });
-
-
 
 
 
