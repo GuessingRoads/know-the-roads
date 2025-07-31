@@ -524,7 +524,7 @@ async function loadMap() {
 
   // 🚫 Hide roads and disable click until Lancaster is entered
   setTimeout(() => {
-    layer._path?.classList.add('hidden-road');
+    layer.getElement()?.classList.add('hidden-road');
   }, 0);
   layer.options.interactive = false;
 }
