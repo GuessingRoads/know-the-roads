@@ -513,17 +513,28 @@ async function loadMap() {
   fetch('Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
-      L.geoJSON(data, {
-       onEachFeature: function (feature, layer) {
-  const id = String(feature.id);
-  const name = feature.properties.name || "";
-         segmentIdToName[id] = name;
-  if (!nameToLayers[name]) nameToLayers[name] = [];
-  nameToLayers[name].push(layer);
-         // 🔒 Attach click handlers to all road layers (but enforce logic inside handler)
-Object.values(nameToLayers).flat().forEach(layer => {
-  layer.options.interactive = true;
+  L.geoJSON(data, {
+    onEachFeature: function (feature, layer) {
+      const id = String(feature.id);
+      const name = feature.properties.name || "";
+
+      segmentIdToName[id] = name;
+      if (!nameToLayers[name]) nameToLayers[name] = [];
+      nameToLayers[name].push(layer);
+
+      // 🚫 Hide roads and disable click until Lancaster is entered
+      layer._path?.classList.add('hidden-road');
+      layer.options.interactive = false;
+    }
+  });
+
+  // ✅ AFTER all roads are loaded, attach click handlers
+  Object.values(nameToLayers).flat().forEach(layer => {
+    layer.options.interactive = false; // disable until polygon click
+    layer.on('click', handleRoadClick); // still attach logic (gated inside)
+  });
 });
+
 
 
 
