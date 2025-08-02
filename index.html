@@ -973,10 +973,7 @@ document.getElementById('give-up').onclick = async function () {
     // EARLY GIVE-UP (< 4 tries)
     usedHint = false;
 
-    for (const layer of nameToLayers[normalizedKey] || []) {
-      layer.setStyle({ color: 'red', weight: 6 });
-      layer._originalColor = 'red';
-    }
+    animateIncorrectSegments(nameToLayers[normalizedKey] || []);
 
     await saveGuessSegmentIds(segmentIds, false, false);
 
