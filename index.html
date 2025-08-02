@@ -577,7 +577,7 @@ layer.on('mouseover', function () {
 
   for (const l of matchingLayers) {
     const currentColor = l._originalColor;
-    if (['black', 'red', 'yellow'].includes(currentColor)) {
+    if (!['greenish', 'orangeish'].includes(currentColor)) {
       l.setStyle({
         color: '#ffd700', // gold
         weight: 8,
