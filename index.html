@@ -966,11 +966,11 @@ document.getElementById('give-up').onclick = async function () {
         for (const l of nameToLayers[activeRoadName]) {
           const id = String(l.feature.id);
           const state = segmentStateMap.get(id);
-          if (state?.correct) {
-            l.setStyle({ color: 'gray', weight: 6 });
-          } else if (state?.used_hint) {
-            l.setStyle({ color: 'orange', weight: 6 });
-          } else if (state?.incorrect) {
+         if (s?.correct) {
+            l._path?.classList.add('correct-final');
+          } else if (s?.used_hint) {
+            l._path?.classList.add('hint-used-final');
+          } else if (s?.incorrect) {
             l.setStyle({ color: 'red', weight: 6 });
           } else {
             l.setStyle({ color: 'black', weight: 6 });
