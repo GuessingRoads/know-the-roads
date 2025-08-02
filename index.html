@@ -535,28 +535,25 @@ if (segmentStateMap.has(id)) {
   const state = segmentStateMap.get(id);
 
   if (state.used_hint) {
-    layer.setStyle({ weight: 6 }); // Skip color, use CSS class
+  layer.setStyle({ color: '#ffa50066', weight: 6 }); // translucent orange
+  setTimeout(() => {
+    if (layer._path) {
+      layer._path.style.opacity = '';
+      layer._path.classList.add('hint-used-final');
+    }
+  }, 0);
+  layer._originalColor = 'orangeish';
 
-    setTimeout(() => {
-      if (layer._path) {
-        layer._path.style.opacity = '';
-        layer._path.classList.add('hint-used-final');
-      }
-    }, 0);
-
-    layer._originalColor = 'orangeish';
-
-  } else if (state.correct) {
-    layer.setStyle({ weight: 6 }); // Don't set color directly
-
-    setTimeout(() => {
-      if (layer._path) {
-        layer._path.style.opacity = '';
-        layer._path.classList.add('correct-final');
-      }
-    }, 0);
-
-    layer._originalColor = 'greenish';
+} else if (state.correct) {
+  layer.setStyle({ color: '#00ff5566', weight: 6 }); // translucent green
+  setTimeout(() => {
+    if (layer._path) {
+      layer._path.style.opacity = '';
+      layer._path.classList.add('correct-final');
+    }
+  }, 0);
+  layer._originalColor = 'greenish';
+}
 
   } else {
     layer.setStyle({ color: 'red', weight: 6 });
