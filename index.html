@@ -877,15 +877,21 @@ if (currentUserId) {
   let hideDelay = 800;
   if (color === 'yellow') hideDelay = 5001;
 
+  if (isCorrect || usedHint) {
   setTimeout(() => {
-    // Reset blue active highlight before closing modal
-
-
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
     currentRoad = null;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, hideDelay);
+} else {
+  // 🔴 Incorrect guess — close immediately
+  document.getElementById('guess-modal').style.display = 'none';
+  document.getElementById('feedback-message').innerText = '';
+  currentRoad = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 };
 document.getElementById('give-up').onclick = async function () {
   if (!currentRoad) return;
