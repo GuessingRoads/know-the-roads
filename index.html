@@ -327,6 +327,14 @@ supabase.auth.onAuthStateChange((event, session) => {
     loginNote.style.display = 'block';
   }
 });
+function animateIncorrectSegments(segments, delay = 60) {
+  segments.forEach((layer, index) => {
+    setTimeout(() => {
+      layer.setStyle({ color: 'red', weight: 6 });
+      layer._originalColor = 'red';
+    }, index * delay);
+  });
+}
 
 
 async function checkLogin() {
