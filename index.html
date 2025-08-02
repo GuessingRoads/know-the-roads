@@ -598,17 +598,19 @@ layer.on('mouseout', function () {
   // Don't reset style if the road is actively selected
   if (activeRoadName === name) return;
 
-  for (const l of matchingLayers) {
-    const currentColor = l._originalColor;
-    if (['black', 'red', 'yellow', 'greenish', 'orangeish'].includes(currentColor)) {
-      l.setStyle({
-        color: currentColor,
-        weight: 6,
-        opacity: 1,
-        lineCap: 'round'
-      });
-    }
+ for (const l of matchingLayers) {
+  const currentColor = l._originalColor;
+
+  // Only reset style for hoverable colors
+  if (!['greenish', 'orangeish'].includes(currentColor)) {
+    l.setStyle({
+      color: currentColor,
+      weight: 6,
+      opacity: 1,
+      lineCap: 'round'
+    });
   }
+}
 });
 
 
