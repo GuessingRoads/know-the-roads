@@ -853,15 +853,23 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
     k => normalizeName(k) === normalizedCorrect
   );
   const segmentIds = roadNameToIds[normalizedKey];
-  for (const layer of nameToLayers[normalizedKey] || []) {
-  if (isCorrect) {
+  const layers = nameToLayers[normalizedKey] || [];
+
+if (isCorrect) {
+  for (const layer of layers) {
     triggerCorrectDissolveAnimation(layer);
-    layer._originalColor = 'greenish'; // Not used visually, just marks as unclickable
-  } else {
-    layer.setStyle({ color: color, weight: 6 });
-    layer._originalColor = color;
+    layer._originalColor = 'greenish';
   }
+} else if (usedHint) {
+  for (const layer of layers) {
+    layer.setStyle({ color: 'orange', weight: 6 });
+    layer._originalColor = 'orange';
+  }
+} else {
+  // Animate incorrect red segments
+  animateIncorrectSegments(layers);
 }
+
 
 
 if (currentUserId) {
