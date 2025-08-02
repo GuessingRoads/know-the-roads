@@ -623,22 +623,25 @@ layer.on('click', function () {
   const state = segmentStateMap.get(id);
   if (state?.correct || state?.used_hint) return;
 
-  // Reset any previously highlighted road (remove blue highlight)
   if (activeRoadName && nameToLayers[activeRoadName]) {
-    for (const l of nameToLayers[activeRoadName]) {
-      const segmentId = String(l.feature.id);
-      const s = segmentStateMap.get(segmentId);
-      if (s?.correct) {
-        l.setStyle({ color: 'gray', weight: 6 });
-      } else if (s?.used_hint) {
-        l.setStyle({ color: 'orange', weight: 6 });
-      } else if (s?.incorrect) {
-        l.setStyle({ color: 'red', weight: 6 });
-      } else {
-        l.setStyle({ color: 'black', weight: 6 });
-      }
+  for (const l of nameToLayers[activeRoadName]) {
+    const segmentId = String(l.feature.id);
+    const s = segmentStateMap.get(segmentId);
+
+    if (s?.correct) {
+      l._path?.classList.add('correct-final');
+    } else if (s?.used_hint) {
+      l._path?.classList.add('hint-used-final');
+    } else if (s?.incorrect) {
+      l.setStyle({ color: 'red', weight: 6 });
+      l._originalColor = 'red';
+    } else {
+      l.setStyle({ color: 'black', weight: 6 });
+      l._originalColor = 'black';
     }
   }
+}
+
 
   // Highlight current selection in blue (only if not correct/hint-used)
 for (const l of nameToLayers[name] || []) {
