@@ -929,7 +929,7 @@ document.getElementById('give-up').onclick = async function () {
 
     await saveGuessSegmentIds(segmentIds, false, true);
 
-    alert(`Correct answer: ${correctName}`);
+    document.getElementById('feedback-message').innerText = `Correct answer: ${correctName}`;
   } else {
     // EARLY GIVE-UP (< 4 tries)
     usedHint = false;
@@ -972,7 +972,7 @@ if (activeRoadName && nameToLayers[activeRoadName]) {
     document.getElementById('feedback-message').innerText = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     currentRoad = null;
-  }, 800);
+  }, 400);
 };
 
 
