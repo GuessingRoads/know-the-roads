@@ -604,7 +604,7 @@ layer.on('mouseout', function () {
 
   for (const l of matchingLayers) {
     const currentColor = l._originalColor;
-    if (['black', 'red', 'yellow'].includes(currentColor)) {
+    if (['black', 'red', 'yellow', 'greenish', 'orangeish'].includes(currentColor)) {
       l.setStyle({
         color: currentColor,
         weight: 6,
