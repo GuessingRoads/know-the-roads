@@ -929,51 +929,90 @@ document.getElementById('give-up').onclick = async function () {
 
     await saveGuessSegmentIds(segmentIds, false, true);
 
-    document.getElementById('feedback-message').innerText = `Correct answer: ${correctName}`;
-  } else {
-    // EARLY GIVE-UP (< 4 tries)
-    usedHint = false;
+    if (newAttempts >= 4) {
+  // FINAL GIVE-UP (4th+ try)
+  usedHint = true;
+  completedRoads.add(normalizedCorrect);
+  currentRoad.hintGiven = true;
 
-    // Don't mark completed; allow future attempts
-    for (const layer of nameToLayers[normalizedKey] || []) {
-      layer.setStyle({ color: 'red', weight: 6 });
-      layer._originalColor = 'red';
-    }
-
-    await saveGuessSegmentIds(segmentIds, false, false);
-    for (const id of segmentIds) {
-  segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
-}
-
-    document.getElementById('feedback-message').innerText = 'Incorrect';
+  // Update internal state map
+  for (const id of segmentIds) {
+    segmentStateMap.set(String(id), { correct: false, used_hint: true });
   }
 
-  // Close modal regardless
+  for (const layer of nameToLayers[normalizedKey] || []) {
+    layer.setStyle({ color: 'orange', weight: 6 });
+    layer._originalColor = 'orange';
+  }
+
+  await saveGuessSegmentIds(segmentIds, false, true);
+
+  // Show correct answer in modal for 2s
+  document.getElementById('feedback-message').innerText = `Correct answer: ${correctName}`;
+
   setTimeout(() => {
-    // Reset blue active highlight before closing modal
-if (activeRoadName && nameToLayers[activeRoadName]) {
-  for (const l of nameToLayers[activeRoadName]) {
-    const id = String(l.feature.id);
-    const state = segmentStateMap.get(id);
-    if (state?.correct) {
-      l.setStyle({ color: 'gray', weight: 6 });
-    } else if (state?.used_hint) {
-      l.setStyle({ color: 'orange', weight: 6 });
-    } else if (state?.incorrect) {
-      l.setStyle({ color: 'red', weight: 6 });
-    } else {
-      l.setStyle({ color: 'black', weight: 6 });
+    if (activeRoadName && nameToLayers[activeRoadName]) {
+      for (const l of nameToLayers[activeRoadName]) {
+        const id = String(l.feature.id);
+        const state = segmentStateMap.get(id);
+        if (state?.correct) {
+          l.setStyle({ color: 'gray', weight: 6 });
+        } else if (state?.used_hint) {
+          l.setStyle({ color: 'orange', weight: 6 });
+        } else if (state?.incorrect) {
+          l.setStyle({ color: 'red', weight: 6 });
+        } else {
+          l.setStyle({ color: 'black', weight: 6 });
+        }
+      }
+      activeRoadName = null;
     }
-  }
-  activeRoadName = null;
-}
 
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
     currentRoad = null;
   }, 2000);
-};
+
+} else {
+  // EARLY GIVE-UP (< 4 tries)
+  usedHint = false;
+
+  for (const layer of nameToLayers[normalizedKey] || []) {
+    layer.setStyle({ color: 'red', weight: 6 });
+    layer._originalColor = 'red';
+  }
+
+  await saveGuessSegmentIds(segmentIds, false, false);
+
+  for (const id of segmentIds) {
+    segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
+  }
+
+  // ❗ Immediate modal close
+  if (activeRoadName && nameToLayers[activeRoadName]) {
+    for (const l of nameToLayers[activeRoadName]) {
+      const id = String(l.feature.id);
+      const state = segmentStateMap.get(id);
+      if (state?.correct) {
+        l.setStyle({ color: 'gray', weight: 6 });
+      } else if (state?.used_hint) {
+        l.setStyle({ color: 'orange', weight: 6 });
+      } else if (state?.incorrect) {
+        l.setStyle({ color: 'red', weight: 6 });
+      } else {
+        l.setStyle({ color: 'black', weight: 6 });
+      }
+    }
+    activeRoadName = null;
+  }
+
+  document.getElementById('guess-modal').style.display = 'none';
+  document.getElementById('feedback-message').innerText = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  currentRoad = null;
+}
+
 
 
 
