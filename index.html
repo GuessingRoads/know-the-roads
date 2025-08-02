@@ -640,11 +640,16 @@ layer.on('click', function () {
     }
   }
 
-  // Highlight current selection in blue
-  for (const l of nameToLayers[name] || []) {
+  // Highlight current selection in blue (only if not correct/hint-used)
+for (const l of nameToLayers[name] || []) {
+  const sid = String(l.feature.id);
+  const s = segmentStateMap.get(sid);
+  if (!s?.correct && !s?.used_hint) {
     l.setStyle({ color: '#00ccff', weight: 8 });
   }
-  activeRoadName = name;
+}
+activeRoadName = name;
+
 
   // Track selected road
   currentRoad = {
