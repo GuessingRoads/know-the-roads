@@ -1125,34 +1125,6 @@ document.getElementById('give-up').onclick = async function () {
   }, usedHint ? 2000 : 0);
 };
 
-    // Early give-up — red, incorrect
-    usedHint = false;
-
-    for (const layer of layers) {
-      layer.setStyle({ color: 'red', weight: 6 });
-      layer._originalColor = 'red';
-    }
-
-    if (currentUserId) {
-      await saveGuessSegmentIds(segmentIds, false, false);
-    } else {
-      savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: false });
-    }
-
-    for (const id of segmentIds) {
-      segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
-    }
-
-    document.getElementById('feedback-message').innerText = 'Incorrect';
-
-    // ✅ Immediately close modal
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
-    currentRoad = null;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-};
-
   </script>
 </body>
 </html>
