@@ -545,6 +545,7 @@ if (segmentStateMap.has(id)) {
     layer._originalColor = 'orangeish';
 
   } else if (state.correct) {
+    layer.setStyle({ color: '#00ff5566', weight: 6 }); // translucent green
     layer.setStyle({ color: '#00994466', weight: 6 }); // darker translucent green
     setTimeout(() => {
       if (layer._path) {
@@ -687,7 +688,7 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         fillColor: '#cce6ff',
         fillOpacity: 0.3
       },
-      
+
       onEachFeature: function (feature, layer) {
         layer.bindTooltip("Lancaster County", {
           permanent: false,
@@ -892,28 +893,28 @@ if (currentUserId) {
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
   }
-let modalClosedEarly = false;
 
   // Show feedback
   document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
-  // Immediately close modal after early give-up
-document.getElementById('guess-modal').style.display = 'none';
-document.getElementById('feedback-message').innerText = '';
-currentRoad = null;
-window.scrollTo({ top: 0, behavior: 'smooth' });
-modalClosedEarly = true;
 
   // Delay hide based on color
   let hideDelay = 800;
   if (color === 'yellow') hideDelay = 5001;
 
-  if ((isCorrect || usedHint) && !modalClosedEarly) {
+  if (isCorrect || usedHint) {
   setTimeout(() => {
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
     currentRoad = null;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, hideDelay);
+} else {
+  // 🔴 Incorrect guess — close immediately
+  document.getElementById('guess-modal').style.display = 'none';
+  document.getElementById('feedback-message').innerText = '';
+  currentRoad = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 };
 document.getElementById('give-up').onclick = async function () {
