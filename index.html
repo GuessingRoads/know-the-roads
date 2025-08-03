@@ -494,18 +494,19 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
 }
 
   function animateIncorrectSegments(layers) {
-  layers.forEach((layer, index) => {
-    setTimeout(() => {
-      layer.setStyle({
-        color: 'red',
-        weight: 6,
-        opacity: 1,
-        lineCap: 'round'
-      });
-      layer._originalColor = 'red';
-    }, index * 50); // stagger animation for visual effect
-  });
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i >= layers.length) {
+      clearInterval(interval);
+      return;
+    }
+    const layer = layers[i];
+    layer.setStyle({ color: 'red', weight: 6 });
+    layer._originalColor = 'red';
+    i++;
+  }, 20); // 20ms delay between each segment
 }
+
 
 
 function applyColorToAllSegments(name, color) {
