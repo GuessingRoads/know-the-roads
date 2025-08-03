@@ -342,7 +342,11 @@ function animateIncorrectSegments(segments, delay = 60) {
   segments.forEach((layer, index) => {
     layer._originalColor = 'red';
     setTimeout(() => {
-      layer.setStyle({ color: 'red', weight: 6 });
+      layer.setStyle({
+  color: 'red',
+  weight: 6,
+  pane: 'clickable-buffer'
+});
     }, index * delay);
   });
 }
