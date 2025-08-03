@@ -1078,16 +1078,18 @@ document.getElementById('give-up').onclick = async function () {
   let usedHint = false;
   let isCorrect = false;
 
-  if (attemptCounts[currentRoad.id] >= 4) {
-    // Final give-up attempt — orange, hint used
-    usedHint = true;
-    const firstLetter = correctName.charAt(0).toUpperCase();
-    document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+  if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
+  currentRoad.hintGiven = true;
 
-    for (const layer of layers) {
-      layer.setStyle({ color: 'orange', weight: 6 });
-      layer._originalColor = 'orange';
-    }
+  const firstLetter = correctName.charAt(0).toUpperCase();
+  document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+
+  document.getElementById('guess-input').value = '';
+  document.getElementById('guess-input').focus();
+
+  return; // ✅ Stop here — wait for next guess
+}
+
 
     if (currentUserId) {
       await saveGuessSegmentIds(segmentIds, false, true);
