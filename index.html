@@ -1081,6 +1081,8 @@ document.getElementById('give-up').onclick = async function () {
   if (attemptCounts[currentRoad.id] >= 4) {
     // Final give-up attempt — orange, hint used
     usedHint = true;
+    const firstLetter = correctName.charAt(0).toUpperCase();
+    document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
 
     for (const layer of layers) {
       layer.setStyle({ color: 'orange', weight: 6 });
