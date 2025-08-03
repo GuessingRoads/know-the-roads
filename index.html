@@ -329,9 +329,9 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 function animateIncorrectSegments(segments, delay = 60) {
   segments.forEach((layer, index) => {
+    layer._originalColor = 'red';
     setTimeout(() => {
       layer.setStyle({ color: 'red', weight: 6 });
-      layer._originalColor = 'red';
     }, index * delay);
   });
 }
