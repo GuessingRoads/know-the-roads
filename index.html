@@ -802,6 +802,7 @@ loadMap(); // ✅ called after it's defined
 
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
+  console.log('🔁 Attempts for', currentRoad.id, ':', attemptCounts[currentRoad.id]);
   if (!currentRoad) return;
 
   const userGuess = document.getElementById('guess-input').value.trim();
