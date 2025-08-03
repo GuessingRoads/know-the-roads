@@ -892,6 +892,7 @@ if (currentUserId) {
   if (usedHint && !isCorrect) {
     alert(`Correct answer: ${correctName}`);
   }
+let modalClosedEarly = false;
 
   // Show feedback
   document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
@@ -900,12 +901,13 @@ document.getElementById('guess-modal').style.display = 'none';
 document.getElementById('feedback-message').innerText = '';
 currentRoad = null;
 window.scrollTo({ top: 0, behavior: 'smooth' });
+modalClosedEarly = true;
 
   // Delay hide based on color
   let hideDelay = 800;
   if (color === 'yellow') hideDelay = 5001;
 
-  if (isCorrect || usedHint) {
+  if (isCorrect || usedHint) && !modalClosedEarly) {
   setTimeout(() => {
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
