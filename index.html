@@ -918,7 +918,6 @@ if (currentUserId) {
 
 };
 document.getElementById('give-up').onclick = async function () {
-document.getElementById('give-up-btn').onclick = async function () {
   if (!currentRoad) return;
 
   const correctName = currentRoad.name.trim();
@@ -926,9 +925,7 @@ document.getElementById('give-up-btn').onclick = async function () {
   const normalizedKey = Object.keys(roadNameToIds).find(
     k => normalizeName(k) === normalizedCorrect
   );
-  const normalizedKey = Object.keys(roadNameToIds).find(k => normalizeName(k) === normalizedCorrect);
   const segmentIds = roadNameToIds[normalizedKey];
-  const layers = nameToLayers[normalizedKey] || [];
 
   // Update global attempts (road-based)
   const prevAttempts = roadAttemptsMap.get(normalizedCorrect) || 0;
@@ -941,14 +938,11 @@ document.getElementById('give-up-btn').onclick = async function () {
   } else {
     attemptCounts[currentRoad.id] += 1;
   }
-  attemptCounts[currentRoad.id] = (attemptCounts[currentRoad.id] || 0) + 1;
 
   let usedHint = false;
 
   if (newAttempts >= 4) {
     // FINAL GIVE-UP (4th+ try)
-  if (attemptCounts[currentRoad.id] >= 4) {
-    // FINAL give-up with hint (orange dissolve)
     usedHint = true;
     completedRoads.add(normalizedCorrect);
     currentRoad.hintGiven = true;
@@ -956,30 +950,14 @@ document.getElementById('give-up-btn').onclick = async function () {
     // Update internal state map before saving
     for (const id of segmentIds) {
       segmentStateMap.set(String(id), { correct: false, used_hint: true });
-    for (const layer of layers) {
-      layer.setStyle({ weight: 6 });
-      layer._originalColor = 'orange';
-      setTimeout(() => {
-        if (layer._path) {
-          layer._path.style.opacity = '';
-          layer._path.classList.add('hint-used-final');
-        }
-      }, 0);
     }
 
     for (const layer of nameToLayers[normalizedKey] || []) {
       layer.setStyle({ color: 'orange', weight: 6 });
       layer._originalColor = 'orange';
-    if (currentUserId) {
-      await saveGuessSegmentIds(segmentIds, false, true);
-    } else {
-      savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: true });
     }
 
     await saveGuessSegmentIds(segmentIds, false, true);
-    for (const id of segmentIds) {
-      segmentStateMap.set(String(id), { correct: false, used_hint: true });
-    }
 
     document.getElementById('feedback-message').innerText = `Correct answer: ${correctName}`;
 
@@ -1012,15 +990,8 @@ document.getElementById('give-up-btn').onclick = async function () {
     usedHint = false;
 
     animateIncorrectSegments(nameToLayers[normalizedKey] || []);
-    // EARLY give-up: animate red segments and close modal instantly
-    animateIncorrectSegments(layers);
 
     await saveGuessSegmentIds(segmentIds, false, false);
-    if (currentUserId) {
-      await saveGuessSegmentIds(segmentIds, false, false);
-    } else {
-      savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: false });
-    }
 
     for (const id of segmentIds) {
       segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
