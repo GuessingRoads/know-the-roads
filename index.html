@@ -1122,8 +1122,8 @@ document.getElementById('give-up').onclick = async function () {
   usedHint = currentRoad.hintGiven;
 
   for (const layer of layers) {
-    layer.setStyle({ color: usedHint ? 'orange' : 'red', weight: 6 });
-    layer._originalColor = usedHint ? 'orange' : 'red';
+    layer.setStyle({ color: usedHint ? 'rgba(255, 165, 0, 0.4)' : 'red', weight: 6 });
+    layer._originalColor = usedHint ? 'rgba(255, 165, 0, 0.4)' : 'red';
   }
 
   if (currentUserId) {
