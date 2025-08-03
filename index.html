@@ -895,6 +895,11 @@ if (currentUserId) {
 
   // Show feedback
   document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
+  // Immediately close modal after early give-up
+document.getElementById('guess-modal').style.display = 'none';
+document.getElementById('feedback-message').innerText = '';
+currentRoad = null;
+window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // Delay hide based on color
   let hideDelay = 800;
