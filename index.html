@@ -841,6 +841,7 @@ if (!attemptCounts[currentRoad.id]) {
 if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
   currentRoad.hintGiven = true;
   const firstLetter = correctName.charAt(0).toUpperCase();
+  console.log("🔥 HINT TRIGGERED");
   document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
 
   // Keep modal open
