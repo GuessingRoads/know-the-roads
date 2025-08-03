@@ -897,6 +897,13 @@ if (isCorrect) {
 } else {
   // Animate incorrect red segments
   animateIncorrectSegments(layers);
+  for (const layer of layers) {
+  segmentStateMap.set(String(layer.feature.id), {
+    correct: false,
+    used_hint: false
+  });
+}
+
 }
 
 
