@@ -1068,17 +1068,18 @@ document.getElementById('give-up').onclick = async function () {
   const segmentIds = roadNameToIds[normalizedKey];
   const layers = nameToLayers[normalizedKey] || [];
 
-  // Track attempts
-  if (!attemptCounts[currentRoad.id]) {
-    attemptCounts[currentRoad.id] = 1;
-  } else {
-    attemptCounts[currentRoad.id] += 1;
-  }
+ // Track attempts
+if (!attemptCounts[currentRoad.id]) {
+  attemptCounts[currentRoad.id] = 1;
+} else {
+  attemptCounts[currentRoad.id] += 1;
+}
 
-  let usedHint = false;
-  let isCorrect = false;
+let usedHint = false;
+let isCorrect = false;
 
-  if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
+// 🔶 If 4th give-up and no hint shown yet — show hint
+if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
   currentRoad.hintGiven = true;
 
   const firstLetter = correctName.charAt(0).toUpperCase();
@@ -1087,29 +1088,40 @@ document.getElementById('give-up').onclick = async function () {
   document.getElementById('guess-input').value = '';
   document.getElementById('guess-input').focus();
 
-  return; // ✅ Stop here — wait for next guess
+  return; // ✅ Wait for next user action
 }
 
+// Otherwise: actually mark the road (red or orange depending on hint status)
+usedHint = currentRoad.hintGiven; // ✅ true if user already saw hint
 
-    if (currentUserId) {
-      await saveGuessSegmentIds(segmentIds, false, true);
-    } else {
-      savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: true });
-    }
+if (currentUserId) {
+  await saveGuessSegmentIds(segmentIds, false, usedHint);
+} else {
+  savePreLoginGuess({ segmentIds, isCorrect: false, usedHint });
+}
 
-    for (const id of segmentIds) {
-      segmentStateMap.set(String(id), { correct: false, used_hint: true, incorrect: false });
-    }
+for (const id of segmentIds) {
+  segmentStateMap.set(String(id), { correct: false, used_hint: usedHint, incorrect: false });
+}
 
-    document.getElementById('feedback-message').innerText = `Correct answer: ${correctName}`;
-    
-    // Delay close to show correct answer (2s)
-    setTimeout(() => {
-      document.getElementById('guess-modal').style.display = 'none';
-      document.getElementById('feedback-message').innerText = '';
-      currentRoad = null;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 2000);
+// Color road
+for (const layer of layers) {
+  layer.setStyle({ color: usedHint ? 'orange' : 'red', weight: 6 });
+  layer._originalColor = usedHint ? 'orange' : 'red';
+}
+
+document.getElementById('feedback-message').innerText = usedHint
+  ? `Correct answer: ${correctName}`
+  : 'Incorrect';
+
+// Delay close
+setTimeout(() => {
+  document.getElementById('guess-modal').style.display = 'none';
+  document.getElementById('feedback-message').innerText = '';
+  currentRoad = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}, usedHint ? 2000 : 0);
+
     
   } else {
     // Early give-up — red, incorrect
