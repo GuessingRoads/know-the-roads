@@ -961,16 +961,16 @@ document.getElementById('submit-guess').onclick = async function () {
   }
 
 // Track attempts globally by segment ID
-if (!attemptCounts[currentRoad.id]) {
-  attemptCounts[currentRoad.id] = 1;
+if (!attemptCounts[normalizedCorrect]) {
+  attemptCounts[normalizedCorrect] = 1;
 } else {
-  attemptCounts[currentRoad.id] += 1;
+  attemptCounts[normalizedCorrect] += 1;
 }
 console.log("🧠 attemptCounts =", attemptCounts);
 console.log("📌 currentRoad.id =", currentRoad.id);
 console.log("📊 attempts so far =", attemptCounts[currentRoad.id]);
 
-if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
+if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
   currentRoad.hintGiven = true;
   const firstLetter = correctName.charAt(0).toUpperCase();
   console.log("🔥 HINT TRIGGERED");
