@@ -966,6 +966,9 @@ if (!attemptCounts[currentRoad.id]) {
 } else {
   attemptCounts[currentRoad.id] += 1;
 }
+console.log("🧠 attemptCounts =", attemptCounts);
+console.log("📌 currentRoad.id =", currentRoad.id);
+console.log("📊 attempts so far =", attemptCounts[currentRoad.id]);
 
 if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
   currentRoad.hintGiven = true;
