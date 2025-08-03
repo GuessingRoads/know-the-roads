@@ -670,10 +670,20 @@ layer.on('click', function () {
     } else if (s?.used_hint) {
       l._path?.classList.add('hint-used-final');
     } else if (s?.incorrect) {
-      l.setStyle({ color: 'red', weight: 6 });
+      l.setStyle({ 
+  color: 'red', 
+  weight: 13, 
+  pane: 'clickable-buffer' 
+});
+
       l._originalColor = 'red';
     } else {
-      l.setStyle({ color: 'black', weight: 6 });
+      l.setStyle({ 
+  color: 'black', 
+  weight: 13,              // ⬅️ increase this for better mobile tap area
+  pane: 'clickable-buffer' // ⬅️ needed to make expanded area clickable but invisible
+});
+
       l._originalColor = 'black';
     }
   }
