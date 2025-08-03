@@ -843,8 +843,14 @@ if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
   currentRoad.hintGiven = true;
   const firstLetter = correctName.charAt(0).toUpperCase();
   document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
-  return; // Wait for next guess
-}
+
+// Keep modal open — do not allow guess to proceed
+currentRoad = null;
+activeRoadName = null;
+document.getElementById('guess-input').value = '';
+document.getElementById('guess-input').focus();
+return;
+
 
 
 
