@@ -930,7 +930,7 @@ let interactionCount = 0;
 
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
-  console.log('🔁 Attempts for', currentRoad.id, ':', attemptCounts[currentRoad.id]);
+  console.log('🔁 Attempts for', currentRoad.id, ':', attemptCounts[normalizedCorrect]);
   if (!currentRoad) return;
 
   const userGuess = document.getElementById('guess-input').value.trim();
@@ -968,7 +968,7 @@ if (!attemptCounts[normalizedCorrect]) {
 }
 console.log("🧠 attemptCounts =", attemptCounts);
 console.log("📌 currentRoad.id =", currentRoad.id);
-console.log("📊 attempts so far =", attemptCounts[currentRoad.id]);
+console.log("📊 attempts so far =", attemptCounts[normalizedCorrect]);
 
 if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
   currentRoad.hintGiven = true;
