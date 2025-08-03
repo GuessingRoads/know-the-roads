@@ -577,7 +577,7 @@ if (segmentStateMap.has(id)) {
   layer.setStyle({ color: 'black', weight: 6 });
   layer._originalColor = 'black';
 }
-
+layer.options.weight = 20; // expands clickable buffer without changing visual
 
 
 // Hover effect
