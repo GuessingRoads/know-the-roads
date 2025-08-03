@@ -877,7 +877,12 @@ if (isCorrect) {
   // Animate incorrect red segments
   animateIncorrectSegments(layers);
 }
-
+// ✅ Mark red segments as incorrect in segmentStateMap
+if (!isCorrect && !usedHint) {
+  for (const id of segmentIds) {
+    segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
+  }
+}
 
 
 if (currentUserId) {
