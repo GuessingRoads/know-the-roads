@@ -566,8 +566,17 @@ if (segmentStateMap.has(id)) {
     layer._originalColor = 'orangeish';
 
   } else if (state.correct) {
-    layer.setStyle({ color: '#00ff5566', weight: 6 }); // translucent green
-    layer.setStyle({ color: '#00994466', weight: 6 }); // darker translucent green
+    layer.setStyle({
+  color: '#00ff5566',
+  weight: 6,
+  pane: 'clickable-buffer'
+});
+layer.setStyle({
+  color: '#00994466',
+  weight: 6,
+  pane: 'clickable-buffer'
+});
+
     setTimeout(() => {
       if (layer._path) {
         layer._path.style.opacity = '';
@@ -577,12 +586,21 @@ if (segmentStateMap.has(id)) {
     layer._originalColor = 'greenish';
 
   } else {
-    layer.setStyle({ color: 'red', weight: 6 });
+    layer.setStyle({
+  color: 'red',
+  weight: 6,
+  pane: 'clickable-buffer'
+});
     layer._originalColor = 'red';
   }
 
 } else {
-  layer.setStyle({ color: 'black', weight: 6 });
+  layer.setStyle({
+  color: 'black',
+  weight: 6,
+  pane: 'clickable-buffer'
+});
+
   layer._originalColor = 'black';
 }
 
