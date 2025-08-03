@@ -926,13 +926,9 @@ document.getElementById('give-up').onclick = async function () {
     k => normalizeName(k) === normalizedCorrect
   );
   const segmentIds = roadNameToIds[normalizedKey];
+  const layers = nameToLayers[normalizedKey] || [];
 
-  // Update global attempts (road-based)
-  const prevAttempts = roadAttemptsMap.get(normalizedCorrect) || 0;
-  const newAttempts = prevAttempts + 1;
-  roadAttemptsMap.set(normalizedCorrect, newAttempts);
-
-  // Also update segment-based attempt count (matches submit logic)
+  // Track attempts
   if (!attemptCounts[currentRoad.id]) {
     attemptCounts[currentRoad.id] = 1;
   } else {
@@ -940,87 +936,66 @@ document.getElementById('give-up').onclick = async function () {
   }
 
   let usedHint = false;
+  let isCorrect = false;
 
-  if (newAttempts >= 4) {
-    // FINAL GIVE-UP (4th+ try)
+  if (attemptCounts[currentRoad.id] >= 4) {
+    // Final give-up attempt — orange, hint used
     usedHint = true;
-    completedRoads.add(normalizedCorrect);
-    currentRoad.hintGiven = true;
 
-    // Update internal state map before saving
-    for (const id of segmentIds) {
-      segmentStateMap.set(String(id), { correct: false, used_hint: true });
-    }
-
-    for (const layer of nameToLayers[normalizedKey] || []) {
+    for (const layer of layers) {
       layer.setStyle({ color: 'orange', weight: 6 });
       layer._originalColor = 'orange';
     }
 
-    await saveGuessSegmentIds(segmentIds, false, true);
+    if (currentUserId) {
+      await saveGuessSegmentIds(segmentIds, false, true);
+    } else {
+      savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: true });
+    }
+
+    for (const id of segmentIds) {
+      segmentStateMap.set(String(id), { correct: false, used_hint: true, incorrect: false });
+    }
 
     document.getElementById('feedback-message').innerText = `Correct answer: ${correctName}`;
-
+    
+    // Delay close to show correct answer (2s)
     setTimeout(() => {
-      if (activeRoadName && nameToLayers[activeRoadName]) {
-        for (const l of nameToLayers[activeRoadName]) {
-          const id = String(l.feature.id);
-          const state = segmentStateMap.get(id);
-         if (s?.correct) {
-            l._path?.classList.add('correct-final');
-          } else if (s?.used_hint) {
-            l._path?.classList.add('hint-used-final');
-          } else if (s?.incorrect) {
-            l.setStyle({ color: 'red', weight: 6 });
-          } else {
-            l.setStyle({ color: 'black', weight: 6 });
-          }
-        }
-        activeRoadName = null;
-      }
-
       document.getElementById('guess-modal').style.display = 'none';
       document.getElementById('feedback-message').innerText = '';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
       currentRoad = null;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 2000);
-
+    
   } else {
-    // EARLY GIVE-UP (< 4 tries)
+    // Early give-up — red, incorrect
     usedHint = false;
 
-    animateIncorrectSegments(nameToLayers[normalizedKey] || []);
+    for (const layer of layers) {
+      layer.setStyle({ color: 'red', weight: 6 });
+      layer._originalColor = 'red';
+    }
 
-    await saveGuessSegmentIds(segmentIds, false, false);
+    if (currentUserId) {
+      await saveGuessSegmentIds(segmentIds, false, false);
+    } else {
+      savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: false });
+    }
 
     for (const id of segmentIds) {
       segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
     }
 
-    if (activeRoadName && nameToLayers[activeRoadName]) {
-      for (const l of nameToLayers[activeRoadName]) {
-        const id = String(l.feature.id);
-        const state = segmentStateMap.get(id);
-        if (s?.correct) {
-          l._path?.classList.add('correct-final');
-        } else if (s?.used_hint) {
-          l._path?.classList.add('hint-used-final');
-        } else if (s?.incorrect) {
-          l.setStyle({ color: 'red', weight: 6 });
-        } else {
-          l.setStyle({ color: 'black', weight: 6 });
-        }
-      }
-      activeRoadName = null;
-    }
+    document.getElementById('feedback-message').innerText = 'Incorrect';
 
-    // Close modal immediately
+    // ✅ Immediately close modal
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     currentRoad = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 };
+
 
 loadMap();
 
