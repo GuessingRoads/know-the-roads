@@ -1069,17 +1069,17 @@ document.getElementById('give-up').onclick = async function () {
   const layers = nameToLayers[normalizedKey] || [];
 
   // Track attempts
-  if (!attemptCounts[currentRoad.id]) {
-    attemptCounts[currentRoad.id] = 1;
+  if (!attemptCounts[normalizedCorrect]) {
+    attemptCounts[normalizedCorrect] = 1;
   } else {
-    attemptCounts[currentRoad.id] += 1;
+    attemptCounts[normalizedCorrect] += 1;
   }
 
   let usedHint = false;
   let isCorrect = false;
 
   // Show hint on 4th give-up if not already shown
-  if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
+  if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
     currentRoad.hintGiven = true;
 
     const firstLetter = correctName.charAt(0).toUpperCase();
