@@ -157,7 +157,11 @@
       cursor: pointer;
       margin: 4px;
     }
-    /* Dissolve animation for correct road */
+    .hint-dissolve {
+  transition: opacity 2s ease;
+  opacity: 1;
+}
+
 .correct-dissolve {
   transition: opacity 2000ms ease-out;
   opacity: 0;
@@ -785,6 +789,19 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
 
 
 loadMap(); // ✅ called after it's defined
+  function triggerHintDissolveAnimation(layer) {
+  const path = layer._path;
+  if (!path) return;
+
+  path.style.opacity = '';
+  path.classList.add('hint-dissolve');
+
+  setTimeout(() => {
+    path.classList.remove('hint-dissolve');
+    path.classList.add('hint-final');
+  }, 2000);
+}
+
 
   function triggerCorrectDissolveAnimation(layer) {
   const path = layer._path;
