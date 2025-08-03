@@ -800,6 +800,134 @@ loadMap(); // ✅ called after it's defined
   }, 2000);
 }
 
+
+loadMap();
+
+  document.getElementById('guess-input').addEventListener('keypress', function (e) {
+  if (e.key === 'Enter') {
+    document.getElementById('submit-guess').click();
+  }
+});
+document.getElementById('guess-input').addEventListener('input', async function (e) {
+  if (!currentRoad) return;
+
+  const userGuess = e.target.value.trim();
+  const correctName = currentRoad.name.trim();
+  const normalizedGuess = normalizeName(userGuess);
+  const normalizedCorrect = normalizeName(correctName);
+
+  if (normalizedGuess === normalizedCorrect) {
+    console.log("⚡ Auto-submitting correct guess:", userGuess);
+    document.getElementById('submit-guess').click();
+  }
+});
+
+
+
+
+// 🎵 Web Audio API Seamless Loop Logic
+let audioContext = null;
+let sourceNode = null;
+let musicBuffer = null;
+let musicPlaying = false;
+let isMuted = false;
+
+const musicBtn = document.getElementById('music-btn');
+const modal = document.getElementById('music-modal');
+const muteBtn = document.getElementById('mute-btn');
+const skipBtn = document.getElementById('skip-btn');
+
+// Load audio buffer
+async function loadMusic() {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const response = await fetch('music/Lofi_1.wav');
+  const arrayBuffer = await response.arrayBuffer();
+  musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
+}
+
+// Start playing loop
+function playLoop() {
+  if (!musicBuffer || isMuted) return;
+  sourceNode = audioContext.createBufferSource();
+  sourceNode.buffer = musicBuffer;
+  sourceNode.connect(audioContext.destination);
+  sourceNode.loop = true;
+  sourceNode.start(0);
+
+}
+
+
+// Stop loop
+function stopLoop() {
+  if (sourceNode) {
+    sourceNode.stop(0);
+    sourceNode.disconnect();
+    sourceNode = null;
+  }
+}
+
+let musicModalVisible = false;
+
+musicBtn.onclick = () => {
+  musicModalVisible = !musicModalVisible;
+
+  if (musicModalVisible) {
+    modal.classList.add('show');
+  } else {
+    modal.classList.remove('show');
+  }
+};
+
+
+muteBtn.onclick = () => {
+  isMuted = !isMuted;
+  muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
+  if (isMuted) stopLoop();
+  else playLoop();
+};
+
+skipBtn.onclick = () => {
+  stopLoop();
+  playLoop();
+};
+
+// Start audio on first interaction
+window.addEventListener('click', async () => {
+  if (!musicPlaying) {
+    await loadMusic();
+    playLoop();
+    musicPlaying = true;
+  }
+}, { once: true });
+  document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && musicPlaying && !isMuted) {
+    console.log("👆 Page returned to focus. Waiting for user tap to resume music...");
+    const resumeHandler = async () => {
+      try {
+        await audioContext.resume();
+        stopLoop();
+        playLoop();
+        console.log("✅ Music resumed after user tap.");
+      } catch (e) {
+        console.error("❌ Resume failed:", e);
+      }
+      window.removeEventListener('click', resumeHandler);
+    };
+    window.addEventListener('click', resumeHandler);
+  }
+});
+let interactionCount = 0;
+
+  function maybeShowEncouragement() {
+  const session = supabase.auth.getSession();
+  session.then(({ data }) => {
+    if (!data.session && interactionCount === 3) {
+      const inlineEnc = document.getElementById('inline-encouragement');
+      if (inlineEnc) inlineEnc.style.display = 'block';
+    }
+  });
+}
+
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
   console.log('🔁 Attempts for', currentRoad.id, ':', attemptCounts[currentRoad.id]);
@@ -1004,136 +1132,6 @@ document.getElementById('give-up').onclick = async function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 };
-
-
-loadMap();
-
-  document.getElementById('guess-input').addEventListener('keypress', function (e) {
-  if (e.key === 'Enter') {
-    document.getElementById('submit-guess').click();
-  }
-});
-document.getElementById('guess-input').addEventListener('input', async function (e) {
-  if (!currentRoad) return;
-
-  const userGuess = e.target.value.trim();
-  const correctName = currentRoad.name.trim();
-  const normalizedGuess = normalizeName(userGuess);
-  const normalizedCorrect = normalizeName(correctName);
-
-  if (normalizedGuess === normalizedCorrect) {
-    console.log("⚡ Auto-submitting correct guess:", userGuess);
-    document.getElementById('submit-guess').click();
-  }
-});
-
-
-
-
-// 🎵 Web Audio API Seamless Loop Logic
-let audioContext = null;
-let sourceNode = null;
-let musicBuffer = null;
-let musicPlaying = false;
-let isMuted = false;
-
-const musicBtn = document.getElementById('music-btn');
-const modal = document.getElementById('music-modal');
-const muteBtn = document.getElementById('mute-btn');
-const skipBtn = document.getElementById('skip-btn');
-
-// Load audio buffer
-async function loadMusic() {
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const response = await fetch('music/Lofi_1.wav');
-  const arrayBuffer = await response.arrayBuffer();
-  musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
-}
-
-// Start playing loop
-function playLoop() {
-  if (!musicBuffer || isMuted) return;
-  sourceNode = audioContext.createBufferSource();
-  sourceNode.buffer = musicBuffer;
-  sourceNode.connect(audioContext.destination);
-  sourceNode.loop = true;
-  sourceNode.start(0);
-
-}
-
-
-// Stop loop
-function stopLoop() {
-  if (sourceNode) {
-    sourceNode.stop(0);
-    sourceNode.disconnect();
-    sourceNode = null;
-  }
-}
-
-let musicModalVisible = false;
-
-musicBtn.onclick = () => {
-  musicModalVisible = !musicModalVisible;
-
-  if (musicModalVisible) {
-    modal.classList.add('show');
-  } else {
-    modal.classList.remove('show');
-  }
-};
-
-
-muteBtn.onclick = () => {
-  isMuted = !isMuted;
-  muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
-  if (isMuted) stopLoop();
-  else playLoop();
-};
-
-skipBtn.onclick = () => {
-  stopLoop();
-  playLoop();
-};
-
-// Start audio on first interaction
-window.addEventListener('click', async () => {
-  if (!musicPlaying) {
-    await loadMusic();
-    playLoop();
-    musicPlaying = true;
-  }
-}, { once: true });
-  document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && musicPlaying && !isMuted) {
-    console.log("👆 Page returned to focus. Waiting for user tap to resume music...");
-    const resumeHandler = async () => {
-      try {
-        await audioContext.resume();
-        stopLoop();
-        playLoop();
-        console.log("✅ Music resumed after user tap.");
-      } catch (e) {
-        console.error("❌ Resume failed:", e);
-      }
-      window.removeEventListener('click', resumeHandler);
-    };
-    window.addEventListener('click', resumeHandler);
-  }
-});
-let interactionCount = 0;
-
-  function maybeShowEncouragement() {
-  const session = supabase.auth.getSession();
-  session.then(({ data }) => {
-    if (!data.session && interactionCount === 3) {
-      const inlineEnc = document.getElementById('inline-encouragement');
-      if (inlineEnc) inlineEnc.style.display = 'block';
-    }
-  });
-}
-
-
 
   </script>
 </body>
