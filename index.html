@@ -535,9 +535,6 @@ function suffixOnlyMismatch(guess, actual) {
 async function loadMap() {
   await checkLogin();
 
-  map.createPane('clickable-buffer');
-  map.getPane('clickable-buffer').style.zIndex = 300;
-
   fetch('Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
@@ -617,134 +614,92 @@ async function loadMap() {
             }
           });
           buffer.addTo(map);
+
+          // Hover effect
+          layer.on('mouseover', function () {
+            if (!insideLancaster) return;
+            const matchingLayers = nameToLayers[name] || [];
+            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+
+            for (const l of matchingLayers) {
+              const currentColor = l._originalColor;
+              if (['black', 'red', 'yellow'].includes(currentColor)) {
+                l.setStyle({
+                  color: '#ffd700',
+                  weight: 8,
+                  opacity: 1,
+                  lineCap: 'round'
+                });
+              }
+              l.bringToFront?.();
+            }
+          });
+
+          layer.on('mouseout', function () {
+            const matchingLayers = nameToLayers[name] || [];
+            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+
+            for (const l of matchingLayers) {
+              const currentColor = l._originalColor;
+              if (['black', 'red', 'yellow'].includes(currentColor)) {
+                l.setStyle({
+                  color: currentColor,
+                  weight: 6,
+                  opacity: 1,
+                  lineCap: 'round'
+                });
+              }
+            }
+          });
+
+          layer.on('click', function () {
+            if (!insideLancaster) return;
+            const state = segmentStateMap.get(id);
+            if (state?.correct || state?.used_hint) return;
+
+            if (activeRoadName && nameToLayers[activeRoadName]) {
+              for (const l of nameToLayers[activeRoadName]) {
+                const segmentId = String(l.feature.id);
+                const s = segmentStateMap.get(segmentId);
+                if (s?.correct) {
+                  l._path?.classList.add('correct-final');
+                } else if (s?.used_hint) {
+                  l._path?.classList.add('hint-used-final');
+                } else if (s?.incorrect) {
+                  l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+                  l._originalColor = 'red';
+                } else {
+                  l.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
+                  l._originalColor = 'black';
+                }
+              }
+            }
+
+            for (const l of nameToLayers[name] || []) {
+              const sid = String(l.feature.id);
+              const s = segmentStateMap.get(sid);
+              if (!s) continue;
+              if (!s.correct && !s.used_hint) {
+                l.setStyle({ color: '#00ccff', weight: 8 });
+              }
+            }
+
+            activeRoadName = name;
+            currentRoad = { name, id, attempts: 0, layer };
+            interactionCount++;
+
+            document.getElementById('guess-modal').style.display = 'block';
+            document.getElementById('guess-input').value = '';
+            document.getElementById('feedback-message').innerText = '';
+            document.getElementById('guess-input').focus();
+          });
         }
       });
 
-      roadLayer.addTo(map);
+      roadsLayerGroup.addLayer(roadLayer);
     });
 }
 
-
-// Hover effect
-layer.on('mouseover', function () {
-  if (!insideLancaster) return; // 🔒 block hover effects too
-  const name = feature.properties.name || "";
-  const matchingLayers = nameToLayers[name] || [];
-
-  // Don't hover-highlight if this road is the actively selected one
-  if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-
-  for (const l of matchingLayers) {
-    const currentColor = l._originalColor;
-    if (['black', 'red', 'yellow'].includes(currentColor)) {
-      l.setStyle({
-        color: '#ffd700', // gold
-        weight: 8,
-        opacity: 1,
-        lineCap: 'round'
-      });
-    }
-    l.bringToFront?.();
-  }
-});
-
-
-
-layer.on('mouseout', function () {
-  const name = feature.properties.name || "";
-  const matchingLayers = nameToLayers[name] || [];
-
-  // Don't reset style if the road is actively selected
-  if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-
- for (const l of matchingLayers) {
-  const currentColor = l._originalColor;
-
-  // Only reset style for hoverable colors
-  if (['black', 'red', 'yellow'].includes(currentColor)) {
-    l.setStyle({
-      color: currentColor,
-      weight: 6,
-      opacity: 1,
-      lineCap: 'round'
-    });
-  }
-}
-});
-
-
-
-
-layer.on('click', function () {
-  if (!insideLancaster) return; // 🔒 prevent guessing until polygon clicked
-  const state = segmentStateMap.get(id);
-  if (state?.correct || state?.used_hint) return;
-
-  if (activeRoadName && nameToLayers[activeRoadName]) {
-  for (const l of nameToLayers[activeRoadName]) {
-    const segmentId = String(l.feature.id);
-    const s = segmentStateMap.get(segmentId);
-
-    if (s?.correct) {
-      l._path?.classList.add('correct-final');
-    } else if (s?.used_hint) {
-      l._path?.classList.add('hint-used-final');
-    } else if (s?.incorrect) {
-      l.setStyle({ 
-  color: 'red', 
-  weight: 6, 
-  pane: 'clickable-buffer' 
-});
-
-      l._originalColor = 'red';
-    } else {
-      l.setStyle({ 
-  color: 'black', 
-  weight: 6,              
-  pane: 'clickable-buffer'
-});
-
-      l._originalColor = 'black';
-    }
-  }
-}
-
-
-  // Highlight current selection in blue (only if not correct/hint-used)
-for (const l of nameToLayers[name] || []) {
-  const sid = String(l.feature.id);
-  const s = segmentStateMap.get(sid);
-  if (!s) continue;
-  if (!s?.correct && !s?.used_hint) {
-    l.setStyle({ color: '#00ccff', weight: 8 });
-  }
-}
-activeRoadName = name;
-
-
-  // Track selected road
-  currentRoad = {
-    name: name,
-    id: id,
-    attempts: 0,
-    layer: layer
-  };
-
-  interactionCount++;
-
-  // Open modal and reset input/feedback
-  document.getElementById('guess-modal').style.display = 'block';
-  document.getElementById('guess-input').value = '';
-  document.getElementById('feedback-message').innerText = '';
-  document.getElementById('guess-input').focus();
-});
-
-}
-                 }); // ❌ don't add to map yet
-
-roadsLayerGroup.addLayer(roadLayer); // ✅ add to layer group instead
-
-      }); // ✅ closes .then(data => { ... })
 
 fetch('Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
