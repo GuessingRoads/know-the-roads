@@ -956,7 +956,6 @@ let interactionCount = 0;
 
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
-  console.log('🔁 Attempts for', currentRoad.id, ':', attemptCounts[normalizedCorrect]);
   if (!currentRoad) return;
 
   const userGuess = document.getElementById('guess-input').value.trim();
