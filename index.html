@@ -535,73 +535,93 @@ function suffixOnlyMismatch(guess, actual) {
 async function loadMap() {
   await checkLogin();
 
+  map.createPane('clickable-buffer');
+  map.getPane('clickable-buffer').style.zIndex = 300;
+
   fetch('Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
       const roadLayer = L.geoJSON(data, {
-       onEachFeature: function (feature, layer) {
-  const id = String(feature.id);
-  const name = feature.properties.name || "";
-         segmentIdToName[id] = name;
-  if (!nameToLayers[name]) nameToLayers[name] = [];
-  nameToLayers[name].push(layer);
+        onEachFeature: function (feature, layer) {
+          const id = String(feature.id);
+          const name = feature.properties.name || "";
+          segmentIdToName[id] = name;
+          if (!nameToLayers[name]) nameToLayers[name] = [];
+          nameToLayers[name].push(layer);
 
-if (segmentStateMap.has(id)) {
-  const state = segmentStateMap.get(id);
+          // ⬛ Style visible road based on state
+          if (segmentStateMap.has(id)) {
+            const state = segmentStateMap.get(id);
 
-  if (state.used_hint) {
-    layer.setStyle({
-  color: 'rgba(255, 165, 0, 0.4)', // soft transparent orange
-  weight: 6,
-  opacity: 0.7,
-  pane: 'clickable-buffer'
-});
+            if (state.used_hint) {
+              layer.setStyle({
+                color: 'rgba(255, 165, 0, 0.4)',
+                weight: 6,
+                opacity: 0.7
+              });
+              setTimeout(() => {
+                if (layer._path) {
+                  layer._path.style.opacity = '';
+                  layer._path.classList.add('hint-used-final');
+                }
+              }, 0);
+              layer._originalColor = 'orangeish';
 
-    setTimeout(() => {
-      if (layer._path) {
-        layer._path.style.opacity = '';
-        layer._path.classList.add('hint-used-final');
-      }
-    }, 0);
-    layer._originalColor = 'orangeish';
+            } else if (state.correct) {
+              layer.setStyle({
+                color: '#00994466',
+                weight: 6
+              });
+              setTimeout(() => {
+                if (layer._path) {
+                  layer._path.style.opacity = '';
+                  layer._path.classList.add('correct-final');
+                }
+              }, 0);
+              layer._originalColor = 'greenish';
 
-  } else if (state.correct) {
-    layer.setStyle({
-  color: '#00ff5566',
-  weight: 6,
-  pane: 'clickable-buffer'
-});
-layer.setStyle({
-  color: '#00994466',
-  weight: 6,
-  pane: 'clickable-buffer'
-});
+            } else {
+              layer.setStyle({
+                color: 'red',
+                weight: 6
+              });
+              layer._originalColor = 'red';
+            }
 
-    setTimeout(() => {
-      if (layer._path) {
-        layer._path.style.opacity = '';
-        layer._path.classList.add('correct-final');
-      }
-    }, 0);
-    layer._originalColor = 'greenish';
+          } else {
+            layer.setStyle({
+              color: 'black',
+              weight: 6
+            });
+            layer._originalColor = 'black';
+          }
 
-  } else {
-    layer.setStyle({
-  color: 'red',
-  weight: 6,
-  pane: 'clickable-buffer'
-});
-    layer._originalColor = 'red';
-  }
+          // 🟠 Add invisible buffer layer for easier clicking/tapping
+          const buffer = L.geoJSON(feature, {
+            style: {
+              color: 'black',
+              weight: 20,
+              opacity: 0,
+              pane: 'clickable-buffer'
+            },
+            onEachFeature: function (_, bufLayer) {
+              bufLayer.on('click', () => {
+                layer.fire('click');
+              });
+              bufLayer.on('mouseover', () => {
+                layer.fire('mouseover');
+              });
+              bufLayer.on('mouseout', () => {
+                layer.fire('mouseout');
+              });
+            }
+          });
+          buffer.addTo(map);
+        }
+      });
 
-} else {
-  layer.setStyle({
-  color: 'black',
-  weight: 6,
-  pane: 'clickable-buffer'
-});
-
-  layer._originalColor = 'black';
+      roadLayer.addTo(map);
+    });
 }
 
 
