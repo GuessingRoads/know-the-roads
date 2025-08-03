@@ -1068,59 +1068,62 @@ document.getElementById('give-up').onclick = async function () {
   const segmentIds = roadNameToIds[normalizedKey];
   const layers = nameToLayers[normalizedKey] || [];
 
- // Track attempts
-if (!attemptCounts[currentRoad.id]) {
-  attemptCounts[currentRoad.id] = 1;
-} else {
-  attemptCounts[currentRoad.id] += 1;
-}
+  // Track attempts
+  if (!attemptCounts[currentRoad.id]) {
+    attemptCounts[currentRoad.id] = 1;
+  } else {
+    attemptCounts[currentRoad.id] += 1;
+  }
 
-let usedHint = false;
-let isCorrect = false;
+  let usedHint = false;
+  let isCorrect = false;
 
-// 🔶 If 4th give-up and no hint shown yet — show hint
-if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
-  currentRoad.hintGiven = true;
+  // Show hint on 4th give-up if not already shown
+  if (attemptCounts[currentRoad.id] >= 4 && !currentRoad.hintGiven) {
+    currentRoad.hintGiven = true;
 
-  const firstLetter = correctName.charAt(0).toUpperCase();
-  document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+    const firstLetter = correctName.charAt(0).toUpperCase();
+    document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
 
-  document.getElementById('guess-input').value = '';
-  document.getElementById('guess-input').focus();
+    document.getElementById('guess-input').value = '';
+    document.getElementById('guess-input').focus();
 
-  return; // ✅ Wait for next user action
-}
+    return; // ✅ Wait for next user input
+  }
 
-// Otherwise: actually mark the road (red or orange depending on hint status)
-usedHint = currentRoad.hintGiven; // ✅ true if user already saw hint
+  // Otherwise, mark road (red or orange based on hint state)
+  usedHint = currentRoad.hintGiven;
 
-if (currentUserId) {
-  await saveGuessSegmentIds(segmentIds, false, usedHint);
-} else {
-  savePreLoginGuess({ segmentIds, isCorrect: false, usedHint });
-}
+  for (const layer of layers) {
+    layer.setStyle({ color: usedHint ? 'orange' : 'red', weight: 6 });
+    layer._originalColor = usedHint ? 'orange' : 'red';
+  }
 
-for (const id of segmentIds) {
-  segmentStateMap.set(String(id), { correct: false, used_hint: usedHint, incorrect: false });
-}
+  if (currentUserId) {
+    await saveGuessSegmentIds(segmentIds, false, usedHint);
+  } else {
+    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint });
+  }
 
-// Color road
-for (const layer of layers) {
-  layer.setStyle({ color: usedHint ? 'orange' : 'red', weight: 6 });
-  layer._originalColor = usedHint ? 'orange' : 'red';
-}
+  for (const id of segmentIds) {
+    segmentStateMap.set(String(id), {
+      correct: false,
+      used_hint: usedHint,
+      incorrect: !usedHint
+    });
+  }
 
-document.getElementById('feedback-message').innerText = usedHint
-  ? `Correct answer: ${correctName}`
-  : 'Incorrect';
+  document.getElementById('feedback-message').innerText =
+    usedHint ? `Correct answer: ${correctName}` : 'Incorrect';
 
-// Delay close
-setTimeout(() => {
-  document.getElementById('guess-modal').style.display = 'none';
-  document.getElementById('feedback-message').innerText = '';
-  currentRoad = null;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}, usedHint ? 2000 : 0);
+  // ✅ Close modal after short delay (2s for hint, 0s for red)
+  setTimeout(() => {
+    document.getElementById('guess-modal').style.display = 'none';
+    document.getElementById('feedback-message').innerText = '';
+    currentRoad = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, usedHint ? 2000 : 0);
+};
 
     
   } else {
