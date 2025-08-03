@@ -574,7 +574,7 @@ layer.on('mouseover', function () {
   const matchingLayers = nameToLayers[name] || [];
 
   // Don't hover-highlight if this road is the actively selected one
-  if (activeRoadName === name) return;
+  if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
 
   for (const l of matchingLayers) {
     const currentColor = l._originalColor;
@@ -597,7 +597,7 @@ layer.on('mouseout', function () {
   const matchingLayers = nameToLayers[name] || [];
 
   // Don't reset style if the road is actively selected
-  if (activeRoadName === name) return;
+  if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
 
  for (const l of matchingLayers) {
   const currentColor = l._originalColor;
