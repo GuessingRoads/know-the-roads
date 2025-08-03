@@ -895,16 +895,17 @@ if (isCorrect) {
     layer._originalColor = 'orange';
   }
 } else {
-  // Animate incorrect red segments
-  animateIncorrectSegments(layers);
   for (const layer of layers) {
-  segmentStateMap.set(String(layer.feature.id), {
-    correct: false,
-    used_hint: false
-  });
+    if (layer.feature && layer.feature.id != null) {
+      segmentStateMap.set(String(layer.feature.id), {
+        correct: false,
+        used_hint: false
+      });
+    }
+  }
+  animateIncorrectSegments(layers);
 }
 
-}
 
 
 
