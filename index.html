@@ -569,26 +569,33 @@ if (segmentStateMap.has(id)) {
 
 // Hover effect
 layer.on('mouseover', function () {
-  if (!insideLancaster) return; // 🔒 block hover effects too
+  if (!insideLancaster) return;
   const name = feature.properties.name || "";
   const matchingLayers = nameToLayers[name] || [];
 
-  // Don't hover-highlight if this road is the actively selected one
   if (activeRoadName === name) return;
 
   for (const l of matchingLayers) {
-    const currentColor = l._originalColor;
-    if (!['greenish', 'orangeish'].includes(currentColor)) {
+    const currentColor = l._originalColor || 'black';
+    const state = segmentStateMap.get(String(l.feature.id));
+
+    const isHoverable =
+      ['black', 'yellow', 'red'].includes(currentColor) &&
+      (!state?.correct && !state?.used_hint);
+
+    if (isHoverable) {
       l.setStyle({
-        color: '#ffd700', // gold
+        color: '#ffd700',
         weight: 8,
         opacity: 1,
         lineCap: 'round'
       });
     }
+
     l.bringToFront?.();
   }
 });
+
 
 
 
