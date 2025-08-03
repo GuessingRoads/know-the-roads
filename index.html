@@ -493,21 +493,6 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   }
 }
 
-  function animateIncorrectSegments(layers) {
-  let i = 0;
-  const interval = setInterval(() => {
-    if (i >= layers.length) {
-      clearInterval(interval);
-      return;
-    }
-    const layer = layers[i];
-    layer.setStyle({ color: 'red', weight: 6 });
-    layer._originalColor = 'red';
-    i++;
-  }, 20); // 20ms delay between each segment
-}
-
-
 
 function applyColorToAllSegments(name, color) {
   if (!nameToLayers[name]) return;
@@ -584,33 +569,26 @@ if (segmentStateMap.has(id)) {
 
 // Hover effect
 layer.on('mouseover', function () {
-  if (!insideLancaster) return;
+  if (!insideLancaster) return; // 🔒 block hover effects too
   const name = feature.properties.name || "";
   const matchingLayers = nameToLayers[name] || [];
 
+  // Don't hover-highlight if this road is the actively selected one
   if (activeRoadName === name) return;
 
   for (const l of matchingLayers) {
-    const currentColor = l._originalColor || 'black';
-    const state = segmentStateMap.get(String(l.feature.id));
-
-    const isHoverable =
-      ['black', 'yellow', 'red'].includes(currentColor) &&
-      (!state?.correct && !state?.used_hint);
-
-    if (isHoverable) {
+    const currentColor = l._originalColor;
+    if (!['greenish', 'orangeish'].includes(currentColor)) {
       l.setStyle({
-        color: '#ffd700',
+        color: '#ffd700', // gold
         weight: 8,
         opacity: 1,
         lineCap: 'round'
       });
     }
-
     l.bringToFront?.();
   }
 });
-
 
 
 
@@ -896,18 +874,9 @@ if (isCorrect) {
     layer._originalColor = 'orange';
   }
 } else {
-  for (const layer of layers) {
-    if (layer.feature && layer.feature.id != null) {
-      segmentStateMap.set(String(layer.feature.id), {
-        correct: false,
-        used_hint: false
-      });
-    }
-  }
+  // Animate incorrect red segments
   animateIncorrectSegments(layers);
 }
-
-
 
 
 
