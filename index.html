@@ -907,7 +907,7 @@ modalClosedEarly = true;
   let hideDelay = 800;
   if (color === 'yellow') hideDelay = 5001;
 
-  if (isCorrect || usedHint) && !modalClosedEarly) {
+  if ((isCorrect || usedHint) && !modalClosedEarly) {
   setTimeout(() => {
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('feedback-message').innerText = '';
