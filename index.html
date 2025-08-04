@@ -744,6 +744,7 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
           className: "county-tooltip"
         });
 
+
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
   insideLancaster = true;
