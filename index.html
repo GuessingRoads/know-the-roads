@@ -863,8 +863,8 @@ document.getElementById('guess-input').addEventListener('input', () => {
 
   function splitNameAndSuffix(name) {
     const parts = name.trim().split(" ");
-    if (parts.length === 1) return [parts[0], ""]; // No suffix
-    const suffix = parts.pop(); // last word
+    if (parts.length === 1) return [parts[0], ""];
+    const suffix = parts.pop();
     const main = parts.join(" ");
     return [main, suffix];
   }
@@ -874,12 +874,15 @@ document.getElementById('guess-input').addEventListener('input', () => {
 
   const feedback = document.getElementById('feedback-message');
 
-  // Show "Check suffix!" only if the user is typing a suffix and it’s wrong
+  // Only show warning if:
+  // - main is correct
+  // - user started typing a suffix
+  // - AND the input suffix is NOT a prefix of the correct suffix
   if (
     normalizeName(inputMain) === normalizeName(targetMain) &&
     targetSuffix &&
     inputSuffix.trim() !== '' &&
-    normalizeName(inputSuffix) !== normalizeName(targetSuffix)
+    !normalizeName(targetSuffix).startsWith(normalizeName(inputSuffix))
   ) {
     feedback.innerText = 'Check suffix!';
     feedback.style.color = 'gold';
@@ -887,10 +890,6 @@ document.getElementById('guess-input').addEventListener('input', () => {
     feedback.innerText = '';
   }
 });
-
-
-
-
 
 
 
