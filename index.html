@@ -541,6 +541,11 @@ async function loadMap() {
     .then(res => res.json())
     .then(data => {
       const roadLayer = L.geoJSON(data, {
+        // ✅ This applies to all roads, unless overridden below
+          style: {
+            pane: 'hiddenRoads'
+          },
+
         onEachFeature: function (feature, layer) {
           const id = String(feature.id);
           const name = feature.properties.name || "";
