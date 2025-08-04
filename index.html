@@ -265,6 +265,8 @@
   map.createPane('hiddenRoads');
   map.getPane('hiddenRoads').style.pointerEvents = 'none'; // Roads cannot block clicks initially
   map.getPane('clickable-buffer').style.opacity = '1';
+  map.createPane('countyPolygon');
+  map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
   map.getPane('maskPane').style.zIndex = 299; // Ensure it renders below roads
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
