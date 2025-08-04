@@ -864,17 +864,19 @@ document.getElementById('guess-input').addEventListener('input', () => {
   const [inputMain, inputSuffix = ""] = normalizedInput.split(" ");
   const [targetMain, targetSuffix = ""] = targetName.split(" ");
 
-  // If road name matches main word but suffix does not, show suffix warning
+  // Only show suffix warning if main word matches and user typed a suffix that doesn't match
   if (
     inputMain === targetMain &&
-    inputSuffix !== targetSuffix &&
-    targetSuffix // only if a suffix exists
+    inputSuffix &&
+    targetSuffix && // only if a suffix actually exists
+    inputSuffix !== targetSuffix
   ) {
     document.getElementById('feedback-message').innerText = 'Check suffix!';
   } else {
     document.getElementById('feedback-message').innerText = '';
   }
 });
+
 
 
 
