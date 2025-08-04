@@ -743,7 +743,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         layer.bindTooltip("Lancaster County", {
           permanent: false,
           direction: "center",
-          className: "county-tooltip"
+          className: "county-tooltip",
+          pane: "tooltipPane" // 👈 forces it on top
         });
 
 
