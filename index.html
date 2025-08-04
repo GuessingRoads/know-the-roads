@@ -552,6 +552,7 @@ async function loadMap() {
           segmentIdToName[id] = name;
           if (!nameToLayers[name]) nameToLayers[name] = [];
           nameToLayers[name].push(layer);
+          layer.options.pane = 'hiddenRoads'; // ✅ Force pane at layer level
 
           // ⬛ Style visible road based on state
           if (segmentStateMap.has(id)) {
