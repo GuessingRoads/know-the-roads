@@ -1197,6 +1197,8 @@ document.getElementById('give-up').onclick = async function () {
 
   document.getElementById('feedback-message').innerText =
     usedHint ? `Correct answer: ${correctName}` : 'Incorrect';
+  document.getElementById('feedback-message').style.color = 'orange';
+
 
   // ✅ Close modal after short delay (2s for hint, 0s for red)
   setTimeout(() => {
