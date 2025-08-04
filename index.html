@@ -1047,6 +1047,7 @@ if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
   const firstLetter = correctName.charAt(0).toUpperCase();
   console.log("🔥 HINT TRIGGERED");
   document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+  document.getElementById('feedback-message').style.color = 'orange';
 
   // Keep modal open
   document.getElementById('guess-input').value = '';
