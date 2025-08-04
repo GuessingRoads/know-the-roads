@@ -725,7 +725,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         color: '#0080ff',
         weight: 3,
         fillColor: '#cce6ff',
-        fillOpacity: 0.3
+        fillOpacity: 0.3,
+        pane: 'countyPolygon' // ✅ put it in its own top layer
       },
 
       onEachFeature: function (feature, layer) {
