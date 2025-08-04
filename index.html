@@ -856,6 +856,25 @@ document.getElementById('guess-input').addEventListener('input', async function 
   }
 });
 
+document.getElementById('guess-input').addEventListener('input', () => {
+  const input = document.getElementById('guess-input').value.trim();
+  const normalizedInput = normalizeName(input);
+  const targetName = normalizeName(currentRoad?.name || "");
+
+  const [inputMain, inputSuffix = ""] = normalizedInput.split(" ");
+  const [targetMain, targetSuffix = ""] = targetName.split(" ");
+
+  // If road name matches main word but suffix does not, show suffix warning
+  if (
+    inputMain === targetMain &&
+    inputSuffix !== targetSuffix &&
+    targetSuffix // only if a suffix exists
+  ) {
+    document.getElementById('feedback-message').innerText = 'Check suffix!';
+  } else {
+    document.getElementById('feedback-message').innerText = '';
+  }
+});
 
 
 
