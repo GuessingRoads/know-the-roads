@@ -273,6 +273,8 @@
   map.createPane('hiddenRoads');
   map.getPane('hiddenRoads').style.pointerEvents = 'none'; // Roads cannot block clicks initially
   map.getPane('clickable-buffer').style.opacity = '1';
+  map.createPane('tooltipPane');
+  map.getPane('tooltipPane').style.zIndex = 650; // higher than gray polygon
   map.createPane('countyPolygon');
   map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
