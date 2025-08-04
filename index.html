@@ -556,7 +556,8 @@ async function loadMap() {
               layer.setStyle({
                 color: 'rgba(255, 165, 0, 0.4)',
                 weight: 6,
-                opacity: 0.7
+                opacity: 0.7,
+                pane: 'hiddenRoads'
               });
               setTimeout(() => {
                 if (layer._path) {
@@ -569,7 +570,8 @@ async function loadMap() {
             } else if (state.correct) {
               layer.setStyle({
                 color: '#00994466',
-                weight: 6
+                weight: 6,
+                pane: 'hiddenRoads'
               });
               setTimeout(() => {
                 if (layer._path) {
@@ -582,7 +584,8 @@ async function loadMap() {
             } else {
               layer.setStyle({
                 color: 'red',
-                weight: 6
+                weight: 6,
+                pane: 'hiddenRoads'
               });
               layer._originalColor = 'red';
             }
@@ -590,7 +593,8 @@ async function loadMap() {
           } else {
             layer.setStyle({
               color: 'black',
-              weight: 6
+              weight: 6,
+              pane: 'hiddenRoads'
             });
             layer._originalColor = 'black';
           }
@@ -630,7 +634,8 @@ async function loadMap() {
                   color: '#ffd700',
                   weight: 8,
                   opacity: 1,
-                  lineCap: 'round'
+                  lineCap: 'round',
+                  pane: 'hiddenRoads'
                 });
               }
               l.bringToFront?.();
@@ -648,7 +653,8 @@ async function loadMap() {
                   color: currentColor,
                   weight: 6,
                   opacity: 1,
-                  lineCap: 'round'
+                  lineCap: 'round',
+                  pane: 'hiddenRoads'
                 });
               }
             }
@@ -682,7 +688,7 @@ async function loadMap() {
               const s = segmentStateMap.get(sid);
               if (!s) continue;
               if (!s.correct && !s.used_hint) {
-                l.setStyle({ color: '#00ccff', weight: 8 });
+                l.setStyle({ color: '#00ccff', weight: 8, pane: 'hiddenRoads' });
               }
             }
 
