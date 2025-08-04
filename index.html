@@ -43,12 +43,14 @@
   vertical-align: middle;
   box-sizing: border-box; /* ✅ forces equal sizing and alignment */
 }
-.leaflet-tooltip.county-tooltip,
-.leaflet-tooltip.county-tooltip.leaflet-tooltip-center {
+.leaflet-tooltip.county-tooltip {
   background-color: white !important;
   color: black !important;
   border: 1px solid black !important;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3) !important;
+  z-index: 9999 !important;
 }
+
 
 
     #auth-box {
