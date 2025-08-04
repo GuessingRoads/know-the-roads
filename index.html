@@ -861,21 +861,30 @@ document.getElementById('guess-input').addEventListener('input', () => {
   const normalizedInput = normalizeName(input);
   const targetName = normalizeName(currentRoad?.name || "");
 
-  const [inputMain, inputSuffix = ""] = normalizedInput.split(" ");
-  const [targetMain, targetSuffix = ""] = targetName.split(" ");
+  // 🔧 Safely split road name into main and suffix (last word is the suffix)
+  function splitNameAndSuffix(name) {
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return [parts[0], ""]; // No suffix
+    const suffix = parts.pop(); // last word
+    const main = parts.join(" ");
+    return [main, suffix];
+  }
 
-  // Only show suffix warning if main word matches and user typed a suffix that doesn't match
+  const [inputMain, inputSuffix] = splitNameAndSuffix(normalizedInput);
+  const [targetMain, targetSuffix] = splitNameAndSuffix(targetName);
+
+  // ⚠️ Only show "Check suffix!" if main matches but suffix does not
   if (
     inputMain === targetMain &&
-    inputSuffix &&
-    targetSuffix && // only if a suffix actually exists
-    inputSuffix !== targetSuffix
+    inputSuffix !== targetSuffix &&
+    targetSuffix !== "" // Only if a suffix exists
   ) {
     document.getElementById('feedback-message').innerText = 'Check suffix!';
   } else {
     document.getElementById('feedback-message').innerText = '';
   }
 });
+
 
 
 
