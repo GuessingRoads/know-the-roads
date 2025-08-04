@@ -875,10 +875,11 @@ document.getElementById('guess-input').addEventListener('input', () => {
 
   // ⚠️ Only show "Check suffix!" if main matches but suffix does not
   if (
-    inputMain === targetMain &&
-    inputSuffix !== targetSuffix &&
-    targetSuffix !== "" // Only if a suffix exists
-  ) {
+  normalizeName(userInputMain) === normalizeName(correctMain) &&
+  correctSuffix &&
+  userInputSuffix &&
+  normalizeName(userInputSuffix) !== normalizeName(correctSuffix)
+) {
     document.getElementById('feedback-message').innerText = 'Check suffix!';
   } else {
     document.getElementById('feedback-message').innerText = '';
