@@ -830,7 +830,22 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
     mtPath.style.pointerEvents = 'none';
     mtPath.style.outline = 'none';
   }
+// 🧱 Create mask that reveals only MT
+  if (!worldMask) {
+    worldMask = L.geoJSON(createWorldMask(feature), {
+      style: {
+        fillColor: '#cccccc',
+        fillOpacity: 0.7,
+        stroke: false,
+        pane: 'maskPane'
+      }
+    }).addTo(map);
 
+    worldMask.eachLayer(layer => {
+      const el = layer.getElement();
+      if (el) el.style.pointerEvents = 'none';
+    });
+  }
   // ✅ Show roads after MT is clicked
   map.addLayer(roadsLayerGroup);
 
