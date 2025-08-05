@@ -788,30 +788,54 @@ layer.on('mouseout', function () {
 
 
 
-  // ⏳ After 0.5s, blur the polygon
-  setTimeout(() => {
-    // Reset this layer's style (opacity must match original)
-    layer.setStyle({ fillOpacity: 0 });
+ setTimeout(() => {
+  // Reset this layer's style (opacity must match original)
+  layer.setStyle({ fillOpacity: 0 });
 
-    // 🔒 Disable focus/pointer temporarily
-    const path = layer._path;
-    if (path) {
-      path.style.outline = 'none'; // remove outline if browser applied
-      path.style.pointerEvents = 'none';
-    }
+  // 🔒 Disable focus/pointer temporarily
+  const path = layer._path;
+  if (path) {
+    path.style.outline = 'none'; // remove outline if browser applied
+    path.style.pointerEvents = 'none';
+  }
 
-    // 🪄 Blur the map container itself
-    const mapContainer = map.getContainer();
-    if (mapContainer) {
-      mapContainer.blur(); // forces DOM-level blur
-    }
-  }, 500);
-});
+  // 🪄 Blur the map container itself
+  const mapContainer = map.getContainer();
+  if (mapContainer) {
+    mapContainer.blur(); // forces DOM-level blur
+  }
 
+  // ✅ THEN load and show the Manheim Township polygon
+  fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        pane: 'townshipPane',
+        style: {
+          color: '#ff8800',
+          weight: 2,
+          fillColor: '#ff8800',
+          fillOpacity: 0.25
+        },
+        onEachFeature: (feature, mtLayer) => {
+          mtLayer.bindTooltip("Manheim Township", {
+            permanent: true,
+            direction: "center",
+            className: "mt-label"
+          });
 
+          mtLayer.on('click', () => {
+            map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
+            console.log("📍 Manheim Township clicked");
 
-      }
-    }).addTo(map); // ✅ This was missing
+            // 💡 Later: Load MT roads here
+          });
+        }
+      }).addTo(map);
+    });
+
+}, 500);
+
     function createWorldMask(feature) {
   const bounds = map.getBounds().pad(1);
 
