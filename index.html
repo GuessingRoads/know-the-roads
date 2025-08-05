@@ -279,6 +279,7 @@
   map.createPane('countyPolygon');
   map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
+  map.getPanes().tooltipPane.style.zIndex = 651;
   map.getPane('maskPane').style.zIndex = 299; // Ensure it renders below roads
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
