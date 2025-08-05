@@ -837,23 +837,25 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   }
 
   // 🧱 Create mask that reveals only MT
-  if (!worldMask) {
-    console.log("🧱 About to add MT world mask");
-    worldMask = L.geoJSON(createWorldMask(feature), {
-      style: {
-        fillColor: '#cccccc',
-        fillOpacity: 0.7,
-        stroke: false,
-        pane: 'maskPane'
-      }
-    }).addTo(map);
-    console.log("✅ MT mask added");
+if (worldMask) {
+  map.removeLayer(worldMask);
+  worldMask = null;
+}
 
-    worldMask.eachLayer(layer => {
-      const el = layer.getElement();
-      if (el) el.style.pointerEvents = 'none';
-    });
+worldMask = L.geoJSON(createWorldMask(feature), {
+  style: {
+    fillColor: '#cccccc',
+    fillOpacity: 0.7,
+    stroke: false,
+    pane: 'maskPane'
   }
+}).addTo(map);
+
+worldMask.eachLayer(layer => {
+  const el = layer.getElement();
+  if (el) el.style.pointerEvents = 'none';
+});
+
 
   // ✅ Show roads after MT is clicked
   map.addLayer(roadsLayerGroup);
