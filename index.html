@@ -43,14 +43,6 @@
   vertical-align: middle;
   box-sizing: border-box; /* ✅ forces equal sizing and alignment */
 }
-.leaflet-tooltip.county-tooltip {
-  background-color: white !important;
-  color: black !important;
-  border: 1px solid black !important;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3) !important;
-  z-index: 9999 !important;
-}
-
 
 
     #auth-box {
@@ -273,8 +265,6 @@
   map.createPane('hiddenRoads');
   map.getPane('hiddenRoads').style.pointerEvents = 'none'; // Roads cannot block clicks initially
   map.getPane('clickable-buffer').style.opacity = '1';
-  map.createPane('tooltipPane');
-  map.getPane('tooltipPane').style.zIndex = 651; // higher than gray polygon
   map.createPane('countyPolygon');
   map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
@@ -734,8 +724,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
       style: {
         color: '#0080ff',
         weight: 3,
-        fillColor: '#c0c0c0',
-        fillOpacity: 0.6,
+        fillColor: '#cce6ff',
+        fillOpacity: 0.3,
         pane: 'countyPolygon' // ✅ put it in its own top layer
       },
 
@@ -743,10 +733,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         layer.bindTooltip("Lancaster County", {
           permanent: false,
           direction: "center",
-          className: "county-tooltip",
-          sticky: true
+          className: "county-tooltip"
         });
-
 
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
