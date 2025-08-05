@@ -748,6 +748,23 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
       },
 
       onEachFeature: function (feature, layer) {
+        layer.on('mouseover', function (e) {
+  if (insideLancaster) return; // Don't show tooltip if already clicked
+
+  const tooltip = document.getElementById('custom-tooltip');
+  const center = layer.getBounds().getCenter();
+  const screenPoint = map.latLngToContainerPoint(center);
+
+  tooltip.style.left = screenPoint.x + 'px';
+  tooltip.style.top = screenPoint.y + 'px';
+  tooltip.style.display = 'block';
+});
+
+layer.on('mouseout', function () {
+  const tooltip = document.getElementById('custom-tooltip');
+  tooltip.style.display = 'none';
+});
+
 
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
