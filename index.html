@@ -776,11 +776,6 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
     if (mapContainer) {
       mapContainer.blur(); // forces DOM-level blur
     }
-
-    // ✅ Re-enable pointer after another short delay
-    setTimeout(() => {
-      if (path) path.style.pointerEvents = '';
-    }, 500);
   }, 500);
 });
 
