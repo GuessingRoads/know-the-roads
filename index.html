@@ -791,7 +791,7 @@ layer.on('mouseout', function () {
   // ⏳ After 0.5s, blur the polygon
   setTimeout(() => {
     // Reset this layer's style (opacity must match original)
-    layer.setStyle({ fillOpacity: 0.3 });
+    layer.setStyle({ fillOpacity: 0 });
 
     // 🔒 Disable focus/pointer temporarily
     const path = layer._path;
