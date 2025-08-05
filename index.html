@@ -43,23 +43,6 @@
   vertical-align: middle;
   box-sizing: border-box; /* ✅ forces equal sizing and alignment */
 }
-.leaflet-tooltip.county-tooltip {
-  background-color: white !important;
-  color: black !important;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 4px;
-  padding: 2px 6px;
-  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
-  pointer-events: none;
-  white-space: nowrap;
-  transform-origin: center center;
-  transform-box: fill-box;
-
-}
-.hidden-tooltip {
-  display: none !important;
-}
 
 
     #auth-box {
@@ -277,17 +260,6 @@
   import { roadNameToIds } from './roadNameToIds.js';
   console.log("Loaded roadNameToIds:", Object.keys(roadNameToIds));
   const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 12);
-  map.on('zoomend', () => {
-  const zoom = map.getZoom();
-  const scale = Math.pow(0.96, 19 - zoom);
-  const tooltips = document.querySelectorAll('.leaflet-tooltip.county-tooltip');
-
-  tooltips.forEach(el => {
-    el.style.transform = `scale(${scale})`;
-  });
-});
-
-
   map.createPane('clickable-buffer');
   map.getPane('clickable-buffer').style.pointerEvents = 'auto';
   map.createPane('hiddenRoads');
@@ -296,7 +268,6 @@
   map.createPane('countyPolygon');
   map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
-  map.getPanes().tooltipPane.style.zIndex = 651;
   map.getPane('maskPane').style.zIndex = 299; // Ensure it renders below roads
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
@@ -753,8 +724,8 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
       style: {
         color: '#0080ff',
         weight: 3,
-        fillColor: '#c0c0c0',
-        fillOpacity: 0.6,
+        fillColor: '#cce6ff',
+        fillOpacity: 0.3,
         pane: 'countyPolygon' // ✅ put it in its own top layer
       },
 
@@ -768,10 +739,6 @@ fetch('Boundaries_County_Lancaster_PA.geojson')
         layer.on('click', function (e) {
   map.fitBounds(layer.getBounds());
   insideLancaster = true;
-          document.querySelectorAll('.leaflet-tooltip.county-tooltip').forEach(el => {
-  el.classList.add('hidden-tooltip');
-});
-
   map.addLayer(roadsLayerGroup);
          if (!worldMask) {
   worldMask = L.geoJSON(createWorldMask(feature), {
