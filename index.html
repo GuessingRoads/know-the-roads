@@ -819,9 +819,21 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
                     });
 
                     mtLayer.on('click', () => {
-                      map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
-                      console.log("📍 Manheim Township clicked");
-                      map.addLayer(roadsLayerGroup); // ✅ roads now load ONLY after MT is clicked
+  map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
+  console.log("📍 Manheim Township clicked");
+
+  // 🔒 Disable interaction and fade MT polygon
+  mtLayer.setStyle({ fillOpacity: 0 });
+
+  const mtPath = mtLayer._path;
+  if (mtPath) {
+    mtPath.style.pointerEvents = 'none';
+    mtPath.style.outline = 'none';
+  }
+
+  // ✅ Show roads after MT is clicked
+  map.addLayer(roadsLayerGroup);
+
                     });
                   }
                 }).addTo(map);
