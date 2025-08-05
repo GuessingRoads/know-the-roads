@@ -823,7 +823,13 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   console.log("📍 Manheim Township clicked");
 
   // 🔒 Disable interaction and fade MT polygon
-  mtLayer.setStyle({ fillOpacity: 0 });
+  mtLayer.setStyle({
+  fillOpacity: 0,
+  weight: 0,
+  color: 'transparent',
+  opacity: 0
+});
+
 
   const mtPath = mtLayer._path;
   if (mtPath) {
