@@ -557,7 +557,7 @@ function suffixOnlyMismatch(guess, actual) {
 async function loadMap() {
   await checkLogin();
 
-  fetch('Roads_ManheimTownship_Lancaster_PA.geojson')
+  fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
       const roadLayer = L.geoJSON(data, {
