@@ -832,8 +832,8 @@ layer.on('mouseout', function () {
           });
         }
       }).addTo(map);
-    }); // ✅ This was missing — closes the last .then()
-}, 500);
+    }); // ✅ closes .then(data => { ... })
+}, 500); // ✅ closes setTimeout(...)
 
 
     function createWorldMask(feature) {
