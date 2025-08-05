@@ -838,7 +838,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 
   // 🧱 Create mask that reveals only MT
   if (!worldMask) {
-    console.log("🧪 MT feature:", feature); // <-- ✅ Use feature, not mtLayer.feature
+    console.log("🧱 About to add MT world mask");
     worldMask = L.geoJSON(createWorldMask(feature), {
       style: {
         fillColor: '#cccccc',
@@ -847,6 +847,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         pane: 'maskPane'
       }
     }).addTo(map);
+    console.log("✅ MT mask added");
 
     worldMask.eachLayer(layer => {
       const el = layer.getElement();
