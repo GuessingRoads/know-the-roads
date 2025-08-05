@@ -735,7 +735,7 @@ async function loadMap() {
     };
 
 
-fetch('Boundaries_County_Lancaster_PA.geojson')
+fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
   .then(data => {
     const countyLayer = L.geoJSON(data, {
