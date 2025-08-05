@@ -744,7 +744,7 @@ async function initializeMap() {
     // 1. Load and display Lancaster County polygon
     const lancasterData = await fetch('Counties/Boundaries_County_Lancaster_PA.geojson').then(r => r.json());
     L.geoJSON(lancasterData, {
-  pane: 'polygonPane',
+  pane: 'countyPane',
   style: {
     color: "#888",
     weight: 2,
@@ -793,7 +793,7 @@ async function initializeMap() {
     // 2. Load Manheim Township polygon
     const mtData = await fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson').then(r => r.json());
     L.geoJSON(mtData, {
-  pane: 'polygonPane',
+  pane: 'townshipPane',
   style: {
     color: "#ff8800",
     weight: 2,
