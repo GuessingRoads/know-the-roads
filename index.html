@@ -283,6 +283,8 @@
   map.createPane('hiddenRoads');
   map.getPane('hiddenRoads').style.pointerEvents = 'none'; // Roads cannot block clicks initially
   map.getPane('clickable-buffer').style.opacity = '1';
+  map.createPane('polygonPane');
+  map.getPane('polygonPane').style.zIndex = 600;
   map.createPane('countyPolygon');
   map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
@@ -741,13 +743,13 @@ async function initializeMap() {
   try {
     // 1. Load and display Lancaster County polygon
     const lancasterData = await fetch('Counties/Boundaries_County_Lancaster_PA.geojson').then(r => r.json());
-    const lancasterLayer = L.geoJSON(lancasterData, {
-      style: {
-        color: "#888",
-        weight: 2,
-        fillColor: "#888",
-        fillOpacity: 0.35,
-        pane: 'countyPolygon'
+    L.geoJSON(lancasterData, {
+  pane: 'polygonPane',
+  style: {
+    color: "#888",
+    weight: 2,
+    fillColor: "#888",
+    fillOpacity: 0.35
       },
       onEachFeature: function (feature, layer) {
         layer.bindTooltip("Lancaster County", {
@@ -790,12 +792,13 @@ async function initializeMap() {
 
     // 2. Load Manheim Township polygon
     const mtData = await fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson').then(r => r.json());
-    const mtLayer = L.geoJSON(mtData, {
-      style: {
-        color: "#ff8800",
-        weight: 2,
-        fillColor: "#ff8800",
-        fillOpacity: 0.25
+    L.geoJSON(mtData, {
+  pane: 'polygonPane',
+  style: {
+    color: "#ff8800",
+    weight: 2,
+    fillColor: "#ff8800",
+    fillOpacity: 0.25
       },
       onEachFeature: function (feature, layer) {
         layer.bindTooltip("Manheim Township", {
