@@ -744,162 +744,118 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         weight: 3,
         fillColor: '#cccccc',
         fillOpacity: 0.7,
-        pane: 'countyPolygon' // ✅ put it in its own top layer
+        pane: 'countyPolygon'
       },
 
       onEachFeature: function (feature, layer) {
-        layer.on('mouseover', function (e) {
-  if (insideLancaster) return; // Don't show tooltip if already clicked
+        layer.on('mouseover', function () {
+          if (insideLancaster) return;
+          const tooltip = document.getElementById('custom-tooltip');
+          const center = layer.getBounds().getCenter();
+          const screenPoint = map.latLngToContainerPoint(center);
+          tooltip.style.left = screenPoint.x + 'px';
+          tooltip.style.top = screenPoint.y + 'px';
+          tooltip.style.display = 'block';
+        });
 
-  const tooltip = document.getElementById('custom-tooltip');
-  const center = layer.getBounds().getCenter();
-  const screenPoint = map.latLngToContainerPoint(center);
+        layer.on('mouseout', function () {
+          const tooltip = document.getElementById('custom-tooltip');
+          tooltip.style.display = 'none';
+        });
 
-  tooltip.style.left = screenPoint.x + 'px';
-  tooltip.style.top = screenPoint.y + 'px';
-  tooltip.style.display = 'block';
-});
+        layer.on('click', function () {
+          map.fitBounds(layer.getBounds());
+          insideLancaster = true;
+          map.addLayer(roadsLayerGroup);
 
-layer.on('mouseout', function () {
-  const tooltip = document.getElementById('custom-tooltip');
-  tooltip.style.display = 'none';
-});
+          if (!worldMask) {
+            worldMask = L.geoJSON(createWorldMask(feature), {
+              style: {
+                fillColor: '#cccccc',
+                fillOpacity: 0.7,
+                stroke: false,
+                pane: 'maskPane'
+              }
+            }).addTo(map);
 
+            worldMask.eachLayer(layer => {
+              const el = layer.getElement();
+              if (el) el.style.pointerEvents = 'none';
+            });
+          }
 
-        layer.on('click', function (e) {
-  map.fitBounds(layer.getBounds());
-  insideLancaster = true;
-  map.addLayer(roadsLayerGroup);
-         if (!worldMask) {
-  worldMask = L.geoJSON(createWorldMask(feature), {
-    style: {
-      fillColor: '#cccccc',
-      fillOpacity: 0.7,
-      stroke: false,
-      pane: 'maskPane'
-    }
-  }).addTo(map);
+          setTimeout(() => {
+            layer.setStyle({ fillOpacity: 0 });
 
-  worldMask.eachLayer(layer => {
-    const el = layer.getElement();
-    if (el) el.style.pointerEvents = 'none';
-  });
-}
+            const path = layer._path;
+            if (path) {
+              path.style.outline = 'none';
+              path.style.pointerEvents = 'none';
+            }
 
+            const mapContainer = map.getContainer();
+            if (mapContainer) {
+              mapContainer.blur();
+            }
 
+            // ✅ Load Manheim Township after zoom-in
+            fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
+              .then(r => r.json())
+              .then(mtData => {
+                L.geoJSON(mtData, {
+                  pane: 'townshipPane',
+                  style: {
+                    color: '#ff8800',
+                    weight: 2,
+                    fillColor: '#ff8800',
+                    fillOpacity: 0.25
+                  },
+                  onEachFeature: (feature, mtLayer) => {
+                    mtLayer.bindTooltip("Manheim Township", {
+                      permanent: true,
+                      direction: "center",
+                      className: "mt-label"
+                    });
 
- setTimeout(() => {
-  // Reset this layer's style (opacity must match original)
-  layer.setStyle({ fillOpacity: 0 });
-
-  // 🔒 Disable focus/pointer temporarily
-  const path = layer._path;
-  if (path) {
-    path.style.outline = 'none'; // remove outline if browser applied
-    path.style.pointerEvents = 'none';
-  }
-
-  // 🪄 Blur the map container itself
-  const mapContainer = map.getContainer();
-  if (mapContainer) {
-    mapContainer.blur(); // forces DOM-level blur
-  }
-
-  // ✅ THEN load and show the Manheim Township polygon
-  fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
-    .then(res => res.json())
-    .then(data => {
-      L.geoJSON(data, {
-        pane: 'townshipPane',
-        style: {
-          color: '#ff8800',
-          weight: 2,
-          fillColor: '#ff8800',
-          fillOpacity: 0.25
-        },
-        onEachFeature: (feature, mtLayer) => {
-          mtLayer.bindTooltip("Manheim Township", {
-            permanent: true,
-            direction: "center",
-            className: "mt-label"
-          });
-
-          mtLayer.on('click', () => {
-            map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
-            console.log("📍 Manheim Township clicked");
-
-            // 💡 Later: Load MT roads here
-          });
-        }
-      }).addTo(map);
-    }); // ✅ closes .then(data => { ... })
-}, 500); // ✅ closes setTimeout(...)
-
+                    mtLayer.on('click', () => {
+                      map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
+                      console.log("📍 Manheim Township clicked");
+                    });
+                  }
+                }).addTo(map);
+              });
+          }, 500);
+        });
+      }
+    }).addTo(map);
 
     function createWorldMask(feature) {
-  const bounds = map.getBounds().pad(1);
+      const bounds = map.getBounds().pad(1);
+      const outer = [
+        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
+        [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
+        [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
+        [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
+        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
+      ];
 
-  // Outer giant square that covers the map view
-  const outer = [
-    [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
-    [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
-    [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
-    [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
-    [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
-  ];
+      let holes = [];
 
-  let holes = [];
+      if (feature.geometry.type === 'Polygon') {
+        holes = feature.geometry.coordinates;
+      } else if (feature.geometry.type === 'MultiPolygon') {
+        holes = feature.geometry.coordinates.flat();
+      }
 
-  if (feature.geometry.type === 'Polygon') {
-    holes = feature.geometry.coordinates;
-  } else if (feature.geometry.type === 'MultiPolygon') {
-    holes = feature.geometry.coordinates.flat();
-  }
-
-  return {
-    type: "Feature",
-    geometry: {
-      type: "Polygon",
-      coordinates: [outer, ...holes] // outer is filled, holes are cut out
+      return {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [outer, ...holes]
+        }
+      };
     }
-  };
-}
-
-
-
   });
-
-
-loadMap(); // ✅ called after it's defined
- function triggerHintDissolveAnimation(layer) {
-  const path = layer._path;
-  if (!path) return;
-
-  path.style.opacity = '';
-  path.classList.add('correct-dissolve');
-
-  setTimeout(() => {
-    path.classList.remove('correct-dissolve');
-    path.classList.add('hint-used-final');
-  }, 2000);
-}
-
-
-
-  function triggerCorrectDissolveAnimation(layer) {
-  const path = layer._path;
-  if (!path) return;
-
-  path.style.opacity = ''; // Clear inline style so CSS takes over
-  path.classList.add('correct-dissolve');
-
-
-  setTimeout(() => {
-    path.classList.remove('correct-dissolve');
-    path.classList.add('correct-final');
-  }, 2000);
-}
-
 
 loadMap();
 
