@@ -832,9 +832,9 @@ layer.on('mouseout', function () {
           });
         }
       }).addTo(map);
-    });
-
+    }); // ✅ This was missing — closes the last .then()
 }, 500);
+
 
     function createWorldMask(feature) {
   const bounds = map.getBounds().pad(1);
