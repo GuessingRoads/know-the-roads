@@ -824,22 +824,22 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 
   // 🔒 Disable interaction and fade MT polygon
   mtLayer.setStyle({
-  fillOpacity: 0,
-  weight: 0,
-  color: 'transparent',
-  opacity: 0
-});
-
+    fillOpacity: 0,
+    weight: 0,
+    color: 'transparent',
+    opacity: 0
+  });
 
   const mtPath = mtLayer._path;
   if (mtPath) {
     mtPath.style.pointerEvents = 'none';
     mtPath.style.outline = 'none';
   }
-// 🧱 Create mask that reveals only MT
+
+  // 🧱 Create mask that reveals only MT
   if (!worldMask) {
-    console.log("🧪 MT feature:", mtLayer.feature);
-    worldMask = L.geoJSON(createWorldMask(mtLayer.feature), {
+    console.log("🧪 MT feature:", feature); // <-- ✅ Use feature, not mtLayer.feature
+    worldMask = L.geoJSON(createWorldMask(feature), {
       style: {
         fillColor: '#cccccc',
         fillOpacity: 0.7,
@@ -853,10 +853,11 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
       if (el) el.style.pointerEvents = 'none';
     });
   }
+
   // ✅ Show roads after MT is clicked
   map.addLayer(roadsLayerGroup);
+});
 
-                    });
                   }
                 }).addTo(map);
               });
