@@ -264,7 +264,6 @@
 <script type="module">
   let currentRoad = null;
   let activeRoadName = null;
-  let hoverOverlay = null;
   let worldMask;
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
   let insideLancaster = false;
@@ -745,8 +744,8 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   .then(data => {
     const countyLayer = L.geoJSON(data, {
       style: {
-        color: 'black',
-        weight: 1.5,
+        color: '#3399ff',
+        weight: 2,
         fillColor: '#cccccc',
         fillOpacity: 0.7,
         pane: 'countyPolygon'
@@ -802,134 +801,123 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
               mapContainer.blur();
             }
 
+            // ✅ Load Manheim Township after zoom-in
             fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
-  .then(r => r.json())
-  .then(mtData => {
-    L.geoJSON(mtData, {
-      pane: 'townshipPane',
-      style: {
-        fillColor: '#cccccc',
-        fillOpacity: 0.7,
-        color: 'black',
-        weight: 1.5,
-        pane: 'townshipPane'
-      },
-      onEachFeature: (feature, mtLayer) => {
-        mtLayer.on('mouseover', function () {
-          if (insideManheim) return;
+              .then(r => r.json())
+              .then(mtData => {
+                L.geoJSON(mtData, {
+                  pane: 'townshipPane',
+                  style: {
+                    color: '#3399ff',
+                    weight: 2,
+                    fillColor: '#ff8800',
+                    fillOpacity: 0.25
+                  },
+                  onEachFeature: (feature, mtLayer) => {
+                    mtLayer.on('mouseover', function () {
+  if (insideManheim) return;
 
-          const tooltip = document.getElementById('custom-tooltip');
-          const center = mtLayer.getBounds().getCenter();
-          const screenPoint = map.latLngToContainerPoint(center);
+  const tooltip = document.getElementById('custom-tooltip');
+  const center = mtLayer.getBounds().getCenter();
+  const screenPoint = map.latLngToContainerPoint(center);
 
-          tooltip.innerText = "Manheim Township";
-          tooltip.style.left = screenPoint.x + 'px';
-          tooltip.style.top = screenPoint.y + 'px';
-          tooltip.style.display = 'block';
+  tooltip.innerText = "Manheim Township";
+  tooltip.style.left = screenPoint.x + 'px';
+  tooltip.style.top = screenPoint.y + 'px';
+  tooltip.style.display = 'block';
+});
 
-          if (hoverOverlay) {
-            map.removeLayer(hoverOverlay);
-            hoverOverlay = null;
-          }
+mtLayer.on('mouseout', function () {
+  const tooltip = document.getElementById('custom-tooltip');
+  tooltip.style.display = 'none';
+  tooltip.innerText = '';
+});
 
-          hoverOverlay = L.geoJSON(mtLayer.feature, {
-            pane: 'townshipPane',
-            style: {
-              fillColor: '#ffd700',
-              fillOpacity: 0.3,
-              stroke: false
-            }
-          }).addTo(map);
 
-          hoverOverlay.eachLayer(l => {
-            const el = l.getElement();
-            if (el) el.style.pointerEvents = 'none';
-          });
-        });
 
-        mtLayer.on('mouseout', function () {
-          const tooltip = document.getElementById('custom-tooltip');
-          tooltip.style.display = 'none';
-          tooltip.innerText = '';
 
-          if (hoverOverlay) {
-            map.removeLayer(hoverOverlay);
-            hoverOverlay = null;
-          }
-        });
+                    mtLayer.on('click', () => {
+  map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
+  console.log("📍 Manheim Township clicked");
+                      mtLayer.unbindTooltip();
 
-        mtLayer.on('click', () => {
-          map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
-          console.log("📍 Manheim Township clicked");
 
-          mtLayer.unbindTooltip();
+  // 🔒 Disable interaction and fade MT polygon
+  mtLayer.setStyle({
+    fillOpacity: 0,
+    weight: 2,
+    color: '#3399ff',
+    opacity: 1
+  });
 
-          mtLayer.setStyle({
-            fillOpacity: 0,
-            weight: 2,
-            color: '#3399ff',
-            opacity: 1
-          });
+  const mtPath = mtLayer._path;
+  if (mtPath) {
+    mtPath.style.pointerEvents = 'none';
+    mtPath.style.outline = 'none';
+  }
 
-          const mtPath = mtLayer._path;
-          if (mtPath) {
-            mtPath.style.pointerEvents = 'none';
-            mtPath.style.outline = 'none';
-          }
+  // 🧱 Create mask that reveals only MT
+if (worldMask) {
+  map.removeLayer(worldMask);
+  worldMask = null;
+}
 
-          if (worldMask) {
-            map.removeLayer(worldMask);
-            worldMask = null;
-          }
+worldMask = L.geoJSON(createWorldMask(feature), {
+  style: {
+    fillColor: '#cccccc',
+    fillOpacity: 0.7,
+    stroke: false,
+    pane: 'maskPane'
+  }
+}).addTo(map);
 
-          worldMask = L.geoJSON(createWorldMask(feature), {
-            style: {
-              fillColor: '#cccccc',
-              fillOpacity: 0.7,
-              stroke: false,
-              pane: 'maskPane'
-            }
-          }).addTo(map);
+worldMask.eachLayer(layer => {
+  const el = layer.getElement();
+  if (el) el.style.pointerEvents = 'none';
+});
 
-          worldMask.eachLayer(layer => {
-            const el = layer.getElement();
-            if (el) el.style.pointerEvents = 'none';
-          });
 
-          map.addLayer(roadsLayerGroup);
+  // ✅ Show roads after MT is clicked
+  map.addLayer(roadsLayerGroup);
+});
+
+                  }
+                }).addTo(map);
+              });
+          }, 500);
         });
       }
     }).addTo(map);
-  });
-function createWorldMask(feature) {
-  const bounds = map.getBounds().pad(1);
-  const outer = [
-    [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
-    [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
-    [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
-    [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
-    [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
-  ];
 
-  let holes = [];
+    function createWorldMask(feature) {
+      const bounds = map.getBounds().pad(1);
+      const outer = [
+        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
+        [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
+        [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
+        [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
+        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
+      ];
 
-  if (feature.geometry.type === 'Polygon') {
-    holes = feature.geometry.coordinates;
-  } else if (feature.geometry.type === 'MultiPolygon') {
-    holes = feature.geometry.coordinates.flat();
-  }
+      let holes = [];
 
-  return {
-    type: "Feature",
-    geometry: {
-      type: "Polygon",
-      coordinates: [outer, ...holes]
+      if (feature.geometry.type === 'Polygon') {
+        holes = feature.geometry.coordinates;
+      } else if (feature.geometry.type === 'MultiPolygon') {
+        holes = feature.geometry.coordinates.flat();
+      }
+
+      return {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [outer, ...holes]
+        }
+      };
     }
-  };
-}
+  });
 
-loadMap(); // ✅ This stays at the bottom
-
+loadMap();
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
   if (e.key === 'Enter') {
@@ -1303,6 +1291,7 @@ document.getElementById('give-up').onclick = async function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, usedHint ? 2000 : 0);
 };
+
   </script>
 </body>
 </html>
