@@ -1158,33 +1158,9 @@ function triggerCorrectDissolveAnimation(layer) {
   const el = layer.getElement();
   if (!el) return;
 
-  // Start fully transparent green
-  el.style.stroke = '#009944';
-  el.style.strokeOpacity = 0;
-  el.style.transition = 'stroke-opacity 0.5s ease';
-
-  // Force browser to register initial style
-  void el.offsetWidth;
-
-  // Fade in the green stroke
-  setTimeout(() => {
-    el.style.strokeOpacity = 0.7;
-  }, 0);
-
-  // After animation, freeze the style and mark as correct
-  setTimeout(() => {
-    el.classList.add('correct-final');
-    el.style.transition = 'none';
-    el.style.stroke = 'rgba(0, 100, 0, 0.4)';
-    el.style.strokeOpacity = 0.7;
-
-    layer._originalColor = 'greenish';
-  }, 500);
+  el.classList.add('correct-final');
+  layer._originalColor = 'greenish';
 }
-
-
-
-
 
 
 // ✅ Submit handler defined OUTSIDE of loadMap
