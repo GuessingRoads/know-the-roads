@@ -827,7 +827,6 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
           tooltip.style.top = screenPoint.y + 'px';
           tooltip.style.display = 'block';
 
-          // Add semi-transparent polygon overlay
           if (hoverOverlay) {
             map.removeLayer(hoverOverlay);
             hoverOverlay = null;
@@ -862,6 +861,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         mtLayer.on('click', () => {
           map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
           console.log("📍 Manheim Township clicked");
+
           mtLayer.unbindTooltip();
 
           mtLayer.setStyle({
@@ -901,11 +901,35 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
       }
     }).addTo(map);
   });
+function createWorldMask(feature) {
+  const bounds = map.getBounds().pad(1);
+  const outer = [
+    [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
+    [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
+    [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
+    [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
+    [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
+  ];
 
+  let holes = [];
 
+  if (feature.geometry.type === 'Polygon') {
+    holes = feature.geometry.coordinates;
+  } else if (feature.geometry.type === 'MultiPolygon') {
+    holes = feature.geometry.coordinates.flat();
+  }
 
+  return {
+    type: "Feature",
+    geometry: {
+      type: "Polygon",
+      coordinates: [outer, ...holes]
+    }
+  };
+}
 
-loadMap();
+loadMap(); // ✅ This stays at the bottom
+
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
   if (e.key === 'Enter') {
