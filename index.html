@@ -173,8 +173,10 @@
   display: none; /* Hidden by default */
 }
 .hover-green {
-  filter: drop-shadow(0 0 4px rgba(0, 255, 0, 0.35));
+  filter: drop-shadow(0 0 6px rgba(0, 255, 0, 0.4));
+  transition: filter 0.3s ease;
 }
+
 
     .hint-dissolve {
   transition: opacity 2s ease;
@@ -692,7 +694,6 @@ if (state?.correct) {
   return;
 }
 
-
             for (const l of matchingLayers) {
               const currentColor = l._originalColor;
               if (['black', 'red', 'yellow'].includes(currentColor)) {
@@ -709,11 +710,13 @@ if (state?.correct) {
           });
 
           layer.on('mouseout', function () {
+            const el = layer.getElement();
+if (el) el.classList.remove('hover-green');
+  
             const matchingLayers = nameToLayers[name] || [];
             if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
             // 🧽 Remove green glow if present
-const el = layer.getElement();
-if (el) el.classList.remove('hover-green');
+
 
 
             for (const l of matchingLayers) {
