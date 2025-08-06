@@ -802,8 +802,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
               mapContainer.blur();
             }
 
-            // ✅ Load Manheim Township after zoom-in
-           fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
+            fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
   .then(r => r.json())
   .then(mtData => {
     let hoverOverlay = null; // ✅ define this ONCE
@@ -907,7 +906,8 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         });
       }
     }).addTo(map);
-  });
+  }); // ✅ <- this was missing
+
 
 
 loadMap();
