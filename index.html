@@ -1158,22 +1158,29 @@ function triggerCorrectDissolveAnimation(layer) {
   const el = layer.getElement();
   if (!el) return;
 
-  // Start with a transparent green stroke
+  // Initial dissolve stroke style (transparent green)
   el.style.stroke = '#009944';
   el.style.strokeOpacity = 0;
   el.style.transition = 'stroke-opacity 0.5s ease';
 
-  // Fade it in
+  // Fade in the green stroke
   setTimeout(() => {
     el.style.strokeOpacity = 0.7;
   }, 0);
 
-  // Then mark it final
+  // After fade-in, lock in the persistent correct-final style
   setTimeout(() => {
     el.classList.add('correct-final');
+
+    // Ensure stroke sticks after dissolve
+    el.style.stroke = 'rgba(0, 100, 0, 0.4)';
+    el.style.strokeOpacity = 0.7;
+    el.style.transition = 'none'; // stop future animations
+
     layer._originalColor = 'greenish';
-  }, 500);
+  }, 500); // match fade duration
 }
+
 
 
 
