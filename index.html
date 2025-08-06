@@ -1167,15 +1167,18 @@ function triggerCorrectDissolveAnimation(layer) {
   const el = layer.getElement();
   if (!el) return;
 
-  // Reset any previous animation
+  // ✅ 1. Set initial green stroke manually so the path is visible
+  el.style.stroke = 'rgba(0, 160, 0, 0.4)';
+  el.style.opacity = '1'; // make sure it starts fully visible
+
+  // ✅ 2. Reset animation class
   el.classList.remove('correct-final');
+  void el.offsetWidth; // Force reflow
 
-  // Force reflow to restart animation
-  void el.offsetWidth;
-
-  // Add the class that triggers the animation
+  // ✅ 3. Add animation class to begin dissolve
   el.classList.add('correct-final');
 }
+
 
 
 
