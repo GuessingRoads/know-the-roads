@@ -1167,9 +1167,16 @@ function triggerCorrectDissolveAnimation(layer) {
   const el = layer.getElement();
   if (!el) return;
 
+  // Reset any previous animation
+  el.classList.remove('correct-final');
+
+  // Force reflow to restart animation
+  void el.offsetWidth;
+
+  // Add the class that triggers the animation
   el.classList.add('correct-final');
-  layer._originalColor = 'greenish';
 }
+
 
 
 // ✅ Submit handler defined OUTSIDE of loadMap
