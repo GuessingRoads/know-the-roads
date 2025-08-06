@@ -668,6 +668,8 @@ async function loadMap() {
               pane: 'clickable-buffer'
             },
             onEachFeature: function (_, bufLayer) {
+              const state = segmentStateMap.get(id);
+              if (state?.correct || state?.used_hint) return;
               bufLayer.on('click', () => {
                 layer.fire('click');
               });
