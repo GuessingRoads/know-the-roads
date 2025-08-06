@@ -267,6 +267,8 @@
   let worldMask;
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
   let insideLancaster = false;
+  let insideManheim = false;
+
 
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
@@ -812,11 +814,25 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
                     fillOpacity: 0.25
                   },
                   onEachFeature: (feature, mtLayer) => {
-                    mtLayer.bindTooltip("Manheim Township", {
-                      permanent: true,
-                      direction: "center",
-                      className: "mt-label"
-                    });
+                    mtLayer.on('mouseover', function (e) {
+  if (insideManheim) return; // Optional: only show tooltip if not clicked
+  insideManheim = true;
+
+  const tooltip = document.getElementById('custom-tooltip');
+  const center = mtLayer.getBounds().getCenter();
+  const screenPoint = map.latLngToContainerPoint(center);
+
+  tooltip.innerText = "Manheim Township";
+  tooltip.style.left = screenPoint.x + 'px';
+  tooltip.style.top = screenPoint.y + 'px';
+  tooltip.style.display = 'block';
+});
+
+mtLayer.on('mouseout', function () {
+  const tooltip = document.getElementById('custom-tooltip');
+  tooltip.style.display = 'none';
+});
+
 
                     mtLayer.on('click', () => {
   map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
