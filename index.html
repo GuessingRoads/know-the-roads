@@ -1452,27 +1452,6 @@ document.getElementById('give-up').onclick = async function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, usedHint ? 2000 : 0);
 };
-document.getElementById('back-button').addEventListener('click', () => {
-  // Hide roads
-  Object.values(nameToLayers).flat().forEach(layer => {
-    layer.setStyle({ opacity: 0, interactive: false });
-  });
-
-  // Reset all interactive flags
-  activeRoadName = null;
-  currentRoad = null;
-  insideLancaster = false;
-
-  // Re-enable zone clicking if needed
-  document.getElementById('back-button').style.display = 'none';
-
-  // Optional: visually re-emphasize the polygon again
-  lancasterPolygon.setStyle({
-    fillOpacity: 0.4,
-    color: '#555',
-    weight: 2
-  });
-});
 
   </script>
 </body>
