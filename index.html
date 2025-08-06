@@ -815,7 +815,12 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
                   },
                   onEachFeature: (feature, mtLayer) => {
                     mtLayer.on('mouseover', function (e) {
-  if (insideManheim) return; // Optional: only show tooltip if not clicked
+  if (insideManheim) {
+  const tooltip = document.getElementById('custom-tooltip');
+  tooltip.style.display = 'none';
+  return;
+}
+
   insideManheim = true;
 
   const tooltip = document.getElementById('custom-tooltip');
