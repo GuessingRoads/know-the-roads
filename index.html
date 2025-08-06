@@ -833,6 +833,31 @@ mtLayer.on('mouseout', function () {
   tooltip.style.display = 'none';
   tooltip.innerText = '';
 });
+mtLayer.on('mouseover', function () {
+  if (insideManheim) return; // already clicked
+
+  // Remove previous hover overlay if it exists
+  if (hoverOverlay) {
+    map.removeLayer(hoverOverlay);
+    hoverOverlay = null;
+  }
+
+  // Add semi-transparent polygon overlay
+  hoverOverlay = L.geoJSON(mtLayer.feature, {
+    pane: 'townshipPane',
+    style: {
+      fillColor: '#ffd700',      // gold (match road hover)
+      fillOpacity: 0.3,
+      stroke: false
+    }
+  }).addTo(map);
+});
+mtLayer.on('mouseout', function () {
+  if (hoverOverlay) {
+    map.removeLayer(hoverOverlay);
+    hoverOverlay = null;
+  }
+});
 
 
 
