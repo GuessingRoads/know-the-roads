@@ -684,6 +684,14 @@ async function loadMap() {
             if (!insideLancaster) return;
             const matchingLayers = nameToLayers[name] || [];
             if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+            // 🟢 Soft glow if already guessed correctly
+const state = segmentStateMap.get(String(layer.feature.id));
+if (state?.correct) {
+  const el = layer.getElement();
+  if (el) el.classList.add('hover-green');
+  return;
+}
+
 
             for (const l of matchingLayers) {
               const currentColor = l._originalColor;
@@ -703,6 +711,10 @@ async function loadMap() {
           layer.on('mouseout', function () {
             const matchingLayers = nameToLayers[name] || [];
             if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+            // 🧽 Remove green glow if present
+const el = layer.getElement();
+if (el) el.classList.remove('hover-green');
+
 
             for (const l of matchingLayers) {
               const currentColor = l._originalColor;
