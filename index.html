@@ -807,13 +807,13 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
               .then(r => r.json())
               .then(mtData => {
                 L.geoJSON(mtData, {
-                  pane: 'townshipPane',
-                  style: {
-                    color: '#3399ff',
-                    weight: 2,
-                    fillColor: '#ff8800',
-                    fillOpacity: 0.25
+                    pane: 'townshipPane',   // 👍 Correct placement
+                    style: {
+                    fillColor: '#cccccc',  // new world mask gray
+                    fillOpacity: 0.7,
+                    stroke: false          // no border unless hovered
                   },
+
                   onEachFeature: (feature, mtLayer) => {
                     mtLayer.on('mouseover', function () {
   if (insideManheim) return;
