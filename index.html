@@ -184,11 +184,24 @@
 }
 
 .correct-final {
-  transition: opacity 2000ms ease-in;
-  stroke: rgba(0, 100, 0, 0.4); /* translucent green */
-  opacity: 0.7;
+  stroke: rgba(0, 160, 0, 0.4); /* brighter translucent green */
+  animation: dissolveFade 0.8s ease-out forwards;
   pointer-events: none;
 }
+
+@keyframes dissolveFade {
+  0% {
+    stroke-dasharray: 1, 999;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dasharray: 5, 999;
+    stroke-dashoffset: -10;
+    opacity: 0.4;
+  }
+}
+
     .hint-used-final {
   stroke: rgba(255, 165, 0, 0.4); /* soft translucent orange */
   opacity: 0.7;
@@ -1142,21 +1155,13 @@ let interactionCount = 0;
   });
 }
 function triggerCorrectDissolveAnimation(layer) {
-  layer.setStyle({
-    color: '#00994466', // transparent green
-    weight: 6,
-    pane: 'hiddenRoads'
-  });
+  const el = layer.getElement();
+  if (!el) return;
 
-  setTimeout(() => {
-    if (layer._path) {
-      layer._path.style.opacity = '';
-      layer._path.classList.add('correct-final');
-    }
-  }, 0);
-
+  el.classList.add('correct-final');
   layer._originalColor = 'greenish';
 }
+
 
 
 // ✅ Submit handler defined OUTSIDE of loadMap
