@@ -1260,6 +1260,10 @@ console.log("📌 currentRoad.id =", currentRoad.id);
 console.log("📊 attempts so far =", attemptCounts[normalizedCorrect]);
 
 if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
+  for (const l of nameToLayers[currentRoad.name] || []) {
+  const sid = String(l.feature.id);
+  segmentStateMap.set(sid, { correct: false, used_hint: true });
+}
   currentRoad.hintGiven = true;
   const firstLetter = correctName.charAt(0).toUpperCase();
   console.log("🔥 HINT TRIGGERED");
