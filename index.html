@@ -698,6 +698,7 @@ if (state?.correct) {
 
             for (const l of matchingLayers) {
               const currentColor = l._originalColor;
+              if (currentColor === 'greenish') return;
               if (['black', 'red', 'yellow'].includes(currentColor)) {
                 l.setStyle({
                   color: '#ffd700',
