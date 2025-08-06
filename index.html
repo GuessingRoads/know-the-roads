@@ -1013,6 +1013,7 @@ loadMap();
   const normalizedAnswer = normalizeName(currentRoad.name);
 
   if (normalizedGuess === normalizedAnswer) {
+    segmentStateMap.set(String(currentRoad.id), { correct: true, used_hint: false });
     // ✅ Correct guess
     currentRoad.segments.forEach(layer => {
       layer.setStyle({ color: 'gray' });
