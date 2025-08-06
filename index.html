@@ -1142,16 +1142,22 @@ let interactionCount = 0;
   });
 }
 function triggerCorrectDissolveAnimation(layer) {
-  const el = layer.getElement();
-  if (!el) return;
+  layer.setStyle({
+    color: '#00994466', // transparent green
+    weight: 6,
+    pane: 'hiddenRoads'
+  });
 
-  el.classList.add('dissolve-correct');
-
-  // Optional: remove the class after 1 second
   setTimeout(() => {
-    el.classList.remove('dissolve-correct');
-  }, 1000);
+    if (layer._path) {
+      layer._path.style.opacity = '';
+      layer._path.classList.add('correct-final');
+    }
+  }, 0);
+
+  layer._originalColor = 'greenish';
 }
+
 
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
