@@ -969,7 +969,7 @@ loadMap();
 
   if (normalizedGuess === normalizedAnswer) {
     // ✅ Correct guess
-    currentRoad.layers.forEach(layer => {
+    currentRoad.segments.forEach(layer => {
       layer.setStyle({ color: 'gray' });
       layer.off('click');
     });
