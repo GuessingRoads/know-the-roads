@@ -184,13 +184,15 @@
 }
 
 .correct-final {
-  stroke: rgba(0, 160, 0, 0.4); /* translucent green */
-  stroke-opacity: 0.7;
-  stroke-dasharray: 5, 999;
-  stroke-dashoffset: -10;
-  animation: dissolveFade 0.8s ease-out forwards;
+  stroke: rgba(0, 160, 0, 0.4);
+  stroke-dasharray: 1, 999;
+  stroke-dashoffset: 0;
+  stroke-opacity: 0;
+
+  animation: dissolveFade 1.2s ease-out forwards;
   pointer-events: none;
 }
+
 
 
 
@@ -206,6 +208,7 @@
     stroke-opacity: 0.7;
   }
 }
+
 
 
     .hint-used-final {
