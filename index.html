@@ -745,8 +745,8 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   .then(data => {
     const countyLayer = L.geoJSON(data, {
       style: {
-        color: '#3399ff',
-        weight: 2,
+        color: 'black',
+        weight: 1.5,
         fillColor: '#cccccc',
         fillOpacity: 0.7,
         pane: 'countyPolygon'
@@ -809,10 +809,12 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
                 L.geoJSON(mtData, {
                     pane: 'townshipPane',   // 👍 Correct placement
                     style: {
-                    fillColor: '#cccccc',  // new world mask gray
-                    fillOpacity: 0.7,
-                    stroke: false          // no border unless hovered
-                  },
+                      fillColor: '#cccccc',
+                      fillOpacity: 0.7,
+                      color: 'black',       // ← add this
+                      weight: 1.5,
+                      pane: 'townshipPane'
+},
 
                   onEachFeature: (feature, mtLayer) => {
                     mtLayer.on('mouseover', function () {
