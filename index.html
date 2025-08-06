@@ -960,6 +960,33 @@ loadMap();
     document.getElementById('submit-guess').click();
   }
 });
+  document.getElementById('submit-guess').addEventListener('click', () => {
+  const userGuess = document.getElementById('guess-input').value.trim();
+  if (!currentRoad || !currentRoad.name) return;
+
+  const normalizedGuess = normalizeName(userGuess);
+  const normalizedAnswer = normalizeName(currentRoad.name);
+
+  if (normalizedGuess === normalizedAnswer) {
+    // ✅ Correct guess
+    currentRoad.layers.forEach(layer => {
+      layer.setStyle({ color: 'gray' });
+      layer.off('click');
+    });
+
+    // Close modal
+    document.getElementById('guess-modal').style.display = 'none';
+    document.getElementById('guess-input').value = '';
+    document.getElementById('feedback-message').innerText = '';
+
+    // Save correct guess to Supabase
+    saveGuessSegmentIds(currentRoad.name, true, false);
+  } else {
+    // ❌ Incorrect guess
+    handleIncorrectGuess(userGuess);
+  }
+});
+
 document.getElementById('guess-input').addEventListener('input', async function (e) {
   if (!currentRoad) return;
 
