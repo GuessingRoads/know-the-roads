@@ -1005,6 +1005,10 @@ mtLayer.on('mouseout', function () {
                     mtLayer.on('click', () => {
   map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
   console.log("📍 Manheim Township clicked");
+                      currentLayerDepth = 2;
+updateBackButtonVisibility();
+insideManheim = true;
+
                       mtLayer.unbindTooltip();
 
 
