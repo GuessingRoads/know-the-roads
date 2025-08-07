@@ -237,12 +237,12 @@
   </div>
   <button id="exit-zone-btn" style="
   position: absolute;
-  top: 170px;     /* match music button */
-  left: 50px;     /* offset right of music icon (30px icon + 10px spacing) */
-  z-index: 1003;  /* 1 layer above music */
+  top: 170px;
+  left: 50px;
+  z-index: 9999;
   padding: 6px 12px;
-  font-family: system-ui, sans-serif;
   font-size: 13px;
+  font-family: system-ui, sans-serif;
   font-weight: 600;
   background: white;
   border: 1px solid #aaa;
@@ -250,8 +250,9 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   cursor: pointer;
 ">
-  ← Exit
+  <span style="font-size: 14.5px; font-weight: 600;">← Exit</span>
 </button>
+
 
  <div class="legend" id="legend">
   <strong style="display: block; margin-bottom: 6px;">Legend</strong>
