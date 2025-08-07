@@ -374,6 +374,7 @@
  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
   let currentRoad = null;
+  let currentLayerDepth = 1; // 1 = county, 2 = township, 3 = roads
   let activeRoadName = null;
   let hoverOverlay = null;
   let worldMask;
@@ -1170,6 +1171,14 @@ document.getElementById('guess-input').addEventListener('input', () => {
   }
 });
 
+function updateBackButtonVisibility() {
+  const backBtn = document.getElementById("exit-zone-btn");
+  if (currentLayerDepth > 1) {
+    backBtn.style.display = "flex"; // "flex" matches your current layout
+  } else {
+    backBtn.style.display = "none";
+  }
+}
 
 
 // 🎵 Web Audio API Seamless Loop Logic
