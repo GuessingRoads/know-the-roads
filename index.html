@@ -70,9 +70,10 @@
  #legend-buttons-wrapper {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 8px;
-  /* ⛔ REMOVE this: margin-top: 8px; */
 }
+
 
 #music-btn {
   background: white;
@@ -85,6 +86,8 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0,0,0,0.12);
+  flex-shrink: 0; /* prevent stretching */
+  flex-grow: 0;   /* prevent expansion */
 }
 
 #exit-zone-btn {
@@ -97,6 +100,8 @@
   border-radius: 5px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   cursor: pointer;
+  flex-shrink: 0; /* prevent stretching */
+  flex-grow: 0;   /* prevent expansion */
 }
 #legend-button-zone {
   position: absolute;
@@ -316,8 +321,10 @@
   <div id="legend-buttons-wrapper">
     <div id="music-btn" title="Music Settings">🎵</div>
     <button id="exit-zone-btn">
-      <span style="font-size: 15px; font-weight: 600;">⬅ Exit</span>
-    </button>
+  <span style="font-size: 16px;">⬅</span>
+  <span style="font-size: 15px; font-weight: 600; margin-left: 6px;">Exit</span>
+</button>
+
   </div>
 </div>
 
