@@ -67,10 +67,19 @@
 }
 
 
-   #music-btn {
+  #legend-buttons-wrapper {
   position: absolute;
-  top: 200px; /* adjust if needed */
-  left: 45px; /* nudged slightly to center under legend */
+  top: 230px; /* Adjust as needed */
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 1001;
+}
+
+#music-btn {
   background: white;
   border-radius: 50%;
   width: 30px;
@@ -80,15 +89,10 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 1002;
   box-shadow: 0 2px 5px rgba(0,0,0,0.12);
 }
 
 #exit-zone-btn {
-  position: absolute;
-  top: 240px; /* roughly 40px below music icon */
-  left: 30px;  /* aligns horizontally with music icon + legend */
-  z-index: 9999;
   padding: 6px 12px;
   font-size: 13px;
   font-family: system-ui, sans-serif;
@@ -99,6 +103,7 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   cursor: pointer;
 }
+
 
    
     #music-modal {
@@ -253,23 +258,13 @@
     <button id="mute-btn">Mute</button>
     <button id="skip-btn">Skip Track</button>
   </div>
-  <button id="exit-zone-btn" style="
-  position: absolute;
-  top: 170px;
-  left: 50px;
-  z-index: 9999;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-family: system-ui, sans-serif;
-  font-weight: 600;
-  background: white;
-  border: 1px solid #aaa;
-  border-radius: 5px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  cursor: pointer;
-">
-  <span style="font-size: 15px; font-weight: 600;">⬅ Exit</span>
-</button>
+  <div id="legend-buttons-wrapper">
+  <div id="music-btn" title="Music Settings">🎵</div>
+  <button id="exit-zone-btn">
+    <span style="font-size: 15px; font-weight: 600;">⬅ Exit</span>
+  </button>
+</div>
+
 
 
 
