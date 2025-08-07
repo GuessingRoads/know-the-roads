@@ -67,13 +67,12 @@
 }
 
 
-  #legend-buttons-wrapper {
+ #legend-buttons-wrapper {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 8px;
+  /* ⛔ REMOVE this: margin-top: 8px; */
 }
-
 
 #music-btn {
   background: white;
@@ -99,7 +98,13 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   cursor: pointer;
 }
-
+#legend-button-zone {
+  position: absolute;
+  top: calc(10px + 180px); /* adjust to be just beneath the legend */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
 
    
     #music-modal {
@@ -289,14 +294,15 @@
   "></div>
   <div style="flex: 1; text-align: center;">Photo Only</div>
 </div>
-   <div id="legend-buttons-wrapper">
-  <div id="music-btn" title="Music Settings">🎵</div>
-  <button id="exit-zone-btn">
-    <span style="font-size: 15px; font-weight: 600;">⬅ Exit</span>
-  </button>
+ <div id="legend-button-zone">
+  <div id="legend-buttons-wrapper">
+    <div id="music-btn" title="Music Settings">🎵</div>
+    <button id="exit-zone-btn">
+      <span style="font-size: 15px; font-weight: 600;">⬅ Exit</span>
+    </button>
+  </div>
 </div>
 
-   </div> 
 
 
 <div id="auth-box" style="position: absolute; top: 10px; right: 10px; background: white; padding: 8px; border-radius: 8px; z-index: 1000;">
