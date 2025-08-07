@@ -1088,6 +1088,8 @@ worldMask.eachLayer(layer => {
   });
 
 loadMap();
+  updateBackButtonVisibility();
+
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
   if (e.key === 'Enter') {
