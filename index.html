@@ -68,16 +68,12 @@
 
 
   #legend-buttons-wrapper {
-  position: absolute;
-  top: 230px; /* Adjust as needed */
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: center;
   gap: 8px;
-  z-index: 1001;
+  margin-top: 8px;
 }
+
 
 #music-btn {
   background: white;
@@ -258,14 +254,6 @@
     <button id="mute-btn">Mute</button>
     <button id="skip-btn">Skip Track</button>
   </div>
-  <div id="legend-buttons-wrapper">
-  <div id="music-btn" title="Music Settings">🎵</div>
-  <button id="exit-zone-btn">
-    <span style="font-size: 15px; font-weight: 600;">⬅ Exit</span>
-  </button>
-</div>
-
-
 
 
  <div class="legend" id="legend">
@@ -301,6 +289,13 @@
   "></div>
   <div style="flex: 1; text-align: center;">Photo Only</div>
 </div>
+   <div id="legend-buttons-wrapper">
+  <div id="music-btn" title="Music Settings">🎵</div>
+  <button id="exit-zone-btn">
+    <span style="font-size: 15px; font-weight: 600;">⬅ Exit</span>
+  </button>
+</div>
+
    </div> 
 
 
