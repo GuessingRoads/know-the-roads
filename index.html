@@ -962,66 +962,52 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         });
 
         layer.on('click', function () {
-          map.fitBounds(layer.getBounds());
-          currentLayerDepth = 2;
-          updateBackButtonVisibility();
+  map.fitBounds(layer.getBounds());
+  currentLayerDepth = 2;
+  updateBackButtonVisibility();
 
-          insideLancaster = true;
-          lancasterLayer = layer;
+  insideLancaster = true;
+  lancasterLayer = layer;
 
-          if (!worldMask) {
-            worldMask = L.geoJSON(createWorldMask(feature), {
-              style: {
-                fillColor: '#cccccc',
-                fillOpacity: 0.7,
-                stroke: false,
-                pane: 'maskPane'
-              }
-            }).addTo(map);
+  if (!worldMask) {
+    worldMask = L.geoJSON(createWorldMask(feature), {
+      style: {
+        fillColor: '#cccccc',
+        fillOpacity: 0.7,
+        stroke: false,
+        pane: 'maskPane'
+      }
+    }).addTo(map);
 
-            worldMask.eachLayer(layer => {
-              const el = layer.getElement();
-              if (el) el.style.pointerEvents = 'none';
-            });
-          }
+    worldMask.eachLayer(layer => {
+      const el = layer.getElement();
+      if (el) el.style.pointerEvents = 'none';
+    });
+  }
 
-          setTimeout(() => {
-            layer.setStyle({ fillOpacity: 0 });
+  setTimeout(() => {
+    layer.setStyle({ fillOpacity: 0 });
 
-            const path = layer._path;
-            if (path) {
-              path.style.outline = 'none';
-              path.style.pointerEvents = 'none';
-            }
-
-            const mapContainer = map.getContainer();
-            if (mapContainer) {
-              mapContainer.blur();
-            }
-
-            loadTownship(
-  'manheim',
-  'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
-  'Manheim Township',
-  '#ff8800'
-);
-
-// 🧠 Apply styling 500ms later (after roads are likely loaded)
-setTimeout(() => {
-  Object.values(nameToLayers).flat().forEach(layer => {
-    if (layer.options.pane === 'hiddenRoads') {
-      layer.setStyle({
-        color: 'black',
-        weight: 4,
-        opacity: 1,
-        pane: 'hiddenRoads',
-      });
+    const path = layer._path;
+    if (path) {
+      path.style.outline = 'none';
+      path.style.pointerEvents = 'none';
     }
-  });
-}, 500);
 
+    const mapContainer = map.getContainer();
+    if (mapContainer) {
+      mapContainer.blur();
+    }
 
-
+    // 🧠 Load township via reusable function
+    loadTownship(
+      'manheim',
+      'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
+      'Manheim Township',
+      '#ff8800'
+    );
+  }, 500);
+});
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
