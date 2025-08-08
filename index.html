@@ -376,6 +376,7 @@
   let currentRoad = null;
   let currentLayerDepth = 0; // 1 = county, 2 = township, 3 = roads
   let activeRoadName = null;
+  let manheimLayer = null; // 🆕 Add at top with other let declarations
   let hoverOverlay = null;
   let worldMask;
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
@@ -1011,6 +1012,8 @@ mtLayer.on('mouseout', function () {
                       currentLayerDepth = 2;
 updateBackButtonVisibility();
 insideManheim = true;
+manheimLayer = mtLayer; // Store for back button logic
+
 
                       mtLayer.unbindTooltip();
 
@@ -1092,6 +1095,52 @@ worldMask.eachLayer(layer => {
 
 loadMap();
   updateBackButtonVisibility();
+document.getElementById('exit-zone-btn').addEventListener('click', () => {
+  if (currentLayerDepth === 3) {
+    // 💥 Remove roads
+    roadsLayerGroup.clearLayers();
+
+    // 🔁 Re-show MT polygon
+    if (manheimLayer) {
+      manheimLayer.setStyle({
+        fillOpacity: 0.25,
+        weight: 1.5,
+        color: 'black',
+        opacity: 1
+      });
+
+      const mtPath = manheimLayer._path;
+      if (mtPath) {
+        mtPath.style.pointerEvents = 'auto';
+        mtPath.style.outline = '';
+      }
+    }
+
+    // 🧱 Recreate world mask for MT
+    if (worldMask) {
+      map.removeLayer(worldMask);
+      worldMask = null;
+    }
+    worldMask = L.geoJSON(createWorldMask(manheimLayer.feature), {
+      style: {
+        fillColor: '#cccccc',
+        fillOpacity: 0.7,
+        stroke: false,
+        pane: 'maskPane'
+      }
+    }).addTo(map);
+
+    worldMask.eachLayer(layer => {
+      const el = layer.getElement();
+      if (el) el.style.pointerEvents = 'none';
+    });
+
+    // 🔄 Update state
+    insideManheim = false;
+    currentLayerDepth = 2;
+    updateBackButtonVisibility();
+  }
+});
 
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
