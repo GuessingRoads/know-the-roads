@@ -111,7 +111,7 @@
   z-index: 1000;
 }
 
-   
+
     #music-modal {
   position: absolute;
   top: 190px;
@@ -279,7 +279,7 @@
 
   <div id="auth-message">Checking login...</div>
   <button id="login-btn" style="margin-top: 2px;">Login with Google</button>
- 
+
 <p id="login-note" style="
   font-size: 12px;
   color: #888;
@@ -534,65 +534,6 @@ function updateAuthUI(user) {
     loginBtn.style.display = 'inline-block';
     logoutBtn.style.display = 'none';
   }
-}
-function loadTownship(townshipName, geojsonPath, displayName, color) {
-  fetch(geojsonPath)
-    .then(res => res.json())
-    .then(townshipData => {
-      L.geoJSON(townshipData, {
-        pane: 'townshipPane',
-        style: {
-          color: 'black',
-          weight: 1.5,
-          fillColor: color,
-          fillOpacity: 0.25
-        },
-        onEachFeature: (feature, layer) => {
-          layer.on('mouseover', function () {
-            if (insideManheim) return;
-
-            const tooltip = document.getElementById('custom-tooltip');
-            const center = layer.getBounds().getCenter();
-            const screenPoint = map.latLngToContainerPoint(center);
-
-            tooltip.innerText = displayName;
-            tooltip.style.left = screenPoint.x + 'px';
-            tooltip.style.top = screenPoint.y + 'px';
-            tooltip.style.display = 'block';
-          });
-
-          layer.on('mouseout', function () {
-            document.getElementById('custom-tooltip').style.display = 'none';
-          });
-
-          layer.on('click', () => {
-            map.fitBounds(layer.getBounds(), { maxZoom: 15 });
-            console.log(`📍 ${displayName} clicked`);
-            currentLayerDepth = 2;
-            insideManheim = true;
-            manheimLayer = layer; // 🔁 Store for back logic
-
-            updateBackButtonVisibility();
-            layer.unbindTooltip();
-
-            layer.setStyle({
-              fillOpacity: 0,
-              weight: 1.5,
-              color: 'black',
-              opacity: 1
-            });
-
-            const mtPath = layer._path;
-            if (mtPath) {
-              mtPath.style.pointerEvents = 'none';
-              mtPath.style.outline = 'none';
-            }
-
-            // ➕ Add more township-specific logic here if needed
-          });
-        }
-      }).addTo(map);
-    });
 }
 
 
@@ -861,7 +802,7 @@ if (state?.correct) {
           layer.on('mouseout', function () {
             const el = layer.getElement();
 if (el) el.classList.remove('hover-green');
-  
+
             const matchingLayers = nameToLayers[name] || [];
             if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
             // 🧽 Remove green glow if present
@@ -962,52 +903,170 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         });
 
         layer.on('click', function () {
-  map.fitBounds(layer.getBounds());
-  currentLayerDepth = 2;
-  updateBackButtonVisibility();
+          map.fitBounds(layer.getBounds());
+          currentLayerDepth = 2;
+updateBackButtonVisibility();
 
-  insideLancaster = true;
-  lancasterLayer = layer;
+          insideLancaster = true;
+          lancasterLayer = layer;
 
-  if (!worldMask) {
-    worldMask = L.geoJSON(createWorldMask(feature), {
-      style: {
-        fillColor: '#cccccc',
-        fillOpacity: 0.7,
-        stroke: false,
-        pane: 'maskPane'
-      }
-    }).addTo(map);
 
-    worldMask.eachLayer(layer => {
-      const el = layer.getElement();
-      if (el) el.style.pointerEvents = 'none';
-    });
+          if (!worldMask) {
+            worldMask = L.geoJSON(createWorldMask(feature), {
+              style: {
+                fillColor: '#cccccc',
+                fillOpacity: 0.7,
+                stroke: false,
+                pane: 'maskPane'
+              }
+            }).addTo(map);
+
+            worldMask.eachLayer(layer => {
+              const el = layer.getElement();
+              if (el) el.style.pointerEvents = 'none';
+            });
+          }
+
+          setTimeout(() => {
+            layer.setStyle({ fillOpacity: 0 });
+
+            const path = layer._path;
+            if (path) {
+              path.style.outline = 'none';
+              path.style.pointerEvents = 'none';
+            }
+
+            const mapContainer = map.getContainer();
+            if (mapContainer) {
+              mapContainer.blur();
+            }
+
+            // ✅ Load Manheim Township after zoom-in
+            fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
+              .then(r => r.json())
+              .then(mtData => {
+                L.geoJSON(mtData, {
+                  pane: 'townshipPane',
+                  style: {
+                    color: 'black',
+                    weight: 1.5,
+                    fillColor: '#ff8800',
+                    fillOpacity: 0.25
+                  },
+                  onEachFeature: (feature, mtLayer) => {
+                    mtLayer.on('mouseover', function () {
+  if (insideManheim) return;
+
+  const tooltip = document.getElementById('custom-tooltip');
+  const center = mtLayer.getBounds().getCenter();
+  const screenPoint = map.latLngToContainerPoint(center);
+
+  tooltip.innerText = "Manheim Township";
+  tooltip.style.left = screenPoint.x + 'px';
+  tooltip.style.top = screenPoint.y + 'px';
+  tooltip.style.display = 'block';
+});
+
+mtLayer.on('mouseout', function () {
+  const tooltip = document.getElementById('custom-tooltip');
+  tooltip.style.display = 'none';
+  tooltip.innerText = '';
+});
+mtLayer.on('mouseover', function () {
+  if (insideManheim) return; // already clicked
+
+  // 🧹 Remove old hover overlay if any
+  if (hoverOverlay) {
+    map.removeLayer(hoverOverlay);
+    hoverOverlay = null;
   }
 
-  setTimeout(() => {
-    layer.setStyle({ fillOpacity: 0 });
-
-    const path = layer._path;
-    if (path) {
-      path.style.outline = 'none';
-      path.style.pointerEvents = 'none';
+  // 🟡 Add gold semi-transparent hover overlay
+  hoverOverlay = L.geoJSON(mtLayer.feature, {
+    pane: 'hoverPane', // we'll define this pane in step 3
+    style: {
+      fillColor: '#ffd700',
+      fillOpacity: 0.3,
+      color: 'black',
+      weight: 1,
+      opacity: 1
     }
+  }).addTo(map);
 
-    const mapContainer = map.getContainer();
-    if (mapContainer) {
-      mapContainer.blur();
-    }
-
-    // 🧠 Load township via reusable function
-    loadTownship(
-      'manheim',
-      'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
-      'Manheim Township',
-      '#ff8800'
-    );
-  }, 500);
+  // 🔒 Make hover overlay ignore pointer events
+  hoverOverlay.eachLayer(l => {
+    const el = l.getElement();
+    if (el) el.style.pointerEvents = 'none';
+  });
 });
+mtLayer.on('mouseout', function () {
+  if (hoverOverlay) {
+    map.removeLayer(hoverOverlay);
+    hoverOverlay = null;
+  }
+});
+
+
+
+
+                    mtLayer.on('click', () => {
+  map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
+  console.log("📍 Manheim Township clicked");
+                      currentLayerDepth = 2;
+updateBackButtonVisibility();
+insideManheim = true;
+manheimLayer = mtLayer; // Store for back button logic
+
+
+                      mtLayer.unbindTooltip();
+
+
+  // 🔒 Disable interaction and fade MT polygon
+  mtLayer.setStyle({
+    fillOpacity: 0,
+    weight: 1.5,
+    color: 'black',
+    opacity: 1
+  });
+
+  const mtPath = mtLayer._path;
+  if (mtPath) {
+    mtPath.style.pointerEvents = 'none';
+    mtPath.style.outline = 'none';
+  }
+
+  // 🧱 Create mask that reveals only MT
+if (worldMask) {
+  map.removeLayer(worldMask);
+  worldMask = null;
+}
+
+worldMask = L.geoJSON(createWorldMask(feature), {
+  style: {
+    fillColor: '#cccccc',
+    fillOpacity: 0.7,
+    stroke: false,
+    pane: 'maskPane'
+  }
+}).addTo(map);
+
+worldMask.eachLayer(layer => {
+  const el = layer.getElement();
+  if (el) el.style.pointerEvents = 'none';
+});
+
+
+  // ✅ Show roads after MT is clicked
+  map.addLayer(roadsLayerGroup);
+});
+
+                  }
+                }).addTo(map);
+              });
+          }, 500);
+        });
+      }
+    }).addTo(map);
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
@@ -1035,6 +1094,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         }
       };
     }
+  });
 
 loadMap();
   updateBackButtonVisibility();
@@ -1075,69 +1135,36 @@ document.getElementById('exit-zone-btn').addEventListener('click', () => {
   }
 
   else if (currentLayerDepth === 2) {
-  // 🧹 Clear roads
-  roadsLayerGroup.clearLayers();
-
-  // 🧽 Hide Manheim polygon (but keep it alive for re-use)
-  if (manheimLayer) {
-    manheimLayer.setStyle({
-      fillOpacity: 0,
-      opacity: 0
-    });
-
-    const el = manheimLayer.getElement?.();
-    if (el) {
-      el.style.pointerEvents = 'none';
-      el.style.display = 'none'; // just hide visually
+    // remove MT polygon
+    if (manheimLayer) {
+      map.removeLayer(manheimLayer);
     }
-  }
 
-  // 🔁 Re-enable Lancaster polygon
-  if (lancasterLayer) {
-    lancasterLayer.setStyle({
-      fillOpacity: 0.25,
-      opacity: 1
-    });
+    // reset pointerEvents on lancaster layer
+    if (lancasterLayer) {
+      lancasterLayer.setStyle({
+        fillOpacity: 0.25,
+        opacity: 1
+      });
 
-    const lancPath = lancasterLayer.getElement?.() || lancasterLayer._path;
-    if (lancPath) {
-      lancPath.style.pointerEvents = 'auto';
-      lancasterLayer.bindTooltip("Lancaster County");
+      const lancPath = lancasterLayer._path;
+      if (lancPath) {
+        lancPath.style.pointerEvents = 'auto';
+        lancPath.style.outline = '';
+      }
+
+      map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
     }
-  }
 
-  // 🗺 Zoom out to Lancaster bounds
-  map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
-
-  // 🎭 Reset world mask
-  if (worldMask) {
-    map.removeLayer(worldMask);
-    worldMask = null;
-  }
-
-  worldMask = L.geoJSON(createWorldMask(lancasterLayer.feature), {
-    style: {
-      fillColor: '#cccccc',
-      fillOpacity: 0.7,
-      stroke: false,
-      pane: 'maskPane'
+    // remove mask
+    if (worldMask) {
+      map.removeLayer(worldMask);
+      worldMask = null;
     }
-  }).addTo(map);
 
-  worldMask.eachLayer(layer => {
-    const el = layer.getElement();
-    if (el) el.style.pointerEvents = 'none';
-  });
-
-  // 🔁 State tracking
-  currentLayerDepth = 1;
-  insideManheim = false;
-  insideLancaster = true;
-
-  updateBackButtonVisibility();
-}
-
-
+    currentLayerDepth = 1;
+    updateBackButtonVisibility();
+  }
 });
 
 
