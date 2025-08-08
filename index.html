@@ -902,6 +902,9 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 
         layer.on('click', function () {
           map.fitBounds(layer.getBounds());
+          currentLayerDepth = 2;
+updateBackButtonVisibility();
+
           insideLancaster = true;
 
           if (!worldMask) {
