@@ -111,7 +111,7 @@
   z-index: 1000;
 }
 
-
+   
     #music-modal {
   position: absolute;
   top: 190px;
@@ -279,7 +279,7 @@
 
   <div id="auth-message">Checking login...</div>
   <button id="login-btn" style="margin-top: 2px;">Login with Google</button>
-
+ 
 <p id="login-note" style="
   font-size: 12px;
   color: #888;
@@ -376,8 +376,6 @@
   let currentRoad = null;
   let currentLayerDepth = 0; // 1 = county, 2 = township, 3 = roads
   let activeRoadName = null;
-  let manheimLayer = null; // 🆕 Add at top with other let declarations
-  let lancasterLayer = null; // 🆕 Add alongside manheimLayer
   let hoverOverlay = null;
   let worldMask;
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
@@ -802,7 +800,7 @@ if (state?.correct) {
           layer.on('mouseout', function () {
             const el = layer.getElement();
 if (el) el.classList.remove('hover-green');
-
+  
             const matchingLayers = nameToLayers[name] || [];
             if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
             // 🧽 Remove green glow if present
@@ -908,8 +906,6 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 updateBackButtonVisibility();
 
           insideLancaster = true;
-          lancasterLayer = layer;
-
 
           if (!worldMask) {
             worldMask = L.geoJSON(createWorldMask(feature), {
@@ -1015,8 +1011,6 @@ mtLayer.on('mouseout', function () {
                       currentLayerDepth = 2;
 updateBackButtonVisibility();
 insideManheim = true;
-manheimLayer = mtLayer; // Store for back button logic
-
 
                       mtLayer.unbindTooltip();
 
@@ -1098,75 +1092,6 @@ worldMask.eachLayer(layer => {
 
 loadMap();
   updateBackButtonVisibility();
-document.getElementById('exit-zone-btn').addEventListener('click', () => {
-  if (currentLayerDepth === 3) {
-    // 🗑 Remove roads
-    roadsLayerGroup.clearLayers();
-
-    // 🎯 Show MT polygon again
-    if (manheimLayer) {
-      manheimLayer.setStyle({
-        fillOpacity: 0.25,
-        opacity: 1
-      });
-
-      const mtPath = manheimLayer._path;
-      if (mtPath) {
-        mtPath.style.pointerEvents = 'auto';
-        mtPath.style.outline = ''; // Reset outline
-      }
-    }
-
-    // 🌍 Remove mask
-    if (worldMask) {
-      map.removeLayer(worldMask);
-      worldMask = null;
-    }
-
-    // 🔙 Set new depth
-    currentLayerDepth = 2;
-
-    // 🎯 Zoom back out to MT
-    if (manheimLayer) {
-      map.fitBounds(manheimLayer.getBounds(), { maxZoom: 15 });
-    }
-
-    updateBackButtonVisibility();
-  }
-
-  else if (currentLayerDepth === 2) {
-    // remove MT polygon
-    if (manheimLayer) {
-      map.removeLayer(manheimLayer);
-    }
-
-    // reset pointerEvents on lancaster layer
-    if (lancasterLayer) {
-      lancasterLayer.setStyle({
-        fillOpacity: 0.25,
-        opacity: 1
-      });
-
-      const lancPath = lancasterLayer._path;
-      if (lancPath) {
-        lancPath.style.pointerEvents = 'auto';
-        lancPath.style.outline = '';
-      }
-
-      map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
-    }
-
-    // remove mask
-    if (worldMask) {
-      map.removeLayer(worldMask);
-      worldMask = null;
-    }
-
-    currentLayerDepth = 1;
-    updateBackButtonVisibility();
-  }
-});
-
 
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
