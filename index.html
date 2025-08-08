@@ -1135,36 +1135,63 @@ document.getElementById('exit-zone-btn').addEventListener('click', () => {
   }
 
   else if (currentLayerDepth === 2) {
-    // remove MT polygon
-    if (manheimLayer) {
-      map.removeLayer(manheimLayer);
+  // 🧽 Remove MT polygon cleanly
+  if (manheimLayer) {
+    map.removeLayer(manheimLayer);
+
+    const mtPath = manheimLayer._path;
+    if (mtPath) {
+      mtPath.style.pointerEvents = 'auto';
+      mtPath.style.display = 'none'; // ⛔ Hide it visually in case removeLayer fails
     }
 
-    // reset pointerEvents on lancaster layer
-    if (lancasterLayer) {
-      lancasterLayer.setStyle({
-        fillOpacity: 0.25,
-        opacity: 1
-      });
-
-      const lancPath = lancasterLayer._path;
-      if (lancPath) {
-        lancPath.style.pointerEvents = 'auto';
-        lancPath.style.outline = '';
-      }
-
-      map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
-    }
-
-    // remove mask
-    if (worldMask) {
-      map.removeLayer(worldMask);
-      worldMask = null;
-    }
-
-    currentLayerDepth = 1;
-    updateBackButtonVisibility();
+    manheimLayer = null;
   }
+
+  // 🔁 Reset pointerEvents on Lancaster layer
+  if (lancasterLayer) {
+    lancasterLayer.setStyle({
+      fillOpacity: 0.25,
+      opacity: 1
+    });
+
+    const lancPath = lancasterLayer._path;
+    if (lancPath) {
+      lancPath.style.pointerEvents = 'auto';
+      lancPath.style.outline = '';
+    }
+  }
+
+  // 🗺 Zoom back out to Lancaster
+  map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
+
+  // 🎭 Re-apply full world mask
+  if (worldMask) {
+    map.removeLayer(worldMask);
+    worldMask = null;
+  }
+
+  worldMask = L.geoJSON(createWorldMask(lancasterLayer.feature), {
+    style: {
+      fillColor: '#cccccc',
+      fillOpacity: 0.7,
+      stroke: false,
+      pane: 'maskPane'
+    }
+  }).addTo(map);
+
+  worldMask.eachLayer(layer => {
+    const el = layer.getElement();
+    if (el) el.style.pointerEvents = 'none';
+  });
+
+  // 🧭 Reset depth
+  currentLayerDepth = 1;
+  insideManheim = false;
+  insideLancaster = true; // 🆕
+  updateBackButtonVisibility();
+}
+
 });
 
 
