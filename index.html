@@ -1166,6 +1166,7 @@ roadsLayerGroup.clearLayers();
   }
 
   // 🗺 Zoom back out to Lancaster
+    insideLancaster = true; // ✅ Re-enter the state as if Lancaster was clicked
   map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
 
   // 🎭 Re-apply full world mask
