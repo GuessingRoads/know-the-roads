@@ -999,14 +999,13 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
               mapContainer.blur();
             }
 
-            // 🧠 Load township via reusable function
             loadTownship(
   'manheim',
   'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
   'Manheim Township',
   '#ff8800',
   () => {
-    // ✅ Now safe to apply styles — roads are guaranteed loaded
+    // ✅ Now safe to apply styles – roads are guaranteed loaded
     Object.values(nameToLayers).flat().forEach(layer => {
       if (layer.options.pane === 'hiddenRoads') {
         layer.setStyle({
@@ -1017,8 +1016,9 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         });
       }
     });
-  }
-);
+  } // 👈 this closes the callback
+);    // 👈 this closes the full loadTownship(...) function call
+
 
 
     function createWorldMask(feature) {
