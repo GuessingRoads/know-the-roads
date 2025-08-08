@@ -1135,48 +1135,41 @@ document.getElementById('exit-zone-btn').addEventListener('click', () => {
   }
 
   else if (currentLayerDepth === 2) {
-    // 🧹 Remove roads
-roadsLayerGroup.clearLayers();
+  // 🧹 Clear roads
+  roadsLayerGroup.clearLayers();
 
-  // 🧽 Remove MT polygon cleanly
+  // 🧽 Hide Manheim polygon (but keep it alive for re-use)
   if (manheimLayer) {
-    map.removeLayer(manheimLayer);
+    manheimLayer.setStyle({
+      fillOpacity: 0,
+      opacity: 0
+    });
 
-    const mtPath = manheimLayer._path;
-    if (mtPath) {
-      mtPath.style.pointerEvents = 'auto';
-      mtPath.style.display = 'none'; // ⛔ Hide it visually in case removeLayer fails
+    const el = manheimLayer.getElement?.();
+    if (el) {
+      el.style.pointerEvents = 'none';
+      el.style.display = 'none'; // just hide visually
     }
-
-    manheimLayer = null;
   }
 
-  // 🔁 Reset pointerEvents on Lancaster layer
+  // 🔁 Re-enable Lancaster polygon
   if (lancasterLayer) {
     lancasterLayer.setStyle({
       fillOpacity: 0.25,
       opacity: 1
     });
 
-    const lancPath = lancasterLayer._path;
+    const lancPath = lancasterLayer.getElement?.() || lancasterLayer._path;
     if (lancPath) {
       lancPath.style.pointerEvents = 'auto';
-      lancPath.style.outline = '';
+      lancasterLayer.bindTooltip("Lancaster County");
     }
   }
 
-  // 🗺 Zoom back out to Lancaster
-    insideLancaster = true; // ✅ Re-enter the state as if Lancaster was clicked
+  // 🗺 Zoom out to Lancaster bounds
   map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
-    if (lancasterLayer) {
-  const lancPath = lancasterLayer._path;
-  if (lancPath) {
-    lancPath.style.pointerEvents = 'none';   // prevent re-click
-    lancasterLayer.unbindTooltip();          // clear tooltip too
-  }
-}
 
-  // 🎭 Re-apply full world mask
+  // 🎭 Reset world mask
   if (worldMask) {
     map.removeLayer(worldMask);
     worldMask = null;
@@ -1196,12 +1189,14 @@ roadsLayerGroup.clearLayers();
     if (el) el.style.pointerEvents = 'none';
   });
 
-  // 🧭 Reset depth
+  // 🔁 State tracking
   currentLayerDepth = 1;
   insideManheim = false;
-  insideLancaster = true; // 🆕
+  insideLancaster = true;
+
   updateBackButtonVisibility();
 }
+
 
 });
 
