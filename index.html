@@ -940,129 +940,126 @@ updateBackButtonVisibility();
             }
 
             // ✅ Load Manheim Township after zoom-in
-            fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
-              .then(r => r.json())
-              .then(mtData => {
-                L.geoJSON(mtData, {
-                  pane: 'townshipPane',
-                  style: {
-                    color: 'black',
-                    weight: 1.5,
-                    fillColor: '#ff8800',
-                    fillOpacity: 0.25
-                  },
-                  onEachFeature: (feature, mtLayer) => {
-                    mtLayer.on('mouseover', function () {
-  if (insideManheim) return;
-
-  const tooltip = document.getElementById('custom-tooltip');
-  const center = mtLayer.getBounds().getCenter();
-  const screenPoint = map.latLngToContainerPoint(center);
-
-  tooltip.innerText = "Manheim Township";
-  tooltip.style.left = screenPoint.x + 'px';
-  tooltip.style.top = screenPoint.y + 'px';
-  tooltip.style.display = 'block';
-});
-
-mtLayer.on('mouseout', function () {
-  const tooltip = document.getElementById('custom-tooltip');
-  tooltip.style.display = 'none';
-  tooltip.innerText = '';
-});
-mtLayer.on('mouseover', function () {
-  if (insideManheim) return; // already clicked
-
-  // 🧹 Remove old hover overlay if any
-  if (hoverOverlay) {
-    map.removeLayer(hoverOverlay);
-    hoverOverlay = null;
-  }
-
-  // 🟡 Add gold semi-transparent hover overlay
-  hoverOverlay = L.geoJSON(mtLayer.feature, {
-    pane: 'hoverPane', // we'll define this pane in step 3
-    style: {
-      fillColor: '#ffd700',
-      fillOpacity: 0.3,
-      color: 'black',
-      weight: 1,
-      opacity: 1
-    }
-  }).addTo(map);
-
-  // 🔒 Make hover overlay ignore pointer events
-  hoverOverlay.eachLayer(l => {
-    const el = l.getElement();
-    if (el) el.style.pointerEvents = 'none';
-  });
-});
-mtLayer.on('mouseout', function () {
-  if (hoverOverlay) {
-    map.removeLayer(hoverOverlay);
-    hoverOverlay = null;
-  }
-});
+            loadTownship(
+  'manheim',
+  'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
+  'Manheim Township',
+  '#ff8800'
+);
 
 
+    function loadTownship(townshipKey, geojsonPath, displayName, fillColor = '#ff8800') {
+  fetch(geojsonPath)
+    .then(r => r.json())
+    .then(data => {
+      const townshipLayer = L.geoJSON(data, {
+        pane: 'townshipPane',
+        style: {
+          color: 'black',
+          weight: 1.5,
+          fillColor,
+          fillOpacity: 0.25
+        },
+        onEachFeature: (feature, layer) => {
+          layer.on('mouseover', function () {
+            if (insideManheim) return;
 
+            const tooltip = document.getElementById('custom-tooltip');
+            const center = layer.getBounds().getCenter();
+            const screenPoint = map.latLngToContainerPoint(center);
 
-                    mtLayer.on('click', () => {
-  map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
-  console.log("📍 Manheim Township clicked");
-                      currentLayerDepth = 2;
-updateBackButtonVisibility();
-insideManheim = true;
+            tooltip.innerText = displayName;
+            tooltip.style.left = screenPoint.x + 'px';
+            tooltip.style.top = screenPoint.y + 'px';
+            tooltip.style.display = 'block';
+          });
 
-                      mtLayer.unbindTooltip();
+          layer.on('mouseout', function () {
+            const tooltip = document.getElementById('custom-tooltip');
+            tooltip.style.display = 'none';
+            tooltip.innerText = '';
+          });
 
+          layer.on('mouseover', function () {
+            if (insideManheim) return;
 
-  // 🔒 Disable interaction and fade MT polygon
-  mtLayer.setStyle({
-    fillOpacity: 0,
-    weight: 1.5,
-    color: 'black',
-    opacity: 1
-  });
+            if (hoverOverlay) {
+              map.removeLayer(hoverOverlay);
+              hoverOverlay = null;
+            }
 
-  const mtPath = mtLayer._path;
-  if (mtPath) {
-    mtPath.style.pointerEvents = 'none';
-    mtPath.style.outline = 'none';
-  }
+            hoverOverlay = L.geoJSON(layer.feature, {
+              pane: 'hoverPane',
+              style: {
+                fillColor: '#ffd700',
+                fillOpacity: 0.3,
+                color: 'black',
+                weight: 1,
+                opacity: 1
+              }
+            }).addTo(map);
 
-  // 🧱 Create mask that reveals only MT
-if (worldMask) {
-  map.removeLayer(worldMask);
-  worldMask = null;
+            hoverOverlay.eachLayer(l => {
+              const el = l.getElement();
+              if (el) el.style.pointerEvents = 'none';
+            });
+          });
+
+          layer.on('mouseout', function () {
+            if (hoverOverlay) {
+              map.removeLayer(hoverOverlay);
+              hoverOverlay = null;
+            }
+          });
+
+          layer.on('click', () => {
+            map.fitBounds(layer.getBounds(), { maxZoom: 15 });
+            console.log(`📍 ${displayName} clicked`);
+
+            currentLayerDepth = 2;
+            updateBackButtonVisibility();
+            insideManheim = true;
+
+            layer.unbindTooltip();
+
+            layer.setStyle({
+              fillOpacity: 0,
+              weight: 1.5,
+              color: 'black',
+              opacity: 1
+            });
+
+            const mtPath = layer._path;
+            if (mtPath) {
+              mtPath.style.pointerEvents = 'none';
+              mtPath.style.outline = 'none';
+            }
+
+            if (worldMask) {
+              map.removeLayer(worldMask);
+              worldMask = null;
+            }
+
+            worldMask = L.geoJSON(createWorldMask(feature), {
+              style: {
+                fillColor: '#cccccc',
+                fillOpacity: 0.7,
+                stroke: false,
+                pane: 'maskPane'
+              }
+            }).addTo(map);
+
+            worldMask.eachLayer(layer => {
+              const el = layer.getElement();
+              if (el) el.style.pointerEvents = 'none';
+            });
+
+            map.addLayer(roadsLayerGroup);
+          });
+        }
+      }).addTo(map);
+    });
 }
-
-worldMask = L.geoJSON(createWorldMask(feature), {
-  style: {
-    fillColor: '#cccccc',
-    fillOpacity: 0.7,
-    stroke: false,
-    pane: 'maskPane'
-  }
-}).addTo(map);
-
-worldMask.eachLayer(layer => {
-  const el = layer.getElement();
-  if (el) el.style.pointerEvents = 'none';
-});
-
-
-  // ✅ Show roads after MT is clicked
-  map.addLayer(roadsLayerGroup);
-});
-
-                  }
-                }).addTo(map);
-              });
-          }, 500);
-        });
-      }
-    }).addTo(map);
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
