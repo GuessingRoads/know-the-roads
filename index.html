@@ -1135,6 +1135,9 @@ document.getElementById('exit-zone-btn').addEventListener('click', () => {
   }
 
   else if (currentLayerDepth === 2) {
+    // 🧹 Remove roads
+roadsLayerGroup.clearLayers();
+
   // 🧽 Remove MT polygon cleanly
   if (manheimLayer) {
     map.removeLayer(manheimLayer);
