@@ -1097,50 +1097,73 @@ loadMap();
   updateBackButtonVisibility();
 document.getElementById('exit-zone-btn').addEventListener('click', () => {
   if (currentLayerDepth === 3) {
-    // 💥 Remove roads
+    // 🗑 Remove roads
     roadsLayerGroup.clearLayers();
 
-    // 🔁 Re-show MT polygon
+    // 🎯 Show MT polygon again
     if (manheimLayer) {
       manheimLayer.setStyle({
         fillOpacity: 0.25,
-        weight: 1.5,
-        color: 'black',
         opacity: 1
       });
 
       const mtPath = manheimLayer._path;
       if (mtPath) {
         mtPath.style.pointerEvents = 'auto';
-        mtPath.style.outline = '';
+        mtPath.style.outline = ''; // Reset outline
       }
     }
 
-    // 🧱 Recreate world mask for MT
+    // 🌍 Remove mask
     if (worldMask) {
       map.removeLayer(worldMask);
       worldMask = null;
     }
-    worldMask = L.geoJSON(createWorldMask(manheimLayer.feature), {
-      style: {
-        fillColor: '#cccccc',
-        fillOpacity: 0.7,
-        stroke: false,
-        pane: 'maskPane'
-      }
-    }).addTo(map);
 
-    worldMask.eachLayer(layer => {
-      const el = layer.getElement();
-      if (el) el.style.pointerEvents = 'none';
-    });
-
-    // 🔄 Update state
-    insideManheim = false;
+    // 🔙 Set new depth
     currentLayerDepth = 2;
+
+    // 🎯 Zoom back out to MT
+    if (manheimLayer) {
+      map.fitBounds(manheimLayer.getBounds(), { maxZoom: 15 });
+    }
+
+    updateBackButtonVisibility();
+  }
+
+  else if (currentLayerDepth === 2) {
+    // remove MT polygon
+    if (manheimLayer) {
+      map.removeLayer(manheimLayer);
+    }
+
+    // reset pointerEvents on lancaster layer
+    if (lancasterLayer) {
+      lancasterLayer.setStyle({
+        fillOpacity: 0.25,
+        opacity: 1
+      });
+
+      const lancPath = lancasterLayer._path;
+      if (lancPath) {
+        lancPath.style.pointerEvents = 'auto';
+        lancPath.style.outline = '';
+      }
+
+      map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
+    }
+
+    // remove mask
+    if (worldMask) {
+      map.removeLayer(worldMask);
+      worldMask = null;
+    }
+
+    currentLayerDepth = 1;
     updateBackButtonVisibility();
   }
 });
+
 
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
