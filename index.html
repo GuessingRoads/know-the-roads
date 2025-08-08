@@ -945,10 +945,10 @@ updateBackButtonVisibility();
   'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
   'Manheim Township',
   '#ff8800'
-); // ← end of loadTownship(...)
-}); // ✅ closes countyLayer.onEachFeature
-
-}); // ✅ THIS closes the entire fetch(...).then(data => {
+  }); // closes countyLayer onEachFeature click
+      } // closes onEachFeature
+    }).addTo(map); // ✅ Don't forget this part if missing
+  }); // ✅ THIS is what's missing
 
 
 
@@ -1092,7 +1092,7 @@ updateBackButtonVisibility();
         }
       };
     }
-  }
+  });
 
 loadMap();
   updateBackButtonVisibility();
