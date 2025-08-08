@@ -377,6 +377,8 @@
   let currentLayerDepth = 0; // 1 = county, 2 = township, 3 = roads
   let activeRoadName = null;
   let hoverOverlay = null;
+  let countyLayers = {}; // e.g. { lancaster: layer, york: layer }
+  let currentCounty = null;
   let worldMask;
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
   let insideLancaster = false;
