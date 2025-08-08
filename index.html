@@ -1168,6 +1168,13 @@ roadsLayerGroup.clearLayers();
   // 🗺 Zoom back out to Lancaster
     insideLancaster = true; // ✅ Re-enter the state as if Lancaster was clicked
   map.fitBounds(lancasterLayer.getBounds(), { maxZoom: 12 });
+    if (lancasterLayer) {
+  const lancPath = lancasterLayer._path;
+  if (lancPath) {
+    lancPath.style.pointerEvents = 'none';   // prevent re-click
+    lancasterLayer.unbindTooltip();          // clear tooltip too
+  }
+}
 
   // 🎭 Re-apply full world mask
   if (worldMask) {
