@@ -908,6 +908,8 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 updateBackButtonVisibility();
 
           insideLancaster = true;
+          lancasterLayer = layer;
+
 
           if (!worldMask) {
             worldMask = L.geoJSON(createWorldMask(feature), {
