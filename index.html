@@ -1001,28 +1001,25 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 
             // 🧠 Load township via reusable function
             loadTownship(
-              'manheim',
-              'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
-              'Manheim Township',
-              '#ff8800'
-            );
-          }, 500);
+  'manheim',
+  'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
+  'Manheim Township',
+  '#ff8800',
+  () => {
+    // ✅ Now safe to apply styles — roads are guaranteed loaded
+    Object.values(nameToLayers).flat().forEach(layer => {
+      if (layer.options.pane === 'hiddenRoads') {
+        layer.setStyle({
+          color: 'black',
+          weight: 4,
+          opacity: 1,
+          pane: 'hiddenRoads',
         });
       }
-    }).addTo(map);
-    // Restore road visibility after county polygon loads
-Object.values(nameToLayers).flat().forEach(layer => {
-  if (layer.options.pane === 'hiddenRoads') {
-    layer.setStyle({
-      color: 'black',
-      weight: 4,
-      opacity: 1,
-      pane: 'hiddenRoads'
     });
   }
-});
+);
 
-  }); // ✅ THIS LINE WAS MISSING
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
