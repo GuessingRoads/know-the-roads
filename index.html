@@ -1220,15 +1220,6 @@ document.getElementById('guess-input').addEventListener('input', () => {
   }
 });
 
-function updateBackButtonVisibility() {
-  const backBtn = document.getElementById("exit-zone-btn");
-  if (currentLayerDepth > 1) {
-    backBtn.style.display = "flex"; // "flex" matches your current layout
-  } else {
-    backBtn.style.display = "none";
-  }
-}
-
 
 // 🎵 Web Audio API Seamless Loop Logic
 let audioContext = null;
