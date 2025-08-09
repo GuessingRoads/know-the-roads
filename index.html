@@ -1061,6 +1061,8 @@ worldMask.eachLayer(layer => {
         });
       }
     }).addTo(map);
+let countyLayerClickListener; // Store the click event listener for re-attachment
+
 function resetToWorldStatus() {
   // Reset insideLancaster flag
   insideLancaster = false;
@@ -1080,14 +1082,17 @@ function resetToWorldStatus() {
       fillOpacity: 0.7 // Make county visible again
     });
 
-    // Re-enable the interactivity for the county layer
-    countyLayer.on('click', function () {
-      // County click logic here, similar to previous event handlers
-      map.fitBounds(countyLayer.getBounds());
-      currentLayerDepth = 2;
-      insideLancaster = true;
-      updateBackButtonVisibility();
-    });
+    // Reattach the click event listener to the Lancaster polygon
+    if (!countyLayerClickListener) {
+      countyLayerClickListener = function () {
+        map.fitBounds(countyLayer.getBounds());
+        currentLayerDepth = 2;
+        insideLancaster = true;
+        updateBackButtonVisibility();
+      };
+
+      countyLayer.on('click', countyLayerClickListener);
+    }
   }
 
   // Reset the zoom to the world (or initial state)
@@ -1095,6 +1100,7 @@ function resetToWorldStatus() {
 
   // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
 }
+
 
 
 function updateBackButtonVisibility() {
