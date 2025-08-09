@@ -1164,15 +1164,20 @@ function resetToWorldStatus() {
           // Add the road layer to the map
           roadsLayerGroup.addLayer(roadLayer);
 
-          // Ensure that all roads are clickable
+          // Explicitly loop through the roads to make sure they are interactive
           roadLayer.eachLayer(function (layer) {
-            layer.options.interactive = true;
+            layer.options.interactive = true; // Force interactivity
+            layer.on('click', function () {
+              // Trigger modal when any road is clicked
+              document.getElementById('guess-modal').style.display = 'block';
+            });
           });
         })
         .catch(err => console.error('Error loading roads layer:', err));
     })
     .catch(err => console.error('Error loading county layer:', err));
 }
+
 
 
 
