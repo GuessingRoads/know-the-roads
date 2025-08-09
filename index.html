@@ -1061,6 +1061,32 @@ worldMask.eachLayer(layer => {
         });
       }
     }).addTo(map);
+function resetToWorldStatus() {
+  // Reset insideLancaster flag
+  insideLancaster = false;
+
+  // Reset currentLayerDepth to show the world status
+  currentLayerDepth = 1;
+
+  // Remove any township layers (including Manheim Township)
+  if (worldMask) {
+    map.removeLayer(worldMask);
+    worldMask = null;
+  }
+
+  // Restore the county layer if it's been hidden
+  if (countyLayer) {
+    countyLayer.setStyle({
+      fillOpacity: 0.7 // Make county visible again
+    });
+  }
+
+  // Reset the zoom to the world (or initial state)
+  map.setView([initialLat, initialLng], initialZoom);
+
+  // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
+  // For example, if there are any lingering styles or elements to reset, do it here
+}
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
