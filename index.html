@@ -1085,8 +1085,22 @@ function resetToWorldStatus() {
   map.setView([initialLat, initialLng], initialZoom);
 
   // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
-  // For example, if there are any lingering styles or elements to reset, do it here
 }
+
+function updateBackButtonVisibility() {
+  const backBtn = document.getElementById("backbutton");  // Correct ID here
+  if (currentLayerDepth > 1) {
+    backBtn.style.display = "flex"; // "flex" matches your current layout
+  } else {
+    backBtn.style.display = "none";
+  }
+}
+
+// Add this after both functions
+document.getElementById('backbutton').addEventListener('click', function () {
+  resetToWorldStatus();
+  updateBackButtonVisibility();  // Ensure visibility is updated after reset
+});
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
