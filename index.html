@@ -1143,21 +1143,22 @@ function resetToWorldStatus() {
               color: 'black',
               weight: 6,
               opacity: 1,
-              pane: 'hiddenRoads'
+              pane: 'hiddenRoads' // Ensure roads are on the correct pane
             },
             onEachFeature: function (feature, layer) {
-              // Ensure roads are interactive
+              // Ensure roads are interactive and clickable
               layer.setStyle({
                 color: 'black',
                 weight: 6,
                 opacity: 1,
-                pane: 'hiddenRoads'
+                pane: 'hiddenRoads' // Correct pane for interactivity
               });
 
               // Bind click event to show the modal
               layer.on('click', function () {
                 if (insideLancaster && !layer._originalColor) {
-                  document.getElementById('guess-modal').style.display = 'block'; // Show modal
+                  // Ensure the modal pops up on any road click
+                  document.getElementById('guess-modal').style.display = 'block';
                 }
               });
             }
@@ -1168,7 +1169,7 @@ function resetToWorldStatus() {
 
           // Explicitly loop through the roads to make sure they are interactive
           roadLayer.eachLayer(function (layer) {
-            layer.options.interactive = true; // Force interactivity
+            layer.options.interactive = true; // Force interactivity for all roads
             layer.on('click', function () {
               // Trigger modal when any road is clicked
               document.getElementById('guess-modal').style.display = 'block';
@@ -1179,6 +1180,7 @@ function resetToWorldStatus() {
     })
     .catch(err => console.error('Error loading county layer:', err));
 }
+
 
 
 
