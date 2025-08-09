@@ -1134,12 +1134,15 @@ function resetToWorldStatus() {
       // After the county layer is re-added, make sure it's interactive
       updateBackButtonVisibility(); // Ensure the back button visibility is updated correctly
 
-      // Re-create and add roads layer, bind click events for each road
+      // Now, add roads and bind the click event explicitly to ensure the modal triggers
       fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
         .then(res => res.json())
         .then(data => {
           const roadLayer = L.geoJSON(data, {
             style: {
+              color: 'black',
+              weight: 6,
+              opacity: 1,
               pane: 'hiddenRoads'
             },
             onEachFeature: function (feature, layer) {
@@ -1153,7 +1156,6 @@ function resetToWorldStatus() {
 
               // Bind click event to show the modal
               layer.on('click', function () {
-                // Check if road is clickable (i.e., not guessed yet)
                 if (insideLancaster && !layer._originalColor) {
                   document.getElementById('guess-modal').style.display = 'block'; // Show modal
                 }
@@ -1177,6 +1179,7 @@ function resetToWorldStatus() {
     })
     .catch(err => console.error('Error loading county layer:', err));
 }
+
 
 
 
