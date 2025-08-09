@@ -1076,19 +1076,25 @@ function resetToWorldStatus() {
     worldMask = null;
   }
 
-  // Restore the county layer if it's been hidden
+  // Remove the county layer temporarily to ensure it's fully reloaded
   if (countyLayer) {
-    countyLayer.setStyle({
-      fillOpacity: 0.7 // Make county visible again
-    });
+    map.removeLayer(countyLayer); // Remove it temporarily
+  }
 
-    // Ensure the countyLayer is interactive
+  // Reset the zoom to the world (or initial state)
+  map.setView([initialLat, initialLng], initialZoom);
+
+  // Add the county layer back to the map with full interactivity
+  if (countyLayer) {
+    countyLayer.addTo(map); // Re-add the county layer
+
+    // Re-enable pointer events to ensure interactivity
     const countyPath = countyLayer._path;
     if (countyPath) {
       countyPath.style.pointerEvents = 'auto'; // Enable interaction
     }
 
-    // Remove previous event listener to avoid duplicate events
+    // Remove the previous click listener (if any)
     countyLayer.off('click');
 
     // Re-add the click listener for the Lancaster polygon
@@ -1101,9 +1107,6 @@ function resetToWorldStatus() {
 
     countyLayer.on('click', countyLayerClickListener);
   }
-
-  // Reset the zoom to the world (or initial state)
-  map.setView([initialLat, initialLng], initialZoom);
 
   // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
 }
