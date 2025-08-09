@@ -1082,16 +1082,16 @@ function resetToWorldStatus() {
       fillOpacity: 0.7 // Make county visible again
     });
 
-    // Manually re-enable pointer events for the county layer (Lancaster polygon)
+    // Ensure the countyLayer is interactive
     const countyPath = countyLayer._path;
     if (countyPath) {
       countyPath.style.pointerEvents = 'auto'; // Enable interaction
     }
 
-    // Remove the click listener if it exists to avoid duplicates
-    countyLayer.off('click', countyLayerClickListener);
+    // Remove previous event listener to avoid duplicate events
+    countyLayer.off('click');
 
-    // Reattach the click event listener to the Lancaster polygon
+    // Re-add the click listener for the Lancaster polygon
     countyLayerClickListener = function () {
       map.fitBounds(countyLayer.getBounds());
       currentLayerDepth = 2;
@@ -1107,6 +1107,7 @@ function resetToWorldStatus() {
 
   // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
 }
+
 
 
 
