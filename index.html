@@ -1134,21 +1134,46 @@ function resetToWorldStatus() {
       // After the county layer is re-added, make sure it's interactive
       updateBackButtonVisibility(); // Ensure the back button visibility is updated correctly
 
-      // Rebind the click event for the roads
-      if (roadsLayerGroup) {
-        roadsLayerGroup.eachLayer(function (layer) {
-          // Ensure the modal pops up when a road is clicked
-          layer.on('click', function () {
-            if (insideLancaster && !layer._originalColor) {
-              // Show the modal if the road is clicked and not already guessed
-              document.getElementById('guess-modal').style.display = 'block';
+      // Re-create and add roads layer, bind click events for each road
+      fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
+        .then(res => res.json())
+        .then(data => {
+          const roadLayer = L.geoJSON(data, {
+            style: {
+              pane: 'hiddenRoads'
+            },
+            onEachFeature: function (feature, layer) {
+              // Ensure roads are interactive
+              layer.setStyle({
+                color: 'black',
+                weight: 6,
+                opacity: 1,
+                pane: 'hiddenRoads'
+              });
+
+              // Bind click event to show the modal
+              layer.on('click', function () {
+                // Check if road is clickable (i.e., not guessed yet)
+                if (insideLancaster && !layer._originalColor) {
+                  document.getElementById('guess-modal').style.display = 'block'; // Show modal
+                }
+              });
             }
           });
-        });
-      }
+
+          // Add the road layer to the map
+          roadsLayerGroup.addLayer(roadLayer);
+
+          // Ensure that all roads are clickable
+          roadLayer.eachLayer(function (layer) {
+            layer.options.interactive = true;
+          });
+        })
+        .catch(err => console.error('Error loading roads layer:', err));
     })
     .catch(err => console.error('Error loading county layer:', err));
 }
+
 
 
 
