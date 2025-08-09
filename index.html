@@ -1179,7 +1179,14 @@ function resetToWorldStatus() {
         .catch(err => console.error('Error loading roads layer:', err));
     })
     .catch(err => console.error('Error loading county layer:', err));
+
+  // Add a global map click listener for debugging
+  map.on('click', function(e) {
+    console.log('Map clicked at: ', e.latlng);
+    console.log('Layer clicked: ', e.layer);
+  });
 }
+
 
 
 
