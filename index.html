@@ -1082,17 +1082,24 @@ function resetToWorldStatus() {
       fillOpacity: 0.7 // Make county visible again
     });
 
-    // Reattach the click event listener to the Lancaster polygon
-    if (!countyLayerClickListener) {
-      countyLayerClickListener = function () {
-        map.fitBounds(countyLayer.getBounds());
-        currentLayerDepth = 2;
-        insideLancaster = true;
-        updateBackButtonVisibility();
-      };
-
-      countyLayer.on('click', countyLayerClickListener);
+    // Manually re-enable pointer events for the county layer (Lancaster polygon)
+    const countyPath = countyLayer._path;
+    if (countyPath) {
+      countyPath.style.pointerEvents = 'auto'; // Enable interaction
     }
+
+    // Remove the click listener if it exists to avoid duplicates
+    countyLayer.off('click', countyLayerClickListener);
+
+    // Reattach the click event listener to the Lancaster polygon
+    countyLayerClickListener = function () {
+      map.fitBounds(countyLayer.getBounds());
+      currentLayerDepth = 2;
+      insideLancaster = true;
+      updateBackButtonVisibility();
+    };
+
+    countyLayer.on('click', countyLayerClickListener);
   }
 
   // Reset the zoom to the world (or initial state)
@@ -1100,6 +1107,7 @@ function resetToWorldStatus() {
 
   // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
 }
+
 
 
 
