@@ -1076,37 +1076,55 @@ function resetToWorldStatus() {
     worldMask = null;
   }
 
-  // Remove the county layer temporarily to ensure it's fully cleared
-  if (countyLayer) {
-    map.removeLayer(countyLayer); // Remove it temporarily
-  }
-
-  // Reset the zoom to the world (or initial state)
+  // Fully reset the map to world view
   map.setView([initialLat, initialLng], initialZoom);
 
-  // Re-add the county layer and force pointer events
+  // Remove the county layer temporarily to ensure it's fully cleared
   if (countyLayer) {
-    countyLayer.addTo(map); // Re-add the county layer
-
-    // Make sure the layer's path is fully interactive
-    const countyPath = countyLayer._path;
-    if (countyPath) {
-      countyPath.style.pointerEvents = 'auto'; // Force full interaction
-    }
-
-    // Remove and re-attach the click event listener for the Lancaster polygon
-    countyLayer.off('click'); // First, remove the existing click event
-    countyLayerClickListener = function () {
-      map.fitBounds(countyLayer.getBounds());
-      currentLayerDepth = 2;
-      insideLancaster = true;
-      updateBackButtonVisibility();
-    };
-    countyLayer.on('click', countyLayerClickListener); // Re-add the click event
+    map.removeLayer(countyLayer); // Completely remove the county layer
   }
 
-  // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
+  // Re-create the county layer from scratch and re-add it
+  fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
+    .then(res => res.json())
+    .then(data => {
+      countyLayer = L.geoJSON(data, {
+        style: {
+          color: 'black',
+          weight: 1.5,
+          fillColor: '#cccccc',
+          fillOpacity: 0.7,
+          pane: 'countyPolygon'
+        },
+        onEachFeature: function (feature, layer) {
+          // Re-enable the click event for the county layer
+          countyLayerClickListener = function () {
+            map.fitBounds(layer.getBounds());
+            currentLayerDepth = 2;
+            insideLancaster = true;
+            updateBackButtonVisibility();
+          };
+
+          // Attach the listener after the layer is added
+          layer.on('click', countyLayerClickListener);
+        }
+      });
+
+      // Re-add the county layer to the map
+      countyLayer.addTo(map);
+
+      // Ensure pointer events are re-enabled
+      const countyPath = countyLayer._path;
+      if (countyPath) {
+        countyPath.style.pointerEvents = 'auto'; // Force full interaction
+      }
+
+      // After the county layer is re-added, make sure it's interactive
+      updateBackButtonVisibility(); // Ensure the back button visibility is updated correctly
+    })
+    .catch(err => console.error('Error loading county layer:', err));
 }
+
 
 
 
