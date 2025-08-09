@@ -1133,9 +1133,23 @@ function resetToWorldStatus() {
 
       // After the county layer is re-added, make sure it's interactive
       updateBackButtonVisibility(); // Ensure the back button visibility is updated correctly
+
+      // Rebind the click event for the roads
+      if (roadsLayerGroup) {
+        roadsLayerGroup.eachLayer(function (layer) {
+          // Ensure the modal pops up when a road is clicked
+          layer.on('click', function () {
+            if (insideLancaster && !layer._originalColor) {
+              // Show the modal if the road is clicked and not already guessed
+              document.getElementById('guess-modal').style.display = 'block';
+            }
+          });
+        });
+      }
     })
     .catch(err => console.error('Error loading county layer:', err));
 }
+
 
 
 // Add this after both functions
