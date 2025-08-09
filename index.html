@@ -1061,6 +1061,18 @@ worldMask.eachLayer(layer => {
         });
       }
     }).addTo(map);
+// Define the updateBackButtonVisibility function at the top
+function updateBackButtonVisibility() {
+  const backBtn = document.getElementById("backbutton");
+  if (backBtn) { // Check if the button exists
+    if (currentLayerDepth > 1) {
+      backBtn.style.display = "flex"; // "flex" matches your current layout
+    } else {
+      backBtn.style.display = "none";
+    }
+  }
+}
+
 let countyLayerClickListener; // Store the click event listener for re-attachment
 
 function resetToWorldStatus() {
@@ -1102,7 +1114,7 @@ function resetToWorldStatus() {
             map.fitBounds(layer.getBounds());
             currentLayerDepth = 2;
             insideLancaster = true;
-            updateBackButtonVisibility();
+            updateBackButtonVisibility(); // Make sure visibility is updated correctly
           };
 
           // Attach the listener after the layer is added
@@ -1125,20 +1137,6 @@ function resetToWorldStatus() {
     .catch(err => console.error('Error loading county layer:', err));
 }
 
-
-
-
-
-
-
-function updateBackButtonVisibility() {
-  const backBtn = document.getElementById("backbutton");  // Correct ID here
-  if (currentLayerDepth > 1) {
-    backBtn.style.display = "flex"; // "flex" matches your current layout
-  } else {
-    backBtn.style.display = "none";
-  }
-}
 
 // Add this after both functions
 document.getElementById('backbutton').addEventListener('click', function () {
