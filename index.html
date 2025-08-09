@@ -1076,7 +1076,7 @@ function resetToWorldStatus() {
     worldMask = null;
   }
 
-  // Remove the county layer temporarily to ensure it's fully reloaded
+  // Remove the county layer temporarily to ensure it's fully cleared
   if (countyLayer) {
     map.removeLayer(countyLayer); // Remove it temporarily
   }
@@ -1084,32 +1084,30 @@ function resetToWorldStatus() {
   // Reset the zoom to the world (or initial state)
   map.setView([initialLat, initialLng], initialZoom);
 
-  // Add the county layer back to the map with full interactivity
+  // Re-add the county layer and force pointer events
   if (countyLayer) {
     countyLayer.addTo(map); // Re-add the county layer
 
-    // Re-enable pointer events to ensure interactivity
+    // Make sure the layer's path is fully interactive
     const countyPath = countyLayer._path;
     if (countyPath) {
-      countyPath.style.pointerEvents = 'auto'; // Enable interaction
+      countyPath.style.pointerEvents = 'auto'; // Force full interaction
     }
 
-    // Remove the previous click listener (if any)
-    countyLayer.off('click');
-
-    // Re-add the click listener for the Lancaster polygon
+    // Remove and re-attach the click event listener for the Lancaster polygon
+    countyLayer.off('click'); // First, remove the existing click event
     countyLayerClickListener = function () {
       map.fitBounds(countyLayer.getBounds());
       currentLayerDepth = 2;
       insideLancaster = true;
       updateBackButtonVisibility();
     };
-
-    countyLayer.on('click', countyLayerClickListener);
+    countyLayer.on('click', countyLayerClickListener); // Re-add the click event
   }
 
   // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
 }
+
 
 
 
