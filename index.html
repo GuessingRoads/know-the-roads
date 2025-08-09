@@ -1079,6 +1079,15 @@ function resetToWorldStatus() {
     countyLayer.setStyle({
       fillOpacity: 0.7 // Make county visible again
     });
+
+    // Re-enable the interactivity for the county layer
+    countyLayer.on('click', function () {
+      // County click logic here, similar to previous event handlers
+      map.fitBounds(countyLayer.getBounds());
+      currentLayerDepth = 2;
+      insideLancaster = true;
+      updateBackButtonVisibility();
+    });
   }
 
   // Reset the zoom to the world (or initial state)
@@ -1086,6 +1095,7 @@ function resetToWorldStatus() {
 
   // Optionally, reset other visual indicators as needed (e.g., tooltips, styles)
 }
+
 
 function updateBackButtonVisibility() {
   const backBtn = document.getElementById("backbutton");  // Correct ID here
