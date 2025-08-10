@@ -1232,6 +1232,53 @@ function resetToWorldStatus() {
   }
 }
 
+document.addEventListener("DOMContentLoaded", function() {
+  const modal = document.getElementById('guess-modal');
+  const closeModalButton = document.getElementById('close-modal-button');
+  const submitGuessButton = document.getElementById('submit-guess');
+  const giveUpButton = document.getElementById('give-up');
+
+  // Debugging: Check if modal and buttons exist
+  if (modal) {
+    console.log('Modal exists:', modal);
+    modal.style.display = 'block';  // Force show modal for testing purposes
+  } else {
+    console.log('Modal NOT found!');
+  }
+
+  if (closeModalButton) {
+    console.log('Close button exists:', closeModalButton);
+    closeModalButton.addEventListener('click', function() {
+      console.log('Close button clicked');
+      modal.style.display = 'none'; // Hide modal
+    });
+  } else {
+    console.log('Close button NOT found!');
+  }
+
+  if (submitGuessButton) {
+    console.log('Submit button exists:', submitGuessButton);
+    submitGuessButton.addEventListener('click', function() {
+      const userGuess = document.getElementById('guess-input').value;
+      console.log('Submit button clicked, user guess:', userGuess);
+      modal.style.display = 'none'; // Hide modal after submission
+    });
+  } else {
+    console.log('Submit button NOT found!');
+  }
+
+  if (giveUpButton) {
+    console.log('Give Up button exists:', giveUpButton);
+    giveUpButton.addEventListener('click', function() {
+      const correctAnswer = "Example Road Name";  // Replace with actual logic for correct answer
+      console.log('Give Up button clicked, correct answer:', correctAnswer);
+      alert('The correct answer is: ' + correctAnswer);
+      modal.style.display = 'none'; // Hide modal
+    });
+  } else {
+    console.log('Give Up button NOT found!');
+  }
+});
 
 
 
