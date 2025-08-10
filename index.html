@@ -1074,8 +1074,7 @@ function updateBackButtonVisibility() {
   }
 }
 let countyLayerClickListener; // Store the click event listener for re-attachment
-// Initialize interactionCount at the top
-let interactionCount = 0;
+let interactionCount = 0; // Ensure interactionCount is initialized properly
 
 function resetToWorldStatus() {
   // Reset insideLancaster flag
@@ -1156,7 +1155,7 @@ function resetToWorldStatus() {
                 pane: 'hiddenRoads' // Correct pane for interactivity
               });
 
-              // Debugging the click event to see if the road click is detected
+              // Bind click event to show the modal
               layer.on('click', function () {
                 console.log('Road clicked:', feature.properties.name); // Debug log to ensure click event
                 if (insideLancaster && !layer._originalColor) {
@@ -1184,12 +1183,36 @@ function resetToWorldStatus() {
     })
     .catch(err => console.error('Error loading county layer:', err));
 
-  // Add a global map click listener for debugging
-  map.on('click', function(e) {
-    console.log('Map clicked at: ', e.latlng);
-    console.log('Layer clicked: ', e.layer);
-  });
+  // Modal close functionality
+  const closeModalButton = document.getElementById('close-modal-button');
+  if (closeModalButton) {
+    closeModalButton.addEventListener('click', function() {
+      document.getElementById('guess-modal').style.display = 'none'; // Hide modal
+    });
+  }
+
+  // Modal submit button functionality
+  const submitGuessButton = document.getElementById('submit-guess');
+  if (submitGuessButton) {
+    submitGuessButton.addEventListener('click', function() {
+      const userGuess = document.getElementById('guess-input').value; // Assuming the guess input is called guess-input
+      console.log('User guess:', userGuess);
+      // Here, you would add the logic to handle the guess (e.g., check if correct, update state, etc.)
+      document.getElementById('guess-modal').style.display = 'none'; // Close modal after submission
+    });
+  }
+
+  // Give Up functionality
+  const giveUpButton = document.getElementById('give-up');
+  if (giveUpButton) {
+    giveUpButton.addEventListener('click', function() {
+      const correctAnswer = "Example Road Name"; // You would replace this with actual logic to get the correct answer
+      alert('The correct answer is: ' + correctAnswer);
+      document.getElementById('guess-modal').style.display = 'none'; // Close modal
+    });
+  }
 }
+
 
 
 
