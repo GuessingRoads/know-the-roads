@@ -1183,12 +1183,25 @@ function resetToWorldStatus() {
     })
     .catch(err => console.error('Error loading county layer:', err));
 
+  // --- Debugging Modal Button Functionality ---
+
+  // Ensure the modal is present
+  const modal = document.getElementById('guess-modal');
+  if (modal) {
+    console.log('Modal exists and is visible:', modal);
+  } else {
+    console.log('Modal not found!');
+  }
+
   // Modal close functionality
   const closeModalButton = document.getElementById('close-modal-button');
   if (closeModalButton) {
     closeModalButton.addEventListener('click', function() {
+      console.log('Close button clicked');
       document.getElementById('guess-modal').style.display = 'none'; // Hide modal
     });
+  } else {
+    console.log('Close button not found!');
   }
 
   // Modal submit button functionality
@@ -1200,6 +1213,8 @@ function resetToWorldStatus() {
       // Here, you would add the logic to handle the guess (e.g., check if correct, update state, etc.)
       document.getElementById('guess-modal').style.display = 'none'; // Close modal after submission
     });
+  } else {
+    console.log('Submit button not found!');
   }
 
   // Give Up functionality
@@ -1207,11 +1222,15 @@ function resetToWorldStatus() {
   if (giveUpButton) {
     giveUpButton.addEventListener('click', function() {
       const correctAnswer = "Example Road Name"; // You would replace this with actual logic to get the correct answer
+      console.log('The correct answer is:', correctAnswer);
       alert('The correct answer is: ' + correctAnswer);
       document.getElementById('guess-modal').style.display = 'none'; // Close modal
     });
+  } else {
+    console.log('Give Up button not found!');
   }
 }
+
 
 
 
