@@ -1074,6 +1074,7 @@ function updateBackButtonVisibility() {
 }
 
 let countyLayerClickListener; // Store the click event listener for re-attachment
+let interactionCount = 0; // Ensure interactionCount is initialized properly
 
 function resetToWorldStatus() {
   // Reset insideLancaster flag
@@ -1156,9 +1157,9 @@ function resetToWorldStatus() {
 
               // Bind click event to show the modal
               layer.on('click', function () {
+                console.log('Road clicked:', feature.properties.name); // Debug log to ensure click event
                 if (insideLancaster && !layer._originalColor) {
-                  // Ensure the modal pops up on any road click
-                  document.getElementById('guess-modal').style.display = 'block';
+                  document.getElementById('guess-modal').style.display = 'block'; // Show modal
                 }
               });
             }
@@ -1171,6 +1172,7 @@ function resetToWorldStatus() {
           roadLayer.eachLayer(function (layer) {
             layer.options.interactive = true; // Force interactivity for all roads
             layer.on('click', function () {
+              console.log('Road clicked (via loop):', layer.feature.properties.name); // Debug log to ensure click event
               // Trigger modal when any road is clicked
               document.getElementById('guess-modal').style.display = 'block';
             });
