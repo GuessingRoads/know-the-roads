@@ -1184,8 +1184,8 @@ function resetToWorldStatus() {
     .catch(err => console.error('Error loading county layer:', err));
 
   // --- Debugging Modal Rendering ---
-
-  // Ensure the modal exists in the DOM when it's being opened
+  
+  // Check if the modal exists
   const modal = document.getElementById('guess-modal');
   if (modal) {
     console.log('Modal exists:', modal); // Debug log if modal exists
@@ -1231,6 +1231,8 @@ function resetToWorldStatus() {
     console.log('Give Up button not found!'); // Debug log if give-up button does not exist
   }
 }
+
+
 
 
 
