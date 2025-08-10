@@ -1061,7 +1061,7 @@ worldMask.eachLayer(layer => {
         });
       }
     }).addTo(map);
-// Make sure this function is declared properly at the top
+    // Make sure this function is declared properly at the top
 function updateBackButtonVisibility() {
   const backBtn = document.getElementById("backbutton");
   if (backBtn) { // Check if the button exists
@@ -1072,7 +1072,6 @@ function updateBackButtonVisibility() {
     }
   }
 }
-
 let countyLayerClickListener; // Store the click event listener for re-attachment
 let interactionCount = 0; // Ensure interactionCount is initialized properly
 
@@ -1182,7 +1181,14 @@ function resetToWorldStatus() {
         .catch(err => console.error('Error loading roads layer:', err));
     })
     .catch(err => console.error('Error loading county layer:', err));
+
+  // Add a global map click listener for debugging
+  map.on('click', function(e) {
+    console.log('Map clicked at: ', e.latlng);
+    console.log('Layer clicked: ', e.layer);
+  });
 }
+
 
 
 
