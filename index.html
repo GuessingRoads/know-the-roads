@@ -1074,7 +1074,8 @@ function updateBackButtonVisibility() {
   }
 }
 let countyLayerClickListener; // Store the click event listener for re-attachment
-let interactionCount = 0; // Ensure interactionCount is initialized properly
+// Initialize interactionCount at the top
+let interactionCount = 0;
 
 function resetToWorldStatus() {
   // Reset insideLancaster flag
@@ -1155,7 +1156,7 @@ function resetToWorldStatus() {
                 pane: 'hiddenRoads' // Correct pane for interactivity
               });
 
-              // Bind click event to show the modal
+              // Debugging the click event to see if the road click is detected
               layer.on('click', function () {
                 console.log('Road clicked:', feature.properties.name); // Debug log to ensure click event
                 if (insideLancaster && !layer._originalColor) {
@@ -1189,6 +1190,7 @@ function resetToWorldStatus() {
     console.log('Layer clicked: ', e.layer);
   });
 }
+
 
 
 
