@@ -1061,8 +1061,7 @@ worldMask.eachLayer(layer => {
         });
       }
     }).addTo(map);
-// Define the updateBackButtonVisibility function at the top
-// Ensure updateBackButtonVisibility is declared at the top
+// Make sure this function is declared properly at the top
 function updateBackButtonVisibility() {
   const backBtn = document.getElementById("backbutton");
   if (backBtn) { // Check if the button exists
@@ -1184,6 +1183,7 @@ function resetToWorldStatus() {
     })
     .catch(err => console.error('Error loading county layer:', err));
 }
+
 
 
 
