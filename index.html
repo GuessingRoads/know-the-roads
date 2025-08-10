@@ -1184,50 +1184,49 @@ function resetToWorldStatus() {
     .catch(err => console.error('Error loading county layer:', err));
 
   // --- Debugging Modal Button Functionality ---
-
-  // Ensure the modal is present
+  
+  // Check if the modal exists
   const modal = document.getElementById('guess-modal');
-  if (modal) {
-    console.log('Modal exists and is visible:', modal);
-  } else {
-    console.log('Modal not found!');
-  }
-
+  console.log('Modal:', modal); // Debug: Check if modal exists
+  
   // Modal close functionality
   const closeModalButton = document.getElementById('close-modal-button');
   if (closeModalButton) {
+    console.log('Close button exists, binding event listener'); // Debug log
     closeModalButton.addEventListener('click', function() {
-      console.log('Close button clicked');
+      console.log('Close button clicked'); // Debug: Check if click is detected
       document.getElementById('guess-modal').style.display = 'none'; // Hide modal
     });
   } else {
-    console.log('Close button not found!');
+    console.log('Close button not found!'); // Debug log if button doesn't exist
   }
 
   // Modal submit button functionality
   const submitGuessButton = document.getElementById('submit-guess');
   if (submitGuessButton) {
+    console.log('Submit button exists, binding event listener'); // Debug log
     submitGuessButton.addEventListener('click', function() {
-      const userGuess = document.getElementById('guess-input').value; // Assuming the guess input is called guess-input
-      console.log('User guess:', userGuess);
+      const userGuess = document.getElementById('guess-input').value; // Get user input
+      console.log('User guess:', userGuess); // Debug log for user guess
       // Here, you would add the logic to handle the guess (e.g., check if correct, update state, etc.)
       document.getElementById('guess-modal').style.display = 'none'; // Close modal after submission
     });
   } else {
-    console.log('Submit button not found!');
+    console.log('Submit button not found!'); // Debug log if button doesn't exist
   }
 
   // Give Up functionality
   const giveUpButton = document.getElementById('give-up');
   if (giveUpButton) {
+    console.log('Give Up button exists, binding event listener'); // Debug log
     giveUpButton.addEventListener('click', function() {
-      const correctAnswer = "Example Road Name"; // You would replace this with actual logic to get the correct answer
-      console.log('The correct answer is:', correctAnswer);
-      alert('The correct answer is: ' + correctAnswer);
+      const correctAnswer = "Example Road Name"; // Replace with actual logic for the correct answer
+      console.log('The correct answer is:', correctAnswer); // Debug log to display correct answer
+      alert('The correct answer is: ' + correctAnswer); // Show alert with the correct answer
       document.getElementById('guess-modal').style.display = 'none'; // Close modal
     });
   } else {
-    console.log('Give Up button not found!');
+    console.log('Give Up button not found!'); // Debug log if button doesn't exist
   }
 }
 
