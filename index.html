@@ -1196,13 +1196,28 @@ document.getElementById('guess-input').addEventListener('input', () => {
 });
 
 function updateBackButtonVisibility() {
-  const backBtn = document.getElementById("exit-zone-btn");
-  if (currentLayerDepth > 1) {
-    backBtn.style.display = "flex"; // "flex" matches your current layout
-  } else {
-    backBtn.style.display = "none";
+  const exitBtn    = document.getElementById('exit-zone-btn');       // legacy/general
+  const backTown   = document.getElementById('back-township-btn');   // shown at depth >= 3
+  const backCounty = document.getElementById('back-county-btn');     // shown at depth == 2
+
+  // Hide all by default
+  if (exitBtn)    exitBtn.style.display = 'none';
+  if (backTown)   backTown.style.display = 'none';
+  if (backCounty) backCounty.style.display = 'none';
+
+  // Depth guide used here:
+  // 1 = outside county (no back button)
+  // 2 = inside county (choose township) -> show County Back
+  // 3+ = inside township (roads active) -> show Township Back
+  if (typeof currentLayerDepth === 'number') {
+    if (currentLayerDepth >= 3) {
+      if (backTown) backTown.style.display = 'flex';
+    } else if (currentLayerDepth === 2) {
+      if (backCounty) backCounty.style.display = 'flex';
+    }
   }
 }
+
 
 
 // 🎵 Web Audio API Seamless Loop Logic
