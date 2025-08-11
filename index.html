@@ -1225,68 +1225,91 @@ function setupBackButtons() {
   const backTown   = document.getElementById('back-township-btn');
   const backCounty = document.getElementById('back-county-btn');
 
-  // Minimal, non-destructive "hide roads": disable clicks.
-  function hideRoadsNonDestructive() {
-    if (!window.nameToLayers) return;
-    try {
-      const all = Object.values(nameToLayers).flat();
-      for (const l of all) {
-        l.options.interactive = false;
-        // keep styles intact; we’re only preventing interaction
-      }
-    } catch {}
+  // small helper
+  function clearHoverOverlay() {
+    if (typeof hoverOverlay !== 'undefined' && hoverOverlay) {
+      map.removeLayer(hoverOverlay);
+      hoverOverlay = null;
+    }
   }
 
-  // Reapply a mask for a given feature (county/township); no style changes elsewhere.
-  function reapplyMaskFor(feature) {
+  // Township ➜ County
+  backTown?.addEventListener('click', () => {
+    // 1) hide roads (non-destructive)
+    if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
+      map.removeLayer(roadsLayerGroup);
+    }
+
+    // 2) leave township state + restore township polygon interactivity
+    if (typeof insideManheim !== 'undefined') insideManheim = false;
+    if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
+      try {
+        townshipLayerRef.setStyle({ fillOpacity: 0.25, weight: 1.5, color: 'black', opacity: 1 });
+        const p = townshipLayerRef._path;
+        if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+      } catch {}
+    }
+    clearHoverOverlay();
+
+    // 3) reapply county mask
     if (typeof worldMask !== 'undefined' && worldMask) {
       map.removeLayer(worldMask);
       worldMask = null;
     }
-    if (!feature) return;
-    // You already have a util to build mask geometry; if not, this assumes your existing pattern.
-    worldMask = L.geoJSON(createWorldMask(feature), {
-      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
-    }).addTo(map);
-  }
+    if (typeof countyFeatureRef !== 'undefined' && countyFeatureRef) {
+      worldMask = L.geoJSON(createWorldMask(countyFeatureRef), {
+        style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+      }).addTo(map);
+      worldMask.eachLayer(l => { const el = l.getElement(); if (el) el.style.pointerEvents = 'none'; });
+    }
 
-  // 🔙 Township → County
-  backTown?.addEventListener('click', () => {
-    hideRoadsNonDestructive();
-
-    // Leave township state
-    insideManheim = false;
-    currentLayerDepth = 2;
-
-    // Mask outside county; zoom to county
-    reapplyMaskFor(countyFeatureRef);
-    if (countyLayerRef) {
+    // 4) zoom to county
+    if (typeof countyLayerRef !== 'undefined' && countyLayerRef) {
       map.fitBounds(countyLayerRef.getBounds());
     }
 
+    // 5) depth/visibility
+    if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 2;
     updateBackButtonVisibility();
-    // (Hover reactivation is usually automatic at depth 2; if needed we can add a tooltip rebind next.)
   });
 
-  // 🔙 County → Outside county (world/state)
+  // County ➜ Outside county (world/state)
   backCounty?.addEventListener('click', () => {
-    hideRoadsNonDestructive();
+    // 1) hide roads (just in case)
+    if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
+      map.removeLayer(roadsLayerGroup);
+    }
+    clearHoverOverlay();
 
-    // Leave county interior
-    insideLancaster = false;
-    insideManheim = false;
-    currentLayerDepth = 1;
+    // 2) leave county state
+    if (typeof insideManheim !== 'undefined') insideManheim = false;
+    if (typeof insideLancaster !== 'undefined') insideLancaster = false;
 
-    // Remove mask and zoom out a bit (use your preferred default view)
+    // 3) restore county polygon interactivity/opacity
+    if (typeof countyLayerRef !== 'undefined' && countyLayerRef) {
+      countyLayerRef.eachLayer(l => {
+        try {
+          l.setStyle({ fillOpacity: 0.7 });
+          const p = l._path;
+          if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+        } catch {}
+      });
+    }
+
+    // 4) remove mask and zoom out a bit (use your preferred default view)
     if (typeof worldMask !== 'undefined' && worldMask) {
       map.removeLayer(worldMask);
       worldMask = null;
     }
+    // fallback view — tweak if you have an init center/zoom handy
     map.setView([40.09, -76.3], 10);
 
+    // 5) depth/visibility
+    if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 1;
     updateBackButtonVisibility();
   });
 }
+
 
 
 
