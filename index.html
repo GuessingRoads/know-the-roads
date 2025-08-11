@@ -1323,6 +1323,10 @@ backTown?.addEventListener('click', () => {
   // 0) swap UI FIRST so the button changes even if later code fails
   currentLayerDepth = 2;
   updateBackButtonVisibility();
+  clearActiveHighlight();
+  if (typeof activeRoadName !== 'undefined') activeRoadName = null;
+  const gm = document.getElementById('guess-modal');
+  if (gm) gm.style.display = 'none';
 
   try {
     // 1) hide roads (non-destructive)
@@ -1435,6 +1439,10 @@ worldMask = L.geoJSON(maskFeature, {
       map.removeLayer(roadsLayerGroup);
     }
     clearHoverOverlay();
+  clearActiveHighlight();
+  if (typeof activeRoadName !== 'undefined') activeRoadName = null;
+  const gm = document.getElementById('guess-modal');
+  if (gm) gm.style.display = 'none';
 
     const tt = document.getElementById('custom-tooltip');
     if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
