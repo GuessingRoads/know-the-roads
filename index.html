@@ -527,6 +527,27 @@ function refreshRoadStylesFromState() {
     console.warn('refreshRoadStylesFromState error:', e);
   }
 }
+function clearActiveHighlight() {
+  if (!window.activeRoadName || !window.nameToLayers) return;
+  const layers = nameToLayers[activeRoadName] || [];
+  for (const l of layers) {
+    const id = String(l?.feature?.id ?? '');
+    const st = segmentStateMap?.get(id);
+
+    if (st?.correct) {
+      // your green “solved” style
+      l.setStyle({ color: '#00a65a' });
+      l.options.interactive = false;
+      const el = l._path; if (el) el.style.pointerEvents = 'none';
+    } else if (st?.used_hint) {
+      // optional: your orange “hint used” style
+      l.setStyle({ color: 'orange' });
+    } else {
+      // default idle style
+      l.setStyle({ color: 'black' });
+    }
+  }
+}
 
 
 async function checkLogin() {
