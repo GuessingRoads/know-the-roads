@@ -1282,6 +1282,9 @@ function setupBackButtons() {
       map.removeLayer(roadsLayerGroup);
     }
     clearHoverOverlay();
+    const tt = document.getElementById('custom-tooltip');
+    if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
+
 
     // 2) leave county state
     if (typeof insideManheim !== 'undefined') insideManheim = false;
