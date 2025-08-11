@@ -1234,96 +1234,110 @@ function setupBackButtons() {
     }
   }
 
-  // 🔙 Township → County
-  backTown?.addEventListener('click', () => {
-    currentLayerDepth = 2;
-    updateBackButtonVisibility();
+ // 🔙 Township → County
+backTown?.addEventListener('click', () => {
+  // 0) swap UI FIRST so the button changes even if later code fails
+  currentLayerDepth = 2;
+  updateBackButtonVisibility();
 
-    try {
-      if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
-        map.removeLayer(roadsLayerGroup);
+  try {
+    // 1) hide roads (non-destructive)
+    if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
+      map.removeLayer(roadsLayerGroup);
+    }
+
+    // 2) leave township state + restore township polygon interactivity
+    if (typeof insideManheim !== 'undefined') insideManheim = false;
+    if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
+      try {
+        townshipLayerRef.setStyle({
+          fillOpacity: 0.25,
+          weight: 1.5,
+          color: 'black',
+          opacity: 1
+        });
+        const p = townshipLayerRef._path;
+        if (p) {
+          p.style.pointerEvents = 'auto';
+          p.style.outline = '';
+        }
+      } catch (err) {
+        console.warn('Back(Township) restore township style error:', err);
+      }
+    }
+
+    // 2b) clear any hover overlay + tooltip
+    if (typeof hoverOverlay !== 'undefined' && hoverOverlay) {
+      map.removeLayer(hoverOverlay);
+      hoverOverlay = null;
+    }
+    const tt = document.getElementById('custom-tooltip');
+    if (tt) {
+      tt.style.display = 'none';
+      tt.innerText = '';
+    }
+
+    // 3) ZOOM FIRST (county bounds)
+    if (countyLayerRef) {
+      const b = countyLayerRef.getBounds();
+      if (b && b.isValid && b.isValid()) {
+        map.flyToBounds(b, { padding: [40, 40], maxZoom: 12 });
+      }
+    }
+
+    // 4) REAPPLY COUNTY MASK after zoom (slight delay to let view settle)
+    setTimeout(() => {
+      if (typeof insideLancaster !== 'undefined') insideLancaster = true;
+
+      // ensure pane exists
+      let pane = map.getPane('maskPane');
+      if (!pane) {
+        pane = map.createPane('maskPane');
+      }
+      pane.style.zIndex = 450;
+
+      // remove any existing mask
+      if (typeof worldMask !== 'undefined' && worldMask) {
+        map.removeLayer(worldMask);
+        worldMask = null;
       }
 
-      if (typeof insideManheim !== 'undefined') insideManheim = false;
-      if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
+      // get a reliable county feature
+      let countyFeature = countyFeatureRef || null;
+      if (!countyFeature && countyLayerRef) {
         try {
-          townshipLayerRef.setStyle({ fillOpacity: 0.25, weight: 1.5, color: 'black', opacity: 1 });
-          const p = townshipLayerRef._path;
-          if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
-        } catch {}
-      }
-
-      const tt = document.getElementById('custom-tooltip');
-      if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
-      clearHoverOverlay();
-
-      if (countyLayerRef) {
-        const b = countyLayerRef.getBounds();
-        if (b && b.isValid && b.isValid()) {
-          map.flyToBounds(b, { padding: [40, 40], maxZoom: 12 });
+          const fc = countyLayerRef.toGeoJSON();
+          if (fc && fc.type === 'FeatureCollection' && fc.features.length) {
+            countyFeature = fc.features[0];
+          }
+        } catch (err) {
+          console.warn('Back(Township) toGeoJSON fallback failed:', err);
         }
       }
 
-      setTimeout(() => {
-  // we are back inside the county layer
-  if (typeof insideLancaster !== 'undefined') insideLancaster = true;
-
-  // ensure pane exists and is above tiles/roads
-  let pane = map.getPane('maskPane');
-  if (!pane) {
-    pane = map.createPane('maskPane');
-  }
-  pane.style.zIndex = 450; // higher than tiles; adjust if you have custom panes
-
-  // remove existing mask if any
-  if (typeof worldMask !== 'undefined' && worldMask) {
-    map.removeLayer(worldMask);
-    worldMask = null;
-  }
-
-  // get a reliable county feature
-  let countyFeature = countyFeatureRef || null;
-  if (!countyFeature && countyLayerRef) {
-  // fallback: first feature from the county layer
-  try {
-    const fc = countyLayerRef.toGeoJSON();
-    if (fc && fc.type === 'FeatureCollection' && fc.features.length) {
-      countyFeature = fc.features[0];
-    }
-  } catch (err) {
-    // ignore
-  }
-}
-
-
-  if (!countyFeature) {
-    console.warn('Back(Township): missing countyFeatureRef; mask not reapplied.');
-    return;
-  }
-
-  try {
-    worldMask = L.geoJSON(createWorldMask(countyFeature), {
-      pane: 'maskPane',
-      style: {
-        fillColor: '#cccccc',
-        fillOpacity: 0.7,
-        stroke: false
+      if (!countyFeature) {
+        console.warn('Back(Township): missing countyFeatureRef; mask not reapplied.');
+        return;
       }
-    }).addTo(map);
 
-    // ignore pointer events
-    worldMask.eachLayer(l => {
-      const el = l.getElement();
-      if (el) el.style.pointerEvents = 'none';
-    });
+      try {
+        worldMask = L.geoJSON(createWorldMask(countyFeature), {
+          pane: 'maskPane',
+          style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
+        }).addTo(map);
 
-    // sanity log
-    // console.log('Back(Township): mask reapplied.');
-  } catch (e) {
-    console.warn('Back(Township): failed to build mask:', e);
+        worldMask.eachLayer(l => {
+          const el = l.getElement();
+          if (el) el.style.pointerEvents = 'none';
+        });
+      } catch (err) {
+        console.warn('Back(Township): failed to build mask:', err);
+      }
+    }, 150);
+  } catch (err) {
+    console.warn('Back(Township) handler error (non-fatal):', err);
   }
-}, 150);
-
+});
 
   // 🔙 County → Outside county (world/state)
   backCounty?.addEventListener('click', () => {
