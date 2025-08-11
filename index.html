@@ -1235,8 +1235,13 @@ function setupBackButtons() {
     }
   }
 
-  // Township ➜ County
-  backTown?.addEventListener('click', () => {
+  // 🔙 Township → County
+backTown?.addEventListener('click', () => {
+  // 0) swap UI FIRST so the button changes even if later code fails
+  if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 2;
+  updateBackButtonVisibility();
+
+  try {
     // 1) hide roads (non-destructive)
     if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
       map.removeLayer(roadsLayerGroup);
@@ -1251,7 +1256,14 @@ function setupBackButtons() {
         if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
       } catch {}
     }
-    clearHoverOverlay();
+
+    // 2b) clear any hover overlay + tooltip
+    if (typeof hoverOverlay !== 'undefined' && hoverOverlay) {
+      map.removeLayer(hoverOverlay);
+      hoverOverlay = null;
+    }
+    const tt = document.getElementById('custom-tooltip');
+    if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
 
     // 3) reapply county mask
     if (typeof worldMask !== 'undefined' && worldMask) {
@@ -1269,11 +1281,11 @@ function setupBackButtons() {
     if (typeof countyLayerRef !== 'undefined' && countyLayerRef) {
       map.fitBounds(countyLayerRef.getBounds());
     }
+  } catch (err) {
+    console.warn('Back(Township) handler error (non-fatal):', err);
+  }
+});
 
-    // 5) depth/visibility
-    if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 2;
-    updateBackButtonVisibility();
-  });
 
   // County ➜ Outside county (world/state)
  backCounty?.addEventListener('click', () => {
