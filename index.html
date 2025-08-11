@@ -1276,43 +1276,50 @@ function setupBackButtons() {
   });
 
   // County ➜ Outside county (world/state)
-  backCounty?.addEventListener('click', () => {
-    // 1) hide roads (just in case)
-    if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
-      map.removeLayer(roadsLayerGroup);
-    }
-    clearHoverOverlay();
-    const tt = document.getElementById('custom-tooltip');
-    if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
+ backCounty?.addEventListener('click', () => {
+  // 1) hide roads
+  if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
+    map.removeLayer(roadsLayerGroup);
+  }
+  clearHoverOverlay();
 
+  // 🔒 hide/clear any tooltip
+  const tt = document.getElementById('custom-tooltip');
+  if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
 
-    // 2) leave county state
-    if (typeof insideManheim !== 'undefined') insideManheim = false;
-    if (typeof insideLancaster !== 'undefined') insideLancaster = false;
+  // ✅ remove township polygon from the map when leaving the county view
+  if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef && map.hasLayer(townshipLayerRef)) {
+    try { map.removeLayer(townshipLayerRef); } catch {}
+    // optional: keep the ref for later; it will be re-created on next county click anyway
+  }
 
-    // 3) restore county polygon interactivity/opacity
-    if (typeof countyLayerRef !== 'undefined' && countyLayerRef) {
-      countyLayerRef.eachLayer(l => {
-        try {
-          l.setStyle({ fillOpacity: 0.7 });
-          const p = l._path;
-          if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
-        } catch {}
-      });
-    }
+  // 2) leave county state
+  insideManheim = false;
+  insideLancaster = false;
 
-    // 4) remove mask and zoom out a bit (use your preferred default view)
-    if (typeof worldMask !== 'undefined' && worldMask) {
-      map.removeLayer(worldMask);
-      worldMask = null;
-    }
-    // fallback view — tweak if you have an init center/zoom handy
-    map.setView([40.09, -76.3], 10);
+  // 3) restore county polygon interactivity/opacity
+  if (countyLayerRef) {
+    countyLayerRef.eachLayer(l => {
+      try {
+        l.setStyle({ fillOpacity: 0.7 });
+        const p = l._path;
+        if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+      } catch {}
+    });
+  }
 
-    // 5) depth/visibility
-    if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 1;
-    updateBackButtonVisibility();
-  });
+  // 4) remove mask + zoom out
+  if (worldMask) {
+    map.removeLayer(worldMask);
+    worldMask = null;
+  }
+  map.setView([40.09, -76.3], 10);
+
+  // 5) depth/visibility
+  currentLayerDepth = 1;
+  updateBackButtonVisibility();
+});
+
 }
 
 
