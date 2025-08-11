@@ -506,6 +506,27 @@ function animateIncorrectSegments(segments, delay = 60) {
     }, index * delay);
   });
 }
+function refreshRoadStylesFromState() {
+  if (!window.nameToLayers || !window.segmentStateMap) return;
+  try {
+    const all = Object.values(nameToLayers).flat();
+    for (const l of all) {
+      const id = String(l?.feature?.id ?? '');
+      if (!id) continue;
+      const st = segmentStateMap.get(id);
+
+      if (st?.correct) {
+        // apply your “correct-green” look and disable interaction
+        l.setStyle({ color: '#00a65a' }); // match your correct color
+        l.options.interactive = false;
+        const el = l._path;
+        if (el) el.style.pointerEvents = 'none';
+      }
+    }
+  } catch (e) {
+    console.warn('refreshRoadStylesFromState error:', e);
+  }
+}
 
 
 async function checkLogin() {
