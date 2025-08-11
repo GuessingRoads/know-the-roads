@@ -1265,47 +1265,62 @@ function setupBackButtons() {
       }
 
       setTimeout(() => {
-        if (typeof insideLancaster !== 'undefined') insideLancaster = true;
+  // we are back inside the county layer
+  if (typeof insideLancaster !== 'undefined') insideLancaster = true;
 
-        if (!map.getPane('maskPane')) {
-          map.createPane('maskPane');
-          map.getPane('maskPane').style.zIndex = 200;
-        }
+  // ensure pane exists and is above tiles/roads
+  let pane = map.getPane('maskPane');
+  if (!pane) {
+    pane = map.createPane('maskPane');
+  }
+  pane.style.zIndex = 450; // higher than tiles; adjust if you have custom panes
 
-        if (typeof worldMask !== 'undefined' && worldMask) {
-          map.removeLayer(worldMask);
-          worldMask = null;
-        }
+  // remove existing mask if any
+  if (typeof worldMask !== 'undefined' && worldMask) {
+    map.removeLayer(worldMask);
+    worldMask = null;
+  }
 
-        let countyGeo = null;
-        if (countyLayerRef && typeof countyLayerRef.toGeoJSON === 'function') {
-          countyGeo = countyLayerRef.toGeoJSON();
-        } else if (countyFeatureRef) {
-          countyGeo = countyFeatureRef;
-        }
+  // get a reliable county feature
+  let countyFeature = countyFeatureRef || null;
+  if (!countyFeature && countyLayerRef) {
+    // fallback: first feature from the county layer
+    try {
+      const fc = countyLayerRef.toGeoJSON();
+      if (fc && fc.type === 'FeatureCollection' && fc.features.length) {
+        countyFeature = fc.features[0];
+      }
+    } catch {}
+  }
 
-        const countyFeature =
-          countyGeo && countyGeo.type === 'FeatureCollection'
-            ? countyGeo.features[0]
-            : (countyGeo && countyGeo.type === 'Feature' ? countyGeo : null);
+  if (!countyFeature) {
+    console.warn('Back(Township): missing countyFeatureRef; mask not reapplied.');
+    return;
+  }
 
-        if (countyFeature) {
-          worldMask = L.geoJSON(createWorldMask(countyFeature), {
-            style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
-          }).addTo(map);
+  try {
+    worldMask = L.geoJSON(createWorldMask(countyFeature), {
+      pane: 'maskPane',
+      style: {
+        fillColor: '#cccccc',
+        fillOpacity: 0.7,
+        stroke: false
+      }
+    }).addTo(map);
 
-          worldMask.eachLayer(l => {
-            const el = l.getElement();
-            if (el) el.style.pointerEvents = 'none';
-          });
-        } else {
-          console.warn('Back(Township): could not normalize county geometry for mask.');
-        }
-      }, 150);
-    } catch (err) {
-      console.warn('Back(Township) handler error (non-fatal):', err);
-    }
-  });
+    // ignore pointer events
+    worldMask.eachLayer(l => {
+      const el = l.getElement();
+      if (el) el.style.pointerEvents = 'none';
+    });
+
+    // sanity log
+    // console.log('Back(Township): mask reapplied.');
+  } catch (e) {
+    console.warn('Back(Township): failed to build mask:', e);
+  }
+}, 150);
+
 
   // 🔙 County → Outside county (world/state)
   backCounty?.addEventListener('click', () => {
