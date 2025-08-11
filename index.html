@@ -842,34 +842,45 @@ async function loadMap() {
               opacity: 0,
               pane: 'clickable-buffer'
             },
-            onEachFeature: function (_, bufLayer) {
-  // 🆔 Figure out which road segment this buffer belongs to
-  const segId = String(layer?.feature?.id ?? '');
+            onEachFeature: function (feature, bufLayer) {
+  // 🆔 Match this buffer feature to the real road segment
+  const segId = String(feature?.id ?? '');
   const state = segmentStateMap.get(segId);
 
-  // 🚫 If this segment is already solved (green/orange), don’t let it activate blue
+  // 🚫 If already solved (green/orange), don't allow blue activation
   if (state?.correct || state?.used_hint) return;
 
-  // 🔵 When clicked, clear any prior blue highlight before activating this one
+  // 🔵 Click → clear prior blue highlight, reset active name, forward to road layer
   bufLayer.on('click', () => {
     if (typeof clearActiveHighlight === 'function') clearActiveHighlight();
     if (typeof activeRoadName !== 'undefined') activeRoadName = null;
 
-    // Forward click to the actual road layer so your guess modal opens
-    layer.fire('click');
+    // Find and fire click on the actual visible road layer for this segId
+    const linkedLayer = nameToLayersById?.[segId]?.[0];
+    if (linkedLayer) {
+      linkedLayer.fire('click');
+    }
   });
 
+  // Forward hover events to the actual road layer
   bufLayer.on('mouseover', () => {
-    layer.fire('mouseover');
+    const linkedLayer = nameToLayersById?.[segId]?.[0];
+    if (linkedLayer) {
+      linkedLayer.fire('mouseover');
+    }
   });
 
   bufLayer.on('mouseout', () => {
-    layer.fire('mouseout');
+    const linkedLayer = nameToLayersById?.[segId]?.[0];
+    if (linkedLayer) {
+      linkedLayer.fire('mouseout');
+    }
   });
 }
 });
 buffer.addTo(map);
-roadsBufferGroup = buffer;   // ✅ keep reference for later removal
+roadsBufferGroup = buffer;   // ✅ keep reference for removal/re-add
+
 
 
 
