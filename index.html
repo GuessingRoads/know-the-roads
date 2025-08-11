@@ -914,7 +914,6 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
           const tooltip = document.getElementById('custom-tooltip');
           tooltip.style.display = 'none';
         });
-countyLayerRef = countyLayer;
         layer.on('click', function () {
           map.fitBounds(layer.getBounds());
           currentLayerDepth = 2;
@@ -1080,6 +1079,7 @@ worldMask.eachLayer(layer => {
         });
       }
     }).addTo(map);
+    countyLayerRef = countyLayer; // <-- put this right here
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
