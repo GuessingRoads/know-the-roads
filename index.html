@@ -548,6 +548,38 @@ function clearActiveHighlight() {
     }
   }
 }
+function normalizeAllRoadStyles() {
+  try {
+    const group = roadsLayerGroup;
+    if (!group || typeof group.eachLayer !== 'function') return;
+
+    group.eachLayer(l => {
+      const id = String(l?.feature?.id ?? '');
+      const st = segmentStateMap?.get(id);
+
+      if (st?.correct) {
+        // solved = green + inert
+        l.setStyle({ color: '#00a65a' });  // use your exact green
+        l.options.interactive = false;
+        const el = l._path; if (el) el.style.pointerEvents = 'none';
+      } else if (st?.used_hint) {
+        // hint used = orange (if you use this)
+        l.setStyle({ color: 'orange' });
+        l.options.interactive = true;
+        const el = l._path; if (el) el.style.pointerEvents = 'auto';
+      } else {
+        // unsolved default = black
+        l.setStyle({ color: 'black' });
+        l.options.interactive = true;
+        const el = l._path; if (el) el.style.pointerEvents = 'auto';
+      }
+      // clear any lingering "active" marker you might set elsewhere
+      l._isActive = false;
+    });
+  } catch (e) {
+    console.warn('normalizeAllRoadStyles error:', e);
+  }
+}
 
 
 async function checkLogin() {
