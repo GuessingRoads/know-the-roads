@@ -843,21 +843,35 @@ async function loadMap() {
               pane: 'clickable-buffer'
             },
             onEachFeature: function (_, bufLayer) {
-              const state = segmentStateMap.get(id);
-              if (state?.correct || state?.used_hint) return;
-              bufLayer.on('click', () => {
-                layer.fire('click');
-              });
-              bufLayer.on('mouseover', () => {
-                layer.fire('mouseover');
-              });
-              bufLayer.on('mouseout', () => {
-                layer.fire('mouseout');
-              });
-            }
-          });
-          buffer.addTo(map);
-roadsBufferGroup = buffer;   // ✅ save a handle to the buffer group
+  // 🆔 Figure out which road segment this buffer belongs to
+  const segId = String(layer?.feature?.id ?? '');
+  const state = segmentStateMap.get(segId);
+
+  // 🚫 If this segment is already solved (green/orange), don’t let it activate blue
+  if (state?.correct || state?.used_hint) return;
+
+  // 🔵 When clicked, clear any prior blue highlight before activating this one
+  bufLayer.on('click', () => {
+    if (typeof clearActiveHighlight === 'function') clearActiveHighlight();
+    if (typeof activeRoadName !== 'undefined') activeRoadName = null;
+
+    // Forward click to the actual road layer so your guess modal opens
+    layer.fire('click');
+  });
+
+  bufLayer.on('mouseover', () => {
+    layer.fire('mouseover');
+  });
+
+  bufLayer.on('mouseout', () => {
+    layer.fire('mouseout');
+  });
+}
+});
+buffer.addTo(map);
+roadsBufferGroup = buffer;   // ✅ keep reference for later removal
+
+
 
 
           // Hover effect
