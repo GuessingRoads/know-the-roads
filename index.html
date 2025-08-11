@@ -1224,8 +1224,48 @@ function updateBackButtonVisibility() {
   }
 }
 function setupBackButtons() {
-  const backTown   = document.getElementById('back-township-btn');
+  const backTown  = document.getElementById('back-township-btn');
   const backCounty = document.getElementById('back-county-btn');
+
+// Local helper to build the "world mask" with a hole for the county
+function buildMaskFeature(countyFeature) {
+  if (!countyFeature || !countyFeature.geometry) return null;
+
+  // Big rectangle representing the world
+  const worldRing = [
+    [-179.9999, -89.9999],
+    [-179.9999,  89.9999],
+    [ 179.9999,  89.9999],
+    [ 179.9999, -89.9999],
+    [-179.9999, -89.9999]
+  ];
+
+  // County rings (holes)
+  const holes = [];
+  const geom = countyFeature.geometry;
+
+  if (geom.type === 'Polygon') {
+    if (geom.coordinates && geom.coordinates[0]) {
+      holes.push(geom.coordinates[0]);
+    }
+  } else if (geom.type === 'MultiPolygon') {
+    for (const poly of geom.coordinates || []) {
+      if (poly && poly[0]) holes.push(poly[0]);
+    }
+  } else {
+    return null;
+  }
+
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Polygon',
+      coordinates: [worldRing, ...holes]
+    }
+  };
+}
+
 
   function clearHoverOverlay() {
     if (typeof hoverOverlay !== 'undefined' && hoverOverlay) {
@@ -1321,7 +1361,13 @@ backTown?.addEventListener('click', () => {
       }
 
       try {
-        worldMask = L.geoJSON(createWorldMask(countyFeature), {
+        const maskFeature = buildMaskFeature(countyFeature);
+if (!maskFeature) {
+  console.warn('Back(Township): could not build mask feature.');
+  return;
+}
+worldMask = L.geoJSON(maskFeature, {
+
           pane: 'maskPane',
           style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
         }).addTo(map);
