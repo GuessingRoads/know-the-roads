@@ -1021,13 +1021,15 @@ mtLayer.on('mouseout', function () {
 
 
                     mtLayer.on('click', () => {
-  map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
-  console.log("📍 Manheim Township clicked");
-                      currentLayerDepth = 2;
-updateBackButtonVisibility();
-insideManheim = true;
+ map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
+console.log("📍 Manheim Township clicked");
 
-                      mtLayer.unbindTooltip();
+insideManheim = true;     // now inside a township
+currentLayerDepth = 3;    // township/roads view
+updateBackButtonVisibility();
+
+mtLayer.unbindTooltip();
+
 
 
   // 🔒 Disable interaction and fade MT polygon
