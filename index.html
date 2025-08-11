@@ -1483,6 +1483,9 @@ worldMask = L.geoJSON(maskFeature, {
     if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
       map.removeLayer(roadsLayerGroup);
     }
+    if (roadsBufferGroup && map.hasLayer(roadsBufferGroup)) {
+    map.removeLayer(roadsBufferGroup);             // ← add this line here
+  }
     clearHoverOverlay();
   clearActiveHighlight();
   if (typeof activeRoadName !== 'undefined') activeRoadName = null;
