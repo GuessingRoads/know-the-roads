@@ -1284,14 +1284,17 @@ function setupBackButtons() {
   // get a reliable county feature
   let countyFeature = countyFeatureRef || null;
   if (!countyFeature && countyLayerRef) {
-    // fallback: first feature from the county layer
-    try {
-      const fc = countyLayerRef.toGeoJSON();
-      if (fc && fc.type === 'FeatureCollection' && fc.features.length) {
-        countyFeature = fc.features[0];
-      }
-    } catch {}
+  // fallback: first feature from the county layer
+  try {
+    const fc = countyLayerRef.toGeoJSON();
+    if (fc && fc.type === 'FeatureCollection' && fc.features.length) {
+      countyFeature = fc.features[0];
+    }
+  } catch (err) {
+    // ignore
   }
+}
+
 
   if (!countyFeature) {
     console.warn('Back(Township): missing countyFeatureRef; mask not reapplied.');
