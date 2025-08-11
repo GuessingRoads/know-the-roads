@@ -1111,6 +1111,9 @@ worldMask.eachLayer(layer => {
   if (el) el.style.pointerEvents = 'none';
 });
 
+if (typeof activeRoadName !== 'undefined') activeRoadName = null;
+clearActiveHighlight();
+setTimeout(refreshRoadStylesFromState, 0); // keep this after adding roads
 
   // ✅ Show roads after MT is clicked
   map.addLayer(roadsLayerGroup);
