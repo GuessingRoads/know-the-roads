@@ -1375,6 +1375,9 @@ backTown?.addEventListener('click', () => {
     if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
       map.removeLayer(roadsLayerGroup);
     }
+    if (roadsBufferGroup && map.hasLayer(roadsBufferGroup)) {
+      map.removeLayer(roadsBufferGroup);           // ← add this line here
+    }
 
     // 2) leave township state + restore township polygon interactivity
     if (typeof insideManheim !== 'undefined') insideManheim = false;
