@@ -564,22 +564,22 @@ function normalizeAllRoadStyles() {
 
       if (st?.correct) {
         // solved = green + inert
-        l.setStyle({ color: '#00a65a' });  // use your exact green
+        l.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1 });
         l.options.interactive = false;
         const el = l._path; if (el) el.style.pointerEvents = 'none';
       } else if (st?.used_hint) {
-        // hint used = orange (if you use this)
-        l.setStyle({ color: 'orange' });
+        // hint used = orange + clickable
+        l.setStyle({ color: 'orange', weight: WEIGHT_DEFAULT, opacity: 1 });
         l.options.interactive = true;
         const el = l._path; if (el) el.style.pointerEvents = 'auto';
       } else {
-        // unsolved default = black
-        l.setStyle({ color: 'black' });
+        // unsolved = black + clickable
+        l.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: 1 });
         l.options.interactive = true;
         const el = l._path; if (el) el.style.pointerEvents = 'auto';
       }
-      // clear any lingering "active" marker you might set elsewhere
-      l._isActive = false;
+
+      l._isActive = false; // clear any leftover active flag
     });
   } catch (e) {
     console.warn('normalizeAllRoadStyles error:', e);
