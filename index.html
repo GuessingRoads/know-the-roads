@@ -857,6 +857,8 @@ async function loadMap() {
             }
           });
           buffer.addTo(map);
+roadsBufferGroup = buffer;   // ✅ save a handle to the buffer group
+
 
           // Hover effect
           layer.on('mouseover', function () {
