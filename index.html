@@ -953,48 +953,54 @@ if (el) el.classList.remove('hover-green');
           });
 
           layer.on('click', function () {
-  const id = feature.id;
-  if (!insideLancaster) return;
+            const id = feature.id;
+            if (!insideLancaster) return;
+            const state = segmentStateMap.get(id);
+            if (state?.correct || state?.used_hint) return;
 
-  // 🚫 Don’t activate if this segment is already solved/hint-solved
-  const state = segmentStateMap.get(id);
-  if (state?.correct || state?.used_hint) return;
+            if (activeRoadName && nameToLayers[activeRoadName]) {
+              for (const l of nameToLayers[activeRoadName]) {
+                const segmentId = String(l.feature.id);
+                const s = segmentStateMap.get(segmentId);
+                if (s?.correct) {
+                  l._path?.classList.add('correct-final');
+                } else if (s?.used_hint) {
+                  l._path?.classList.add('hint-used-final');
+                } else if (s?.incorrect) {
+                  l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+                  l._originalColor = 'red';
+                } else {
+                  l.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
+                  l._originalColor = 'black';
+                }
+              }
+            }
 
-  // 🔵 Clear any prior active-blue selection first (resets colors & weights)
-  if (typeof clearActiveHighlight === 'function') clearActiveHighlight();
-  if (typeof activeRoadName !== 'undefined') activeRoadName = null;
-
-  // 🔵 Mark this road name as the new active selection (blue + active weight)
-  activeRoadName = name; // assumes `name` was defined above in onEachFeature
-  const layersForName = nameToLayers[name] || [];
-  for (const l of layersForName) {
-    const sid = String(l.feature.id);
-    const s = segmentStateMap.get(sid);
-
-    // Never overpaint solved/hint segments
-    if (s?.correct || s?.used_hint) continue;
-
-    l.setStyle({ color: '#1e90ff', weight: WEIGHT_ACTIVE, opacity: 1 });
-    l._originalColor = 'blue';
-    l._isActive = true;
-
-    // ensure interactive while active
-    l.options.interactive = true;
-    const el = l._path; if (el) el.style.pointerEvents = 'auto';
+            for (const l of nameToLayers[name] || []) {
+  const sid = String(l.feature.id);
+  const s = segmentStateMap.get(sid);
+  if (!s || (!s.correct && !s.used_hint)) {
+    l.setStyle({ color: '#00ccff', weight: 8, pane: 'hiddenRoads' });
+    l._originalColor = 'blue'; // Optional: update originalColor if needed
   }
+}
 
-  // ▶️ keep your existing modal + bookkeeping
-  currentRoad = { name, id, attempts: 0, layer };
-  interactionCount++;
 
-  const modal = document.getElementById('guess-modal');
-  if (modal) modal.style.display = 'block';
-  const input = document.getElementById('guess-input');
-  if (input) input.value = '';
-  const fb = document.getElementById('feedback-message');
-  if (fb) fb.innerText = '';
-  if (input) input.focus();
-});
+            activeRoadName = name;
+            currentRoad = { name, id, attempts: 0, layer };
+            interactionCount++;
+
+            document.getElementById('guess-modal').style.display = 'block';
+            document.getElementById('guess-input').value = '';
+            document.getElementById('feedback-message').innerText = '';
+            document.getElementById('guess-input').focus();
+          });
+        }
+      });
+
+      roadsLayerGroup.addLayer(roadLayer);
+      });
+    };
 
 
 
