@@ -1270,95 +1270,94 @@ backTown?.addEventListener('click', () => {
       map.removeLayer(hoverOverlay);
       hoverOverlay = null;
     }
-    const tt = document.getElementById('custom-tooltip');
-    if (tt) {
-      tt.style.display = 'none';
-      tt.innerText = '';
+    {
+      const tt = document.getElementById('custom-tooltip');
+      if (tt) {
+        tt.style.display = 'none';
+        tt.innerText = '';
+      }
     }
 
     // 3) ZOOM FIRST (county bounds)
     if (countyLayerRef) {
       const b = countyLayerRef.getBounds();
       if (b && b.isValid && b.isValid()) {
-        // Smooth animated zoom
         map.flyToBounds(b, { padding: [40, 40], maxZoom: 12 });
         // Or: map.fitBounds(b, { padding: [40, 40], maxZoom: 12 });
       }
     }
 
-   // 4) REAPPLY COUNTY MASK after zoom (slight delay to let view settle)
-setTimeout(() => {
-  // we are back inside the county layer
-  if (typeof insideLancaster !== 'undefined') insideLancaster = true;
+    // 4) REAPPLY COUNTY MASK after zoom (slight delay to let view settle)
+    setTimeout(() => {
+      if (typeof insideLancaster !== 'undefined') insideLancaster = true;
 
-  // ensure pane exists (once is fine; calling again is harmless)
-  if (!map.getPane('maskPane')) {
-    map.createPane('maskPane');
-    map.getPane('maskPane').style.zIndex = 200;
+      if (!map.getPane('maskPane')) {
+        map.createPane('maskPane');
+        map.getPane('maskPane').style.zIndex = 200;
+      }
+
+      if (typeof worldMask !== 'undefined' && worldMask) {
+        map.removeLayer(worldMask);
+        worldMask = null;
+      }
+
+      let countyGeo = null;
+      if (countyLayerRef && typeof countyLayerRef.toGeoJSON === 'function') {
+        countyGeo = countyLayerRef.toGeoJSON(); // may be a FeatureCollection
+      } else if (countyFeatureRef) {
+        countyGeo = countyFeatureRef; // fallback
+      }
+
+      if (countyGeo) {
+        const countyFeature =
+          countyGeo.type === 'FeatureCollection'
+            ? countyGeo.features[0]
+            : (countyGeo.type === 'Feature' ? countyGeo : null);
+
+        if (countyFeature) {
+          worldMask = L.geoJSON(createWorldMask(countyFeature), {
+            style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+          }).addTo(map);
+
+          worldMask.eachLayer(l => {
+            const el = l.getElement();
+            if (el) el.style.pointerEvents = 'none';
+          });
+        } else {
+          console.warn('Back(Township): could not normalize county geometry for mask.');
+        }
+      } else {
+        console.warn('Back(Township): county geometry missing; no mask reapplied.');
+      }
+    }, 150);
+
+  } catch (err) {
+    console.warn('Back(Township) handler error (non-fatal):', err);
   }
+}); // ⬅ closes backTown addEventListener
 
-  // remove any existing mask
-  if (typeof worldMask !== 'undefined' && worldMask) {
-    map.removeLayer(worldMask);
-    worldMask = null;
-  }
-
-  // build the mask from the full county geometry (most reliable)
-  let countyGeo = null;
-  if (countyLayerRef && typeof countyLayerRef.toGeoJSON === 'function') {
-    countyGeo = countyLayerRef.toGeoJSON(); // may be a FeatureCollection
-  } else if (countyFeatureRef) {
-    countyGeo = countyFeatureRef; // fallback
-  }
-
-  if (countyGeo) {
-    // normalize to a single Feature for createWorldMask
-    const countyFeature =
-      countyGeo.type === 'FeatureCollection'
-        ? countyGeo.features[0]
-        : (countyGeo.type === 'Feature' ? countyGeo : null);
-
-    if (countyFeature) {
-      worldMask = L.geoJSON(createWorldMask(countyFeature), {
-        style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
-      }).addTo(map);
-
-      // ignore pointer events
-      worldMask.eachLayer(l => {
-        const el = l.getElement();
-        if (el) el.style.pointerEvents = 'none';
-      });
-    } else {
-      console.warn('Back(Township): could not normalize county geometry for mask.');
-    }
-  } else {
-    console.warn('Back(Township): county geometry missing; no mask reapplied.');
-  }
-}, 150);
-
-
-
-  // County ➜ Outside county (world/state)
- backCounty?.addEventListener('click', () => {
+// 🔙 County ➜ Outside county (world/state)
+backCounty?.addEventListener('click', () => {
   // 1) hide roads
   if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
     map.removeLayer(roadsLayerGroup);
   }
-  clearHoverOverlay();
+  clearHoverOverlay?.();
 
   // 🔒 hide/clear any tooltip
-  const tt = document.getElementById('custom-tooltip');
-  if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
+  {
+    const tt = document.getElementById('custom-tooltip');
+    if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
+  }
 
   // ✅ remove township polygon from the map when leaving the county view
   if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef && map.hasLayer(townshipLayerRef)) {
     try { map.removeLayer(townshipLayerRef); } catch {}
-    // optional: keep the ref for later; it will be re-created on next county click anyway
   }
 
   // 2) leave county state
-  insideManheim = false;
-  insideLancaster = false;
+  if (typeof insideManheim !== 'undefined') insideManheim = false;
+  if (typeof insideLancaster !== 'undefined') insideLancaster = false;
 
   // 3) restore county polygon interactivity/opacity
   if (countyLayerRef) {
@@ -1372,18 +1371,16 @@ setTimeout(() => {
   }
 
   // 4) remove mask + zoom out
-  if (worldMask) {
+  if (typeof worldMask !== 'undefined' && worldMask) {
     map.removeLayer(worldMask);
     worldMask = null;
   }
   map.setView([40.09, -76.3], 10);
 
   // 5) depth/visibility
-  currentLayerDepth = 1;
+  if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 1;
   updateBackButtonVisibility();
-});
-
-}
+}); // ⬅ closes backCounty addEventListener
 
 
 
