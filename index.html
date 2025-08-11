@@ -396,6 +396,10 @@ let countyLayerRef = null;    // L.GeoJSON of the county boundary layer
 let townshipLayerRef = null;  // L.Layer for the active township polygon
 let countyFeatureRef = null;  // GeoJSON Feature for county (for mask)
 let townshipFeatureRef = null; // GeoJSON Feature for township (for mask)
+const WEIGHT_DEFAULT = 4;   // unsolved idle
+const WEIGHT_ACTIVE  = 6;   // blue “active” selection
+const WEIGHT_SOLVED  = 6;   // green solved (match your current green thickness)
+
 
 
 
