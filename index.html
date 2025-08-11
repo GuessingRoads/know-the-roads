@@ -1235,10 +1235,10 @@ function setupBackButtons() {
     }
   }
 
-  // 🔙 Township → County
+// 🔙 Township → County
 backTown?.addEventListener('click', () => {
   // 0) swap UI FIRST so the button changes even if later code fails
-  if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 2;
+  currentLayerDepth = 2;
   updateBackButtonVisibility();
 
   try {
@@ -1251,9 +1251,17 @@ backTown?.addEventListener('click', () => {
     if (typeof insideManheim !== 'undefined') insideManheim = false;
     if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
       try {
-        townshipLayerRef.setStyle({ fillOpacity: 0.25, weight: 1.5, color: 'black', opacity: 1 });
+        townshipLayerRef.setStyle({
+          fillOpacity: 0.25,
+          weight: 1.5,
+          color: 'black',
+          opacity: 1
+        });
         const p = townshipLayerRef._path;
-        if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+        if (p) {
+          p.style.pointerEvents = 'auto';
+          p.style.outline = '';
+        }
       } catch {}
     }
 
@@ -1263,28 +1271,48 @@ backTown?.addEventListener('click', () => {
       hoverOverlay = null;
     }
     const tt = document.getElementById('custom-tooltip');
-    if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
-
-    // 3) reapply county mask
-    if (typeof worldMask !== 'undefined' && worldMask) {
-      map.removeLayer(worldMask);
-      worldMask = null;
-    }
-    if (typeof countyFeatureRef !== 'undefined' && countyFeatureRef) {
-      worldMask = L.geoJSON(createWorldMask(countyFeatureRef), {
-        style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
-      }).addTo(map);
-      worldMask.eachLayer(l => { const el = l.getElement(); if (el) el.style.pointerEvents = 'none'; });
+    if (tt) {
+      tt.style.display = 'none';
+      tt.innerText = '';
     }
 
-    // 4) zoom to county
-    if (typeof countyLayerRef !== 'undefined' && countyLayerRef) {
-      map.fitBounds(countyLayerRef.getBounds());
+    // 3) ZOOM FIRST (county bounds)
+    if (countyLayerRef) {
+      const b = countyLayerRef.getBounds();
+      if (b && b.isValid && b.isValid()) {
+        // Smooth animated zoom
+        map.flyToBounds(b, { padding: [40, 40], maxZoom: 12 });
+        // Or: map.fitBounds(b, { padding: [40, 40], maxZoom: 12 });
+      }
     }
+
+    // 4) REAPPLY COUNTY MASK after zoom (slight delay to let view settle)
+    setTimeout(() => {
+      if (typeof worldMask !== 'undefined' && worldMask) {
+        map.removeLayer(worldMask);
+        worldMask = null;
+      }
+      if (typeof countyFeatureRef !== 'undefined' && countyFeatureRef) {
+        worldMask = L.geoJSON(createWorldMask(countyFeatureRef), {
+          style: {
+            fillColor: '#cccccc',
+            fillOpacity: 0.7,
+            stroke: false,
+            pane: 'maskPane'
+          }
+        }).addTo(map);
+
+        worldMask.eachLayer(l => {
+          const el = l.getElement();
+          if (el) el.style.pointerEvents = 'none';
+        });
+      }
+    }, 150);
   } catch (err) {
     console.warn('Back(Township) handler error (non-fatal):', err);
   }
 });
+
 
 
   // County ➜ Outside county (world/state)
