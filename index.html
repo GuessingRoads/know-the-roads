@@ -891,15 +891,17 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
   .then(data => {
     const countyLayer = L.geoJSON(data, {
+      countyLayerRef = countyLayer;
+
       style: {
         color: 'black',
         weight: 1.5,
         fillColor: '#cccccc',
         fillOpacity: 0.7,
         pane: 'countyPolygon'
-      },
-
+      }
       onEachFeature: function (feature, layer) {
+        countyFeatureRef = feature;
         layer.on('mouseover', function () {
           if (insideLancaster) return;
           const tooltip = document.getElementById('custom-tooltip');
@@ -965,6 +967,8 @@ updateBackButtonVisibility();
                     fillOpacity: 0.25
                   },
                   onEachFeature: (feature, mtLayer) => {
+                    townshipLayerRef = mtLayer;
+                    townshipFeatureRef = feature;
                     mtLayer.on('mouseover', function () {
   if (insideManheim) return;
 
@@ -1218,6 +1222,72 @@ function updateBackButtonVisibility() {
       if (backCounty) backCounty.style.display = 'flex';
     }
   }
+}
+function setupBackButtons() {
+  const backTown   = document.getElementById('back-township-btn');
+  const backCounty = document.getElementById('back-county-btn');
+
+  // Minimal, non-destructive "hide roads": disable clicks.
+  function hideRoadsNonDestructive() {
+    if (!window.nameToLayers) return;
+    try {
+      const all = Object.values(nameToLayers).flat();
+      for (const l of all) {
+        l.options.interactive = false;
+        // keep styles intact; we’re only preventing interaction
+      }
+    } catch {}
+  }
+
+  // Reapply a mask for a given feature (county/township); no style changes elsewhere.
+  function reapplyMaskFor(feature) {
+    if (typeof worldMask !== 'undefined' && worldMask) {
+      map.removeLayer(worldMask);
+      worldMask = null;
+    }
+    if (!feature) return;
+    // You already have a util to build mask geometry; if not, this assumes your existing pattern.
+    worldMask = L.geoJSON(createWorldMask(feature), {
+      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+    }).addTo(map);
+  }
+
+  // 🔙 Township → County
+  backTown?.addEventListener('click', () => {
+    hideRoadsNonDestructive();
+
+    // Leave township state
+    insideManheim = false;
+    currentLayerDepth = 2;
+
+    // Mask outside county; zoom to county
+    reapplyMaskFor(countyFeatureRef);
+    if (countyLayerRef) {
+      map.fitBounds(countyLayerRef.getBounds());
+    }
+
+    updateBackButtonVisibility();
+    // (Hover reactivation is usually automatic at depth 2; if needed we can add a tooltip rebind next.)
+  });
+
+  // 🔙 County → Outside county (world/state)
+  backCounty?.addEventListener('click', () => {
+    hideRoadsNonDestructive();
+
+    // Leave county interior
+    insideLancaster = false;
+    insideManheim = false;
+    currentLayerDepth = 1;
+
+    // Remove mask and zoom out a bit (use your preferred default view)
+    if (typeof worldMask !== 'undefined' && worldMask) {
+      map.removeLayer(worldMask);
+      worldMask = null;
+    }
+    map.setView([40.09, -76.3], 10);
+
+    updateBackButtonVisibility();
+  });
 }
 
 
