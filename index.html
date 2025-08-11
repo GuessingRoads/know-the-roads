@@ -922,10 +922,6 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
       onEachFeature: function (feature, layer) {
         countyFeatureRef = feature;
         layer.on('mouseover', function () {
-          const segId = String(layer?.feature?.id ?? '');
-          const st = segmentStateMap?.get(segId);
-          if (st?.correct || st?.used_hint) return;  // ✅ don’t apply hover to solved roads
-
           if (insideLancaster) return;
           const tooltip = document.getElementById('custom-tooltip');
           tooltip.innerText = 'Lancaster County';          // ✅ add this
