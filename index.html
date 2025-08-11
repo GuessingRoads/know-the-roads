@@ -891,7 +891,6 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
   .then(data => {
     const countyLayer = L.geoJSON(data, {
-      countyLayerRef = countyLayer;
       style: {
         color: 'black',
         weight: 1.5,
@@ -915,7 +914,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
           const tooltip = document.getElementById('custom-tooltip');
           tooltip.style.display = 'none';
         });
-
+countyLayerRef = countyLayer;
         layer.on('click', function () {
           map.fitBounds(layer.getBounds());
           currentLayerDepth = 2;
