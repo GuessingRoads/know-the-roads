@@ -872,8 +872,9 @@ async function loadMap() {
 
   // Whenever this segment is added to the map (e.g., after re-entry), re-apply saved style
   layer.on('add', () => {
-    applyRoadStateStyle(layer);
-  });
+  applyRoadStateStyle(layer, { noAnimate: true }); // ✅ no dissolve on re-entry/login
+});
+
 
   const id = String(feature.id);
   const name = feature.properties.name || "";
