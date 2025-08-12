@@ -920,58 +920,60 @@ roadsBufferGroup = buffer;   // ✅ keep reference for removal/re-add
 
 
 
-          // Hover effect
-          layer.on('mouseover', function () {
-            if (!insideLancaster) return;
-            const matchingLayers = nameToLayers[name] || [];
-            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-            // 🟢 Soft glow if already guessed correctly
-const state = segmentStateMap.get(String(layer.feature.id));
-if (state?.correct) {
+         // HOVER (roads)
+layer.on('mouseover', function () {
+  if (!insideLancaster) return;
+
+  // If this road name is currently active with the modal open, don't alter its style
+  if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+
+  // State for THIS segment
+  const segId = String(layer?.feature?.id ?? '');
+  const st = segmentStateMap?.get(segId);
+
+  // ✅ Solved/hint-solved segments should not hover-change color/weight
+  if (st?.correct || st?.used_hint) {
+    // keep your soft green glow if you like
+    const el = layer.getElement();
+    if (st?.correct && el) el.classList.add('hover-green');
+    return;
+  }
+
+  // For the whole road-name group, apply a temporary hover thickness & gold color
+  const matchingLayers = nameToLayers[name] || [];
+  for (const l of matchingLayers) {
+    // don't touch solved/hint members of the group
+    const id2 = String(l?.feature?.id ?? '');
+    const st2 = segmentStateMap?.get(id2);
+    if (st2?.correct || st2?.used_hint) continue;
+
+    l.setStyle({
+      color: '#ffd700',           // gold hover
+      weight: WEIGHT_ACTIVE,      // temporary thicker
+      opacity: 1,
+      lineCap: 'round',
+      pane: 'hiddenRoads'
+    });
+    l.bringToFront?.();
+  }
+});
+
+
+         // UNHOVER (roads)
+layer.on('mouseout', function () {
+  // Remove optional green glow
   const el = layer.getElement();
-  if (el) el.classList.add('hover-green');
-  return;
-}
+  if (el) el.classList.remove('hover-green');
 
-            for (const l of matchingLayers) {
-              const currentColor = l._originalColor;
-              if (currentColor === 'greenish') return;
-              if (['black', 'red', 'yellow'].includes(currentColor)) {
-                l.setStyle({
-                  color: '#ffd700',
-                  weight: 8,
-                  opacity: 1,
-                  lineCap: 'round',
-                  pane: 'hiddenRoads'
-                });
-              }
-              l.bringToFront?.();
-            }
-          });
+  // If this road name is currently active with the modal open, keep its active style
+  if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
 
-          layer.on('mouseout', function () {
-            const el = layer.getElement();
-if (el) el.classList.remove('hover-green');
-  
-            const matchingLayers = nameToLayers[name] || [];
-            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-            // 🧽 Remove green glow if present
-
-
-
-            for (const l of matchingLayers) {
-              const currentColor = l._originalColor;
-              if (['black', 'red', 'yellow'].includes(currentColor)) {
-                l.setStyle({
-                  color: currentColor,
-                  weight: 6,
-                  opacity: 1,
-                  lineCap: 'round',
-                  pane: 'hiddenRoads'
-                });
-              }
-            }
-          });
+  // Restore the true style for each segment in the group based on saved state
+  const matchingLayers = nameToLayers[name] || [];
+  for (const l of matchingLayers) {
+    applyRoadStateStyle(l);   // ← restores color + weight + pointer-events correctly
+  }
+});
 
           layer.on('click', function () {
             const id = feature.id;
