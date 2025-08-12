@@ -540,21 +540,31 @@ function markRoadAsCorrect(roadName) {
   for (const l of layers) {
     const id = String(l?.feature?.id ?? '');
     const prev = segmentStateMap.get(id) || {};
+
+    // persist solved state
     segmentStateMap.set(id, { ...prev, correct: true, used_hint: false, incorrect: false });
-    applyRoadStateStyle(layer);  // paints orange now, and on re-add later
 
+    // paint solved (static) immediately, no animation
+    applyRoadStateStyle(l, { noAnimate: true });
 
-    // keep your own “what it was” flag in sync so hover code won’t assume black
+    // keep hover logic honest
     l._originalColor = 'greenish';
 
-    // apply look immediately (no waiting for hover)
-    applyRoadStateStyle(l);                 // sets green + weight + inert + class
-    const el = l._path;
-    if (el) {
-      el.classList.remove('hover-green');   // remove any hover effect that might stick
-    }
+    // run the dissolve ONCE, then remove the class so it cannot replay on re-entry
+    triggerCorrectDissolveAnimationOnce(l);
   }
 }
+function triggerCorrectDissolveAnimationOnce(layer) {
+  const el = layer.getElement?.() || layer._path;
+  if (!el) return;
+  el.classList.remove('correct-final');  // ensure fresh start
+  void el.offsetWidth;                   // force reflow
+  el.classList.add('correct-final');
+  el.addEventListener('animationend', () => {
+    el.classList.remove('correct-final');  // strip so it won't replay on re-add
+  }, { once: true });
+}
+
 function reapplySavedStylesWhenReady(retries = 30) {
   const group = roadsLayerGroup;
   if (group && typeof group.eachLayer === 'function') {
