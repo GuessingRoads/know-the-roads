@@ -946,12 +946,6 @@ async function loadMap() {
                 weight: 6,
                 pane: 'hiddenRoads'
               });
-              setTimeout(() => {
-                if (layer._path) {
-                  layer._path.style.opacity = '';
-                  layer._path.classList.add('correct-final');
-                }
-              }, 0);
               layer._originalColor = 'greenish';
 
             } else {
