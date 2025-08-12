@@ -877,12 +877,20 @@ async function loadMap() {
     .then(res => res.json())
     .then(data => {
       const roadLayer = L.geoJSON(data, {
-        // ✅ This applies to all roads, unless overridden below
-          style: {
-            pane: 'hiddenRoads'
-          },
+  // Set the *initial* look from saved state so nothing animates on add/re-add
+  style: (feature) => {
+    const id = String(feature.id);
+    const st = segmentStateMap?.get(id);
+    if (st?.correct) {
+      return { pane: 'hiddenRoads', color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1, lineCap: 'round' };
+    }
+    if (st?.used_hint) {
+      return { pane: 'hiddenRoads', color: 'orange',  weight: WEIGHT_DEFAULT, opacity: 1, lineCap: 'round' };
+    }
+    return { pane: 'hiddenRoads', color: 'black',   weight: WEIGHT_DEFAULT, opacity: 1, lineCap: 'round' };
+  },
 
-        onEachFeature: function (feature, layer) {
+  onEachFeature: function (feature, layer) {
   // Initialize _originalColor from saved state so hover/out logic knows the truth
   {
     const segId = String(feature.id);
