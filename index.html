@@ -893,12 +893,11 @@ async function loadMap() {
   onEachFeature: function (feature, layer) {
   // Initialize _originalColor from saved state so hover/out logic knows the truth
   {
-    const segId = String(feature.id);
-    const st = segmentStateMap?.get(segId);
-    layer._originalColor = st?.correct
-      ? 'greenish'
-      : (st?.used_hint ? 'orange' : 'black');
-  }
+  const segId = String(feature.id);
+  const st = segmentStateMap?.get(segId);
+  layer._originalColor = st?.correct ? 'greenish' : (st?.used_hint ? 'orange' : 'black');
+}
+
 
   // Whenever this segment is added to the map (e.g., after re-entry), re-apply saved style
   layer.on('add', () => {
