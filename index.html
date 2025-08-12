@@ -689,6 +689,7 @@ function applyRoadStateStyle(layer, opts = {}) {
 
 
 
+
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
   const loginNote = document.getElementById('login-note');
