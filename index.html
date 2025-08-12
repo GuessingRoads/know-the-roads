@@ -541,6 +541,8 @@ function markRoadAsCorrect(roadName) {
     const id = String(l?.feature?.id ?? '');
     const prev = segmentStateMap.get(id) || {};
     segmentStateMap.set(id, { ...prev, correct: true, used_hint: false, incorrect: false });
+    applyRoadStateStyle(layer);  // paints orange now, and on re-add later
+
 
     // keep your own “what it was” flag in sync so hover code won’t assume black
     l._originalColor = 'greenish';
