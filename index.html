@@ -603,7 +603,7 @@ if (st?.correct) {
   l.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1 });
   l.options.interactive = false;
   const el = l._path;
-  if (el) { el.style.pointerEvents = 'none'; el.classList.add('correct-final'); }
+  if (el) { el.style.pointerEvents = 'none'; el.classList.remove('correct-final'); }
 } else if (st?.used_hint) {
   l.setStyle({ color: 'orange', weight: WEIGHT_DEFAULT, opacity: 1 });
   l.options.interactive = true;
