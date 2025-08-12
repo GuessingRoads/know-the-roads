@@ -1309,16 +1309,27 @@ loadMap();
 document.getElementById('guess-input').addEventListener('input', async function (e) {
   if (!currentRoad) return;
 
-  const userGuess = e.target.value.trim();
-  const correctName = currentRoad.name.trim();
+  const userGuess       = e.target.value.trim();
+  const correctName     = currentRoad.name.trim();
   const normalizedGuess = normalizeName(userGuess);
   const normalizedCorrect = normalizeName(correctName);
 
   if (normalizedGuess === normalizedCorrect) {
     console.log("⚡ Auto-submitting correct guess:", userGuess);
+
+    // ✅ turn the whole road green right away (no hover needed, no dissolve)
+    const roadNameKey = (typeof activeRoadName !== 'undefined' && activeRoadName) ? activeRoadName : correctName;
+    markRoadAsCorrect(roadNameKey);
+
+    // clear any lingering active-blue
+    if (typeof clearActiveHighlight === 'function') clearActiveHighlight();
+    if (typeof activeRoadName !== 'undefined') activeRoadName = null;
+
+    // proceed with your existing submit flow (attempt counts, server save, etc.)
     document.getElementById('submit-guess').click();
   }
 });
+
 
 document.getElementById('guess-input').addEventListener('input', () => {
   const input = document.getElementById('guess-input').value.trim();
