@@ -553,6 +553,29 @@ function markRoadAsCorrect(roadName) {
     }
   }
 }
+function reapplySavedStylesWhenReady(retries = 30) {
+  const group = roadsLayerGroup;
+  if (group && typeof group.eachLayer === 'function') {
+    let hasAny = false;
+    group.eachLayer(() => { hasAny = true; });
+    if (hasAny) {
+      group.eachLayer(l => {
+        const el = l._path;
+        if (el) {
+          const prev = el.style.transition;
+          el.style.transition = 'none';   // prevent dissolve on load
+          applyRoadStateStyle(l);         // green/black/orange + weight + pointerEvents + class
+          void el.getBoundingClientRect(); // force reflow
+          el.style.transition = prev;
+        } else {
+          applyRoadStateStyle(l);
+        }
+      });
+      return;
+    }
+  }
+  if (retries > 0) requestAnimationFrame(() => reapplySavedStylesWhenReady(retries - 1));
+}
 
 
 
