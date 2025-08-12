@@ -641,53 +641,49 @@ function normalizeAllRoadStyles() {
 }
 function applyRoadStateStyle(layer, opts = {}) {
   const { noAnimate = false } = opts;
-  const id = String(layer?.feature?.id ?? '');
-  const st = segmentStateMap?.get(id);
-  const el = layer._path;
 
-  // temporarily disable transitions if requested
+  const id = String(layer?.feature?.id ?? '');
+  const st = segmentStateMap?.get(id) || {};
+
+  const el = layer._path;
   let prevTransition = '';
   if (noAnimate && el) {
     prevTransition = el.style.transition;
-    el.style.transition = 'none';
+    el.style.transition = 'none'; // prevent dissolve on re-apply
   }
 
-  if (st?.correct) {
+  if (st.correct) {
+    // ✅ solved: green + inert (no class added here to avoid re-animating)
     layer.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1 });
     layer.options.interactive = false;
-    if (el) {
-      el.style.pointerEvents = 'none';
-      el.classList.add('correct-final');
-    }
+    if (el) el.style.pointerEvents = 'none';
     layer._originalColor = 'greenish';
-  } else if (st?.used_hint) {
+  } else if (st.used_hint) {
+    // 🟧 hint used: orange + clickable
     layer.setStyle({ color: 'orange', weight: WEIGHT_DEFAULT, opacity: 1 });
     layer.options.interactive = true;
-    if (el) {
-      el.style.pointerEvents = 'auto';
-      el.classList.remove('correct-final');
-    }
+    if (el) el.style.pointerEvents = 'auto';
     layer._originalColor = 'orange';
+  } else if (st.incorrect) {
+    // 🔴 incorrect: red + clickable
+    layer.setStyle({ color: 'red', weight: WEIGHT_ACTIVE, opacity: 1 });
+    layer.options.interactive = true;
+    if (el) el.style.pointerEvents = 'auto';
+    layer._originalColor = 'red';
   } else {
+    // ⚫ unsolved: black + clickable
     layer.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: 1 });
     layer.options.interactive = true;
-    if (el) {
-      el.style.pointerEvents = 'auto';
-      el.classList.remove('correct-final');
-    }
+    if (el) el.style.pointerEvents = 'auto';
     layer._originalColor = 'black';
   }
 
-  // restore transitions on next frame if we disabled them
   if (noAnimate && el) {
-    // force reflow then restore
+    // restore transition after we’ve applied static style
     void el.getBoundingClientRect();
     el.style.transition = prevTransition;
   }
 }
-
-
-
 
 
 async function checkLogin() {
