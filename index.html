@@ -878,43 +878,32 @@ async function loadMap() {
               pane: 'clickable-buffer'
             },
             onEachFeature: function (feature, bufLayer) {
-  // 🆔 Match this buffer feature to the real road segment
+  // 🆔 Use feature id just for the solved/hint guard
   const segId = String(feature?.id ?? '');
   const state = segmentStateMap.get(segId);
 
-  // 🚫 If already solved (green/orange), don't allow blue activation
+  // 🚫 Already solved/hint-solved? Don’t allow activation/hover
   if (state?.correct || state?.used_hint) return;
 
-  // 🔵 Click → clear prior blue highlight, reset active name, forward to road layer
+  // 🔵 Click → clear any prior active-blue, then forward to the real road layer
   bufLayer.on('click', () => {
     if (typeof clearActiveHighlight === 'function') clearActiveHighlight();
     if (typeof activeRoadName !== 'undefined') activeRoadName = null;
-
-    // Find and fire click on the actual visible road layer for this segId
-    const linkedLayer = nameToLayersById?.[segId]?.[0];
-    if (linkedLayer) {
-      linkedLayer.fire('click');
-    }
+    layer.fire('click');           // ← forward to the visible road layer
   });
 
-  // Forward hover events to the actual road layer
+  // Forward hover events to the real road layer
   bufLayer.on('mouseover', () => {
-    const linkedLayer = nameToLayersById?.[segId]?.[0];
-    if (linkedLayer) {
-      linkedLayer.fire('mouseover');
-    }
+    layer.fire('mouseover');
   });
-
   bufLayer.on('mouseout', () => {
-    const linkedLayer = nameToLayersById?.[segId]?.[0];
-    if (linkedLayer) {
-      linkedLayer.fire('mouseout');
-    }
+    layer.fire('mouseout');
   });
 }
 });
 buffer.addTo(map);
-roadsBufferGroup = buffer;   // ✅ keep reference for removal/re-add
+roadsBufferGroup = buffer;   // ✅ keep reference for back-button add/remove
+
 
 
 
