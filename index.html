@@ -538,26 +538,23 @@ function clearActiveHighlight() {
   const layers = nameToLayers[activeRoadName] || [];
   for (const l of layers) {
     const id = String(l?.feature?.id ?? '');
-    const st = segmentStateMap?.get(id);
+    const st = segmentStateMap.get(id);
 
-    if (st?.correct) {
-      // ✅ Solved: green + thicker weight, no interaction
-      l.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED });
-      l.options.interactive = false;
-      const el = l._path; if (el) el.style.pointerEvents = 'none';
+if (st?.correct) {
+  l.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1 });
+  l.options.interactive = false;
+  const el = l._path;
+  if (el) { el.style.pointerEvents = 'none'; el.classList.add('correct-final'); }
+} else if (st?.used_hint) {
+  l.setStyle({ color: 'orange', weight: WEIGHT_DEFAULT, opacity: 1 });
+  l.options.interactive = true;
+  const el = l._path; if (el) { el.style.pointerEvents = 'auto'; el.classList.remove('correct-final'); }
+} else {
+  l.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: 1 });
+  l.options.interactive = true;
+  const el = l._path; if (el) { el.style.pointerEvents = 'auto'; el.classList.remove('correct-final'); }
+}
 
-    } else if (st?.used_hint) {
-      // 🟧 Hint used: orange + normal weight
-      l.setStyle({ color: 'orange', weight: WEIGHT_DEFAULT });
-      l.options.interactive = true;
-      const el = l._path; if (el) el.style.pointerEvents = 'auto';
-
-    } else {
-      // ⚫ Unsolved idle: black + normal weight
-      l.setStyle({ color: 'black', weight: WEIGHT_DEFAULT });
-      l.options.interactive = true;
-      const el = l._path; if (el) el.style.pointerEvents = 'auto';
-    }
 
     l._isActive = false; // clear any "blue active" flag
   }
