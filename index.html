@@ -536,14 +536,17 @@ function refreshRoadStylesFromState() {
   return (window.nameToLayers && nameToLayers[name]) ? nameToLayers[name] : [];
 }
 function markRoadAsCorrect(roadName) {
-  const group = layersFor(roadName);
-  for (const l of group) {
+  const layers = (nameToLayers && nameToLayers[roadName]) ? nameToLayers[roadName] : [];
+  for (const l of layers) {
     const id = String(l?.feature?.id ?? '');
     const prev = segmentStateMap.get(id) || {};
+    // persist state locally
     segmentStateMap.set(id, { ...prev, correct: true, used_hint: false, incorrect: false });
-    applyRoadStateStyle(l); // green + weight + inert + class
+    // immediately style green + proper weight + non-interactive + class
+    applyRoadStateStyle(l);
   }
 }
+
 
 function clearActiveHighlight() {
   if (!window.activeRoadName || !window.nameToLayers) return;
