@@ -1791,23 +1791,27 @@ let interactionCount = 0;
   });
 }
 function triggerCorrectDissolveAnimation(layer) {
-  const el = layer.getElement();
+  const el = layer.getElement?.() || layer._path;
   if (!el) return;
 
-  // ✅ Reset any inline styles (in case of red/yellow/orange overrides)
+  // reset any inline overrides
   el.style.transition = '';
-  el.style.stroke = 'rgba(0, 160, 0, 0.4)';
+  el.style.stroke = '';
   el.style.strokeDasharray = '';
   el.style.strokeDashoffset = '';
   el.style.opacity = '1';
 
-  // ✅ Remove class if already applied (force restart)
+  // force a fresh run
   el.classList.remove('correct-final');
-  void el.offsetWidth; // force reflow
+  void el.offsetWidth;
 
-  // ✅ Add class to trigger dissolve
+  // run once, then strip class so it won't replay on re-add
   el.classList.add('correct-final');
+  el.addEventListener('animationend', () => {
+    el.classList.remove('correct-final');
+  }, { once: true });
 }
+
 
 
 
