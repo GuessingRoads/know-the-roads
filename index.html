@@ -647,7 +647,8 @@ function applyRoadStateStyle(layer) {
     layer.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1 });
     layer.options.interactive = false;
     const el = layer._path; if (el) el.style.pointerEvents = 'none';
-    layer._path?.classList.add('correct-final'); // keep your green class
+    layer._path?.classList.add('correct-final');
+    layer._originalColor = 'greenish';     // ← keep internal flag in sync
     return;
   }
   if (st?.used_hint) {
@@ -655,14 +656,16 @@ function applyRoadStateStyle(layer) {
     layer.options.interactive = true;
     const el = layer._path; if (el) el.style.pointerEvents = 'auto';
     layer._path?.classList.remove('correct-final');
+    layer._originalColor = 'orange';       // ← sync
     return;
   }
-  // unsolved
   layer.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: 1 });
   layer.options.interactive = true;
   const el = layer._path; if (el) el.style.pointerEvents = 'auto';
   layer._path?.classList.remove('correct-final');
+  layer._originalColor = 'black';          // ← sync
 }
+
 
 
 async function checkLogin() {
