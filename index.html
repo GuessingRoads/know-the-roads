@@ -532,6 +532,10 @@ function refreshRoadStylesFromState() {
     console.warn('refreshRoadStylesFromState error:', e);
   }
 }
+  function layersFor(name) {
+  return (window.nameToLayers && nameToLayers[name]) ? nameToLayers[name] : [];
+}
+
 function clearActiveHighlight() {
   if (!window.activeRoadName || !window.nameToLayers) return;
 
