@@ -861,12 +861,27 @@ async function loadMap() {
           },
 
         onEachFeature: function (feature, layer) {
-          const id = String(feature.id);
-          const name = feature.properties.name || "";
-          segmentIdToName[id] = name;
-          if (!nameToLayers[name]) nameToLayers[name] = [];
-          nameToLayers[name].push(layer);
-          layer.options.pane = 'hiddenRoads'; // ✅ Force pane at layer level
+  // Initialize _originalColor from saved state so hover/out logic knows the truth
+  {
+    const segId = String(feature.id);
+    const st = segmentStateMap?.get(segId);
+    layer._originalColor = st?.correct
+      ? 'greenish'
+      : (st?.used_hint ? 'orange' : 'black');
+  }
+
+  // Whenever this segment is added to the map (e.g., after re-entry), re-apply saved style
+  layer.on('add', () => {
+    applyRoadStateStyle(layer);
+  });
+
+  const id = String(feature.id);
+  const name = feature.properties.name || "";
+  segmentIdToName[id] = name;
+  if (!nameToLayers[name]) nameToLayers[name] = [];
+  nameToLayers[name].push(layer);
+  layer.options.pane = 'hiddenRoads'; // ✅ Force pane at layer level
+
 
           // ⬛ Style visible road based on state
           if (segmentStateMap.has(id)) {
