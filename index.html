@@ -1251,11 +1251,12 @@ setTimeout(refreshRoadStylesFromState, 0); // keep this after adding roads
 
   // ✅ Show roads after MT is clicked
   map.addLayer(roadsLayerGroup);
-    if (roadsBufferGroup) map.addLayer(roadsBufferGroup);
-setTimeout(() => {
-  normalizeAllRoadStyles();       // hard reset any leftover blue
-  refreshRoadStylesFromState();   // re-assert saved greens (already added earlier)
-}, 0);
+if (roadsBufferGroup) map.addLayer(roadsBufferGroup);
+
+requestAnimationFrame(() => {
+  reapplySavedStylesWhenReady();   // instant, no dissolve, no hover needed
+});
+
 
 });
 
