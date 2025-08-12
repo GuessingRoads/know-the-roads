@@ -540,12 +540,20 @@ function markRoadAsCorrect(roadName) {
   for (const l of layers) {
     const id = String(l?.feature?.id ?? '');
     const prev = segmentStateMap.get(id) || {};
-    // persist state locally
     segmentStateMap.set(id, { ...prev, correct: true, used_hint: false, incorrect: false });
-    // immediately style green + proper weight + non-interactive + class
-    applyRoadStateStyle(l);
+
+    // keep your own “what it was” flag in sync so hover code won’t assume black
+    l._originalColor = 'greenish';
+
+    // apply look immediately (no waiting for hover)
+    applyRoadStateStyle(l);                 // sets green + weight + inert + class
+    const el = l._path;
+    if (el) {
+      el.classList.remove('hover-green');   // remove any hover effect that might stick
+    }
   }
 }
+
 
 
 function clearActiveHighlight() {
