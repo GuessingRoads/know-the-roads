@@ -948,7 +948,7 @@ updateBackButtonVisibility();
             fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
               .then(r => r.json())
               .then(mtData => {
-                L.geoJSON(mtData, {
+                 townshipLayerRef = L.geoJSON(mtData, {
                   pane: 'townshipPane',
                   style: {
                     color: 'black',
