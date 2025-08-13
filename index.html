@@ -1065,8 +1065,10 @@ worldMask.eachLayer(layer => {
               });
           }, 500);
         });
-      }
-    }).addTo(map);
+            }
+    });
+    countyLayerRef = countyLayer.addTo(map);
+
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
