@@ -953,21 +953,27 @@ updateBackButtonVisibility();
 
           insideLancaster = true;
 
-          if (!worldMask) {
-            worldMask = L.geoJSON(createWorldMask(feature), {
-              style: {
-                fillColor: '#cccccc',
-                fillOpacity: 0.7,
-                stroke: false,
-                pane: 'maskPane'
-              }
-            }).addTo(map);
+          // (Re)apply the saved outside-only mask for Lancaster
+if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
 
-            worldMask.eachLayer(layer => {
-              const el = layer.getElement();
-              if (el) el.style.pointerEvents = 'none';
-            });
-          }
+if (!map.getPane('maskPane')) map.createPane('maskPane');
+const mp = map.getPane('maskPane');
+if (mp && !mp.style.zIndex) mp.style.zIndex = 210; // keep under townshipPane=400
+
+if (countyMaskFeature) {
+  worldMask = L.geoJSON(countyMaskFeature, {
+    style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+  }).addTo(map);
+
+  // let clicks pass through the mask
+  try {
+    worldMask.eachLayer(l => {
+      const el = l.getElement?.();
+      if (el) el.style.pointerEvents = 'none';
+    });
+  } catch {}
+}
+
 
           setTimeout(() => {
             layer.setStyle({ fillOpacity: 0 });
