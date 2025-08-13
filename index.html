@@ -1111,10 +1111,24 @@ worldMask.eachLayer(layer => {
 loadMap();
   updateBackButtonVisibility();
  document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
-  // ---------- Back from Township → County ----------
- // Back from Township → County (finalized & non-sticky tooltip)
+// Back from Township → County
 if (currentLayerDepth === 3) {
+  // Set state FIRST so county hover won't fire during the transition
   insideManheim = false;
+  insideLancaster = true;
+  currentLayerDepth = 2;
+
+  // Hard-kill any lingering custom tooltip
+  resetCountyTooltip();
+
+  // Also make sure no Leaflet tooltip is bound on county (prevents phantom mini-boxes)
+  try {
+    if (countyLayerRef) {
+      countyLayerRef.eachLayer(l => {
+        if (l.getTooltip && l.getTooltip()) l.unbindTooltip();
+      });
+    }
+  } catch {}
 
   // 0) Ensure pane z-order: mask below township so MT can receive clicks
   try {
@@ -1204,6 +1218,7 @@ if (currentLayerDepth === 3) {
 
   // ---------- Back from County → World ----------
   if (currentLayerDepth === 2) {
+    resetCountyTooltip();
     insideManheim = false;
     insideLancaster = false;
 
