@@ -1162,15 +1162,8 @@ try { activeRoadName = ''; } catch {}
 map.addLayer(roadsLayerGroup);
 map.addLayer(roadsBufferGroup);
 
-// normalize solved segments now…
-normalizeSolvedRoadStyles();
-
-// …on the next two ticks to beat any late style updates
-setTimeout(normalizeSolvedRoadStyles, 0);
-setTimeout(normalizeSolvedRoadStyles, 50);
-
-
-
+// normalize solved segments (now and shortly after)
+normalizeSolvedNowAndSoon();
 
                   }
                 }).addTo(map);
