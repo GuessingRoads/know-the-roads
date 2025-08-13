@@ -1104,72 +1104,94 @@ loadMap();
   updateBackButtonVisibility();
  document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
   // ---------- Back from Township → County ----------
- // Back from Township → County (robust)
+ // Back from Township → County (finalized & non-sticky tooltip)
 if (currentLayerDepth === 3) {
   insideManheim = false;
 
-  // 1) Hide roads + buffers (but keep township polygon for county view)
+  // 0) Ensure pane z-order: mask below township so MT can receive clicks
   try {
-    if (typeof roadsLayerGroup   !== 'undefined' && map.hasLayer(roadsLayerGroup))   map.removeLayer(roadsLayerGroup);
-    if (typeof roadsBufferGroup  !== 'undefined' && map.hasLayer(roadsBufferGroup))  map.removeLayer(roadsBufferGroup);
+    if (!map.getPane('maskPane')) map.createPane('maskPane');
+    map.getPane('maskPane').style.zIndex = 210;  // below township
+
+    if (!map.getPane('townshipPane')) map.createPane('townshipPane');
+    map.getPane('townshipPane').style.zIndex = 400; // above mask
   } catch {}
 
-  // 2) Ensure township layer is PRESENT and interactive (we want to see/hover MT at county depth)
+  // 1) Hide roads + buffers
   try {
-    if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
+    if (map.hasLayer(roadsLayerGroup))  map.removeLayer(roadsLayerGroup);
+    if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
+  } catch {}
+
+  // 2) Make sure MT is visible and CLICKABLE again at county depth
+  try {
+    if (townshipLayerRef) {
       if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
       townshipLayerRef.eachLayer(mt => {
-        mt.setStyle({ fillOpacity: 0.25 }); // your county-depth style
-        const p = mt._path; if (p) p.style.pointerEvents = 'auto';
+        // county-depth visuals
+        mt.setStyle({ fillOpacity: 0.25 });
+        // ensure interactivity
+        mt.options.interactive = true;
+        const p = mt._path;
+        if (p) p.style.pointerEvents = 'auto';
+        if (mt.bringToFront) mt.bringToFront(); // above mask just in case
       });
     }
   } catch {}
 
-  // 3) County layer visible & interactive
+  // 3) County layer: visible, interactive, tooltip centered (non-sticky)
   try {
-    if (countyLayerRef && !map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
     if (countyLayerRef) {
+      if (!map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
       countyLayerRef.eachLayer(l => {
         l.setStyle({ fillOpacity: 0.7 });
         const p = l._path; if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+
+        // (Re)bind a centered, non-sticky tooltip with content
+        const hasTT = typeof l.getTooltip === 'function' && l.getTooltip();
+        if (!hasTT) {
+          try { l.bindTooltip('Lancaster County', { direction: 'center', sticky: false, permanent: false }); } catch {}
+        } else {
+          try { l.setTooltipContent('Lancaster County'); } catch {}
+          try {
+            // enforce center + non-sticky (no mouse-follow)
+            l.getTooltip().options.direction = 'center';
+            l.getTooltip().options.sticky = false;
+          } catch {}
+        }
       });
     }
   } catch {}
 
-  // 4) Rebuild mask OUTSIDE Lancaster only, using the saved county feature (no fallback that can flip it)
+  // 4) Rebuild the mask to shade OUTSIDE Lancaster only (no interior cover)
   try {
-    // remove old mask
-    if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
+    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
 
-    // pane safety
-    if (!map.getPane('maskPane')) {
-      map.createPane('maskPane');
-      const mp = map.getPane('maskPane'); if (mp) mp.style.zIndex = 210;
-    }
-    // IMPORTANT: only use the original county feature (prevents “inside masked” flip)
-    if (typeof countyFeatureRef !== 'undefined' && countyFeatureRef && typeof createWorldMask === 'function') {
+    if (countyFeatureRef && typeof createWorldMask === 'function') {
       worldMask = L.geoJSON(createWorldMask(countyFeatureRef), {
-        style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
+        style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
       }).addTo(map);
+
+      // let clicks pass through the mask entirely
       try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
     } else {
       console.warn('countyFeatureRef missing; mask not rebuilt to avoid inverted interior.');
     }
   } catch {}
 
-  // 5) Zoom to county
+  // 5) Fit to county bounds
   try {
     if (countyLayerRef && typeof countyLayerRef.getBounds === 'function') {
-      map.fitBounds(countyLayerRef.getBounds(), { padding:[40,40], maxZoom:12 });
+      map.fitBounds(countyLayerRef.getBounds(), { padding: [40, 40], maxZoom: 12 });
     }
   } catch {}
 
-  // 6) State → inside county
   insideLancaster   = true;
   currentLayerDepth = 2;
   updateBackButtonVisibility();
   return;
 }
+
 
 
   // ---------- Back from County → World ----------
