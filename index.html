@@ -1789,23 +1789,25 @@ function triggerCorrectDissolveAnimation(layer) {
   const el = layer.getElement?.() || layer._path;
   if (!el) return;
 
-  // reset any inline overrides
+  // Reset any inline overrides that could interfere
   el.style.transition = '';
   el.style.stroke = '';
   el.style.strokeDasharray = '';
   el.style.strokeDashoffset = '';
-  el.style.opacity = '1';
+  el.style.opacity = String(OPACITY_SOLVED); // <- end state after dissolve
 
-  // force a fresh run
+  // Force a fresh run: remove, reflow, re-add
   el.classList.remove('correct-final');
   void el.offsetWidth;
-
-  // run once, then strip class so it won't replay on re-add
   el.classList.add('correct-final');
+
+  // Strip the class when the animation finishes so it can't replay on re-add
   el.addEventListener('animationend', () => {
     el.classList.remove('correct-final');
+    el.style.opacity = String(OPACITY_SOLVED); // keep final transparent look
   }, { once: true });
 }
+
 
 
 
