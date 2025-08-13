@@ -399,8 +399,8 @@ let townshipFeatureRef = null; // GeoJSON Feature for township (for mask)
 const WEIGHT_DEFAULT = 4;   // unsolved idle
 const WEIGHT_ACTIVE  = 6;   // blue “active” selection
 const WEIGHT_SOLVED  = 6;   // green solved (match your current green thickness)
-
-
+const OPACITY_DEFAULT = 1;   // black/orange/red
+const OPACITY_SOLVED  = 0.4; // the “transparent” solved look
 
 
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
