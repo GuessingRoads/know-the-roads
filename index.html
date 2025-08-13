@@ -502,6 +502,31 @@ function resetCountyTooltip() {
   tt.style.display = 'none';
   tt.textContent = '';
 }
+function rebuildCountyMask() {
+  try {
+    // remove any existing
+    if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
+
+    // make sure the pane exists and sits between tiles (200) and overlays (400)
+    if (!map.getPane('maskPane')) map.createPane('maskPane');
+    map.getPane('maskPane').style.zIndex = 300;
+
+    // choose a county feature: prefer saved ref; fallback to county layer's GeoJSON
+    let f = (typeof countyFeatureRef !== 'undefined' && countyFeatureRef) ? countyFeatureRef : null;
+    if (!f && countyLayerRef && typeof countyLayerRef.toGeoJSON === 'function') {
+      const gj = countyLayerRef.toGeoJSON();
+      f = (gj && Array.isArray(gj.features)) ? gj.features[0] : (gj && gj.type === 'Feature' ? gj : null);
+    }
+    if (!f || typeof createWorldMask !== 'function') return;
+
+    worldMask = L.geoJSON(createWorldMask(f), {
+      style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
+    }).addTo(map);
+
+    // mask must not eat clicks
+    try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
+  } catch {}
+}
 
 
 async function checkLogin() {
