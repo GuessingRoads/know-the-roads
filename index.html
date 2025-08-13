@@ -1149,9 +1149,10 @@ worldMask.eachLayer(layer => {
 });
 
 
-  // optional safety: clear any lingering active name
+// optional safety: clear any lingering active name
 try { activeRoadName = ''; } catch {}
 
+// ✅ Show roads after MT is clicked
 map.addLayer(roadsLayerGroup);
 map.addLayer(roadsBufferGroup);
 
@@ -1161,6 +1162,7 @@ normalizeSolvedRoadStyles();
 // …on the next two ticks to beat any late style updates
 setTimeout(normalizeSolvedRoadStyles, 0);
 setTimeout(normalizeSolvedRoadStyles, 50);
+
 
 
 
