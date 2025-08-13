@@ -1102,81 +1102,111 @@ worldMask.eachLayer(layer => {
 
 loadMap();
   updateBackButtonVisibility();
-  document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
-  // Back from Township → County
-if (currentLayerDepth === 3) {
-  insideManheim = false;
+ document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
+  // ---------- Back from Township → County ----------
+  if (currentLayerDepth === 3) {
+    insideManheim = false;
 
-  // Hide roads + buffers
-  if (map.hasLayer(roadsLayerGroup))  map.removeLayer(roadsLayerGroup);
-  if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
-
-  // Remove township layer so it doesn't keep blocking clicks
-  if (townshipLayerRef && map.hasLayer(townshipLayerRef)) {
-    try { map.removeLayer(townshipLayerRef); } catch {}
-  }
-
-  // Rebuild county-level mask
-  if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
-  if (countyFeatureRef) {
-    worldMask = L.geoJSON(createWorldMask(countyFeatureRef), {
-      style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
-    }).addTo(map);
-    worldMask.eachLayer(l => { const el = l.getElement(); if (el) el.style.pointerEvents = 'none'; });
-  }
-
-  // Ensure county polygon is visible & interactive again
-  if (countyLayerRef) {
-    // make sure it's on the map
-    if (!map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
-
+    // 1) Hide roads + buffers
     try {
-      countyLayerRef.eachLayer(l => {
-        l.setStyle({ fillOpacity: 0.7 });
-        const p = l._path; if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
-      });
+      if (typeof roadsLayerGroup   !== 'undefined' && map.hasLayer(roadsLayerGroup))   map.removeLayer(roadsLayerGroup);
+      if (typeof roadsBufferGroup  !== 'undefined' && map.hasLayer(roadsBufferGroup))  map.removeLayer(roadsBufferGroup);
     } catch {}
-  }
 
-  // Zoom back to county
-  if (countyLayerRef) map.fitBounds(countyLayerRef.getBounds(), { padding:[40,40], maxZoom:12 });
+    // 2) Remove township layer so it doesn't block clicks
+    try {
+      if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef && map.hasLayer(townshipLayerRef)) {
+        map.removeLayer(townshipLayerRef);
+      }
+    } catch {}
 
-  // We are now "inside Lancaster", not in a township
-  insideLancaster   = true;
-  currentLayerDepth = 2;
-  updateBackButtonVisibility();
-  return;
-}
-
-
-  // Back from County → Outside (initial)
-  if (currentLayerDepth === 2) {
-    insideLancaster = false;
-    insideManheim   = false;
-
-    // Remove township, roads, buffers, mask
-    if (townshipLayerRef && map.hasLayer(townshipLayerRef)) map.removeLayer(townshipLayerRef);
-    if (map.hasLayer(roadsLayerGroup))  map.removeLayer(roadsLayerGroup);
-    if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
-    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
-
-    // Restore county polygon interactivity/opacity
-    if (countyLayerRef) {
-      try {
+    // 3) Make sure the county layer is on the map & interactive
+    try {
+      if (countyLayerRef && !map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
+      if (countyLayerRef) {
         countyLayerRef.eachLayer(l => {
           l.setStyle({ fillOpacity: 0.7 });
           const p = l._path; if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
         });
-      } catch {}
-    }
+      }
+    } catch {}
 
-    // Reset camera to your initial view
-    map.setView([40.09, -76.3], 10);
+    // 4) Rebuild the county-level mask (robust, with fallbacks)
+    try {
+      // Remove any existing mask
+      if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
+
+      // Ensure mask pane exists
+      if (!map.getPane('maskPane')) {
+        map.createPane('maskPane');
+        const mp = map.getPane('maskPane');
+        if (mp) mp.style.zIndex = 210; // slightly above base layers
+      }
+
+      // Get a county feature to mask with (prefer the one we captured; else derive)
+      let featureForMask = (typeof countyFeatureRef !== 'undefined' && countyFeatureRef) ? countyFeatureRef : null;
+      if (!featureForMask && countyLayerRef && typeof countyLayerRef.toGeoJSON === 'function') {
+        const gj = countyLayerRef.toGeoJSON();
+        featureForMask = (gj && Array.isArray(gj.features)) ? gj.features[0] : gj;
+      }
+
+      if (featureForMask && typeof createWorldMask === 'function') {
+        worldMask = L.geoJSON(createWorldMask(featureForMask), {
+          style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
+        }).addTo(map);
+
+        // Make the mask ignore pointer events
+        try {
+          worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
+        } catch {}
+      }
+    } catch {}
+
+    // 5) Zoom back to county bounds
+    try {
+      if (countyLayerRef && typeof countyLayerRef.getBounds === 'function') {
+        map.fitBounds(countyLayerRef.getBounds(), { padding:[40,40], maxZoom:12 });
+      }
+    } catch {}
+
+    // 6) Set state → inside county
+    insideLancaster   = true;
+    currentLayerDepth = 2;
+    updateBackButtonVisibility();
+    return;
+  }
+
+  // ---------- Back from County → World ----------
+  if (currentLayerDepth === 2) {
+    insideManheim = false;
+    insideLancaster = false;
+
+    // Remove township, roads, buffers, mask
+    try {
+      if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef && map.hasLayer(townshipLayerRef)) map.removeLayer(townshipLayerRef);
+      if (typeof roadsLayerGroup  !== 'undefined' && map.hasLayer(roadsLayerGroup))   map.removeLayer(roadsLayerGroup);
+      if (typeof roadsBufferGroup !== 'undefined' && map.hasLayer(roadsBufferGroup))  map.removeLayer(roadsBufferGroup);
+      if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
+    } catch {}
+
+    // Restore county polygon UI (optional safeguard)
+    try {
+      if (countyLayerRef) {
+        countyLayerRef.eachLayer(l => {
+          l.setStyle({ fillOpacity: 0.7 });
+          const p = l._path; if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+        });
+      }
+    } catch {}
+
+    // Reset to your initial camera view
+    map.setView([40.09, -76.3], 10); // use your benchmark’s initial view
 
     currentLayerDepth = 1;
     updateBackButtonVisibility();
   }
 });
+
 
 
 
