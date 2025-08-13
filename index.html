@@ -562,6 +562,12 @@ function normalizeSolvedRoadStyles() {
     });
   } catch {}
 }
+function normalizeSolvedNowAndSoon() {
+  // run now and on two quick ticks to override any late style flashes
+  normalizeSolvedRoadStyles();
+  setTimeout(normalizeSolvedRoadStyles, 0);
+  setTimeout(normalizeSolvedRoadStyles, 50);
+}
 
 
 
