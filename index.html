@@ -1161,29 +1161,22 @@ if (currentLayerDepth === 3) {
     }
   } catch {}
 
-  // 3) County layer: visible, interactive, tooltip centered (non-sticky)
-  try {
-    if (countyLayerRef) {
-      if (!map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
-      countyLayerRef.eachLayer(l => {
-        l.setStyle({ fillOpacity: 0.7 });
-        const p = l._path; if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+  // 3) County polygon should be hidden and NON-interactive at county depth
+try {
+  if (countyLayerRef) {
+    if (!map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
+    countyLayerRef.eachLayer(l => {
+      // keep interior clear while inside county
+      l.setStyle({ fillOpacity: 0 });
+      const p = l._path;
+      if (p) {
+        p.style.pointerEvents = 'none'; // don't block township
+        p.style.outline = 'none';
+      }
+    });
+  }
+} catch {}
 
-        // (Re)bind a centered, non-sticky tooltip with content
-        const hasTT = typeof l.getTooltip === 'function' && l.getTooltip();
-        if (!hasTT) {
-          try { l.bindTooltip('Lancaster County', { direction: 'center', sticky: false, permanent: false }); } catch {}
-        } else {
-          try { l.setTooltipContent('Lancaster County'); } catch {}
-          try {
-            // enforce center + non-sticky (no mouse-follow)
-            l.getTooltip().options.direction = 'center';
-            l.getTooltip().options.sticky = false;
-          } catch {}
-        }
-      });
-    }
-  } catch {}
 
   // 4) Rebuild the mask to shade OUTSIDE Lancaster only (no interior cover)
   try {
