@@ -771,7 +771,8 @@ async function loadMap() {
               });
             }
           });
-          buffer.addTo(map);
+          buffer.addTo(roadsBufferGroup);
+
 
           // Hover effect
           layer.on('mouseover', function () {
