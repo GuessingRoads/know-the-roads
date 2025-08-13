@@ -824,59 +824,69 @@ async function loadMap() {
           });
           buffer.addTo(roadsBufferGroup);
 
+          // HOVER //////////////////////////////////////////////////////////////////////////////
+layer.on('mouseover', function () {
+  if (!insideLancaster) return;
 
-          // Hover effect
-          layer.on('mouseover', function () {
-            if (!insideLancaster) return;
-            const matchingLayers = nameToLayers[name] || [];
-            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-            // 🟢 Soft glow if already guessed correctly
-const state = segmentStateMap.get(String(layer.feature.id));
-if (state?.correct) {
+  const modalOpen = document.getElementById('guess-modal').style.display === 'block';
+  if (activeRoadName === name && modalOpen) return;
+
+  const matchingLayers = nameToLayers[name] || [];
+
+  // If THIS segment is solved, show subtle green aura (optional) and bail
+  const selfState = segmentStateMap.get(String(layer.feature.id));
+  if (selfState?.correct || selfState?.used_hint) {
+    const el = layer.getElement();
+    if (el && selfState?.correct) el.classList.add('hover-green');
+    return;
+  }
+
+  // Otherwise, hover all unsolved matching segments
+  for (const l of matchingLayers) {
+    const st = segmentStateMap.get(String(l.feature.id));
+    if (st?.correct || st?.used_hint) continue; // ← skip solved (green/orange)
+
+    const currentColor = l._originalColor || 'black';
+    if (['black', 'red', 'yellow'].includes(currentColor)) {
+      l.setStyle({
+        color: '#ffd700',
+        weight: 8,
+        opacity: 1,
+        lineCap: 'round',
+        pane: 'hiddenRoads'
+      });
+    }
+    l.bringToFront?.();
+  }
+});
+
+// UNHOVER ////////////////////////////////////////////////////////////////////////////
+layer.on('mouseout', function () {
   const el = layer.getElement();
-  if (el) el.classList.add('hover-green');
-  return;
-}
+  if (el) el.classList.remove('hover-green');
 
-            for (const l of matchingLayers) {
-              const currentColor = l._originalColor;
-              if (currentColor === 'greenish') return;
-              if (['black', 'red', 'yellow'].includes(currentColor)) {
-                l.setStyle({
-                  color: '#ffd700',
-                  weight: 8,
-                  opacity: 1,
-                  lineCap: 'round',
-                  pane: 'hiddenRoads'
-                });
-              }
-              l.bringToFront?.();
-            }
-          });
+  const modalOpen = document.getElementById('guess-modal').style.display === 'block';
+  if (activeRoadName === name && modalOpen) return;
 
-          layer.on('mouseout', function () {
-            const el = layer.getElement();
-if (el) el.classList.remove('hover-green');
-  
-            const matchingLayers = nameToLayers[name] || [];
-            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-            // 🧽 Remove green glow if present
+  const matchingLayers = nameToLayers[name] || [];
 
+  for (const l of matchingLayers) {
+    const st = segmentStateMap.get(String(l.feature.id));
+    if (st?.correct || st?.used_hint) continue; // ← do not touch solved styles
 
+    const baseColor = l._originalColor || 'black';
+    if (['black', 'red', 'yellow'].includes(baseColor)) {
+      l.setStyle({
+        color: baseColor,
+        weight: 6,
+        opacity: 1,
+        lineCap: 'round',
+        pane: 'hiddenRoads'
+      });
+    }
+  }
+});
 
-            for (const l of matchingLayers) {
-              const currentColor = l._originalColor;
-              if (['black', 'red', 'yellow'].includes(currentColor)) {
-                l.setStyle({
-                  color: currentColor,
-                  weight: 6,
-                  opacity: 1,
-                  lineCap: 'round',
-                  pane: 'hiddenRoads'
-                });
-              }
-            }
-          });
 
           layer.on('click', function () {
             const id = feature.id;
