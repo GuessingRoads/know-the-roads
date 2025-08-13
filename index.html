@@ -1102,6 +1102,61 @@ worldMask.eachLayer(layer => {
 
 loadMap();
   updateBackButtonVisibility();
+  document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
+  // Back from Township → County
+  if (currentLayerDepth === 3) {
+    insideManheim = false;
+
+    // Hide roads + buffers
+    if (map.hasLayer(roadsLayerGroup)) map.removeLayer(roadsLayerGroup);
+    if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
+
+    // Rebuild county-level mask
+    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
+    if (countyFeatureRef) {
+      worldMask = L.geoJSON(createWorldMask(countyFeatureRef), {
+        style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
+      }).addTo(map);
+      worldMask.eachLayer(l => { const el = l.getElement(); if (el) el.style.pointerEvents = 'none'; });
+    }
+
+    // Zoom back to county
+    if (countyLayerRef) map.fitBounds(countyLayerRef.getBounds(), { padding:[40,40], maxZoom:12 });
+
+    currentLayerDepth = 2;
+    updateBackButtonVisibility();
+    return;
+  }
+
+  // Back from County → Outside (initial)
+  if (currentLayerDepth === 2) {
+    insideLancaster = false;
+    insideManheim   = false;
+
+    // Remove township, roads, buffers, mask
+    if (townshipLayerRef && map.hasLayer(townshipLayerRef)) map.removeLayer(townshipLayerRef);
+    if (map.hasLayer(roadsLayerGroup))  map.removeLayer(roadsLayerGroup);
+    if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
+    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
+
+    // Restore county polygon interactivity/opacity
+    if (countyLayerRef) {
+      try {
+        countyLayerRef.eachLayer(l => {
+          l.setStyle({ fillOpacity: 0.7 });
+          const p = l._path; if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+        });
+      } catch {}
+    }
+
+    // Reset camera to your initial view
+    map.setView([40.09, -76.3], 10);
+
+    currentLayerDepth = 1;
+    updateBackButtonVisibility();
+  }
+});
+
 
 
   document.getElementById('guess-input').addEventListener('keypress', function (e) {
