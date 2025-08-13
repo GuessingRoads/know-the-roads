@@ -551,7 +551,7 @@ function markRoadAsCorrect(roadName) {
     l._originalColor = 'greenish';
 
     // run the dissolve ONCE, then remove the class so it cannot replay on re-entry
-    triggerCorrectDissolveAnimationOnce(l);
+    // triggerCorrectDissolveAnimationOnce(l); // ← disable for now
   }
 }
 function triggerCorrectDissolveAnimationOnce(layer) {
