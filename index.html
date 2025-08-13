@@ -943,6 +943,11 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 
         layer.on('click', function () {
           map.fitBounds(layer.getBounds());
+          // Build & cache the mask once, *after* zooming (so outer rect matches view)
+if (!countyMaskFeature) {
+  countyMaskFeature = createWorldMask(feature);
+}
+
           currentLayerDepth = 2;
 updateBackButtonVisibility();
 
