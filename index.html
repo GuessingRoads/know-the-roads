@@ -535,21 +535,17 @@ function normalizeSolvedRoadStyles() {
       const st = segmentStateMap.get(String(l.feature.id));
       if (!st?.correct && !st?.used_hint) return;
 
-      // Hide the base stroke completely
-      l.setStyle({ color: 'transparent', opacity: 0 });
-
-      // Make non-interactive
+      // Hide the base stroke completely and make non-interactive
+      l.setStyle({ color: 'transparent', opacity: 0, weight: 0.0001 });
       l.options.interactive = false;
-      const p = l._path;
-      if (p) p.style.pointerEvents = 'none';
 
-      // Remove any classes/attributes that can force a stroke (blue)
       const el = l.getElement?.();
       if (el) {
-        // 🔥 THIS kills the blue: remove 'correct-final'
-        el.classList.remove('correct-final', 'hover-green', 'active-highlight', 'hover-gold');
-
-        // Clean up any SVG stroke attributes/styles that might have been set
+        // absolutely no clicks/hover and no render flash
+        el.style.pointerEvents = 'none';
+        el.style.display = 'none';                 // <- key: prevents default blue flash
+        el.classList.remove('correct-final', 'hover-green', 'active-highlight', 'hover-gold', 'leaflet-interactive');
+        // scrub any stroke attributes/styles
         el.removeAttribute('stroke');
         el.removeAttribute('stroke-opacity');
         el.removeAttribute('stroke-width');
@@ -558,14 +554,15 @@ function normalizeSolvedRoadStyles() {
         el.style.strokeWidth = '';
       }
 
-      // Optional: ensure our internal color marker treats it as solved
+      // mark internal color so other logic treats it as solved
       l._originalColor = 'greenish';
 
-      // Extra safety: solved segments don’t need mouse events at all
+      // solved segments don’t need events
       if (typeof l.off === 'function') l.off();
     });
   } catch {}
 }
+
 
 
 
