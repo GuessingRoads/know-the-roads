@@ -1146,8 +1146,10 @@ worldMask.eachLayer(layer => {
   // ✅ Show roads after MT is clicked
   map.addLayer(roadsLayerGroup);
   map.addLayer(roadsBufferGroup);
-     normalizeSolvedRoadStyles();
-
+  // normalize solved segments now…
+normalizeSolvedRoadStyles();
+// …and again on the next tick so we win over any async restyles
+setTimeout(normalizeSolvedRoadStyles, 0);
 });
 
                   }
