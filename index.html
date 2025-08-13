@@ -658,17 +658,21 @@ function normalizeAllRoadStyles() {
     console.warn('normalizeAllRoadStyles error:', e);
   }
 }
+const OPACITY_DEFAULT = 1;
+const OPACITY_SOLVED  = 0.4;   // tweak to your taste
+
 function applyRoadStateStyle(layer, opts = {}) {
   const { noAnimate = false } = opts;
 
   const id = String(layer?.feature?.id ?? '');
   const st = segmentStateMap?.get(id) || {};
-
   const el = layer._path;
+
+  // Never animate during re-apply
   let prevTransition = '';
   if (noAnimate && el) {
     prevTransition = el.style.transition;
-    el.style.transition = 'none'; // never dissolve on re-apply
+    el.style.transition = 'none';
   }
 
   if (st.correct) {
@@ -694,10 +698,11 @@ function applyRoadStateStyle(layer, opts = {}) {
   }
 
   if (noAnimate && el) {
-    void el.getBoundingClientRect();  // reflow
+    void el.getBoundingClientRect();
     el.style.transition = prevTransition;
   }
 }
+
 
 
 
