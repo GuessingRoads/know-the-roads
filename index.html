@@ -891,6 +891,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
       },
 
       onEachFeature: function (feature, layer) {
+        if (!countyFeatureRef) countyFeatureRef = feature;
         layer.on('mouseover', function () {
           if (insideLancaster) return;
           const tooltip = document.getElementById('custom-tooltip');
