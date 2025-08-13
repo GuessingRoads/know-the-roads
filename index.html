@@ -381,6 +381,11 @@
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
   let insideLancaster = false;
   let insideManheim = false;
+  let countyLayerRef;        // county L.GeoJSON
+  let countyFeatureRef;      // county Feature for mask rebuild
+  let townshipLayerRef;      // MT L.GeoJSON
+  let roadsBufferGroup = L.layerGroup(); // holds 20px invisible buffers
+
 
 
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
