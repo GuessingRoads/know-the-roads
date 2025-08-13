@@ -897,6 +897,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
           const tooltip = document.getElementById('custom-tooltip');
           const center = layer.getBounds().getCenter();
           const screenPoint = map.latLngToContainerPoint(center);
+          tooltip.innerText = 'Lancaster County';
           tooltip.style.left = screenPoint.x + 'px';
           tooltip.style.top = screenPoint.y + 'px';
           tooltip.style.display = 'block';
@@ -904,6 +905,7 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 
         layer.on('mouseout', function () {
           const tooltip = document.getElementById('custom-tooltip');
+          tooltip.innerText = '';
           tooltip.style.display = 'none';
         });
 
