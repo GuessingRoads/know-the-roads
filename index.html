@@ -1129,9 +1129,14 @@ worldMask.eachLayer(layer => {
 });
 
 
-  // ✅ Show roads after MT is clicked
-  map.addLayer(roadsLayerGroup);
-                        map.addLayer(roadsBufferGroup);
+  // optional safety: clear any lingering active name
+try { activeRoadName = ''; } catch {}
+
+// ✅ Show roads after MT is clicked
+armSolvedSegmentsForReentry();     // <-- prep solved segments before re-adding
+map.addLayer(roadsLayerGroup);
+map.addLayer(roadsBufferGroup);
+
 });
 
                   }
