@@ -527,6 +527,33 @@ function rebuildCountyMask() {
     try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
   } catch {}
 }
+function armSolvedSegmentsForReentry() {
+  try {
+    if (!roadsLayerGroup) return;
+    roadsLayerGroup.eachLayer(l => {
+      const st = segmentStateMap.get(String(l.feature.id));
+      if (!(st?.correct || st?.used_hint)) return;
+
+      // When this layer is re-added to the map, immediately scrub its stroke.
+      l.once('add', () => {
+        l.setStyle({ color: 'transparent', opacity: 0, weight: l.options.weight || 6 });
+        l.options.interactive = false;
+
+        const el = l.getElement?.();
+        if (el) {
+          el.style.pointerEvents = 'none';
+          el.style.stroke = 'none';
+          el.removeAttribute?.('stroke');
+          el.removeAttribute?.('stroke-opacity');
+          el.removeAttribute?.('stroke-width');
+          el.classList.remove('leaflet-interactive','correct-final','hover-green','active-highlight','hover-gold');
+        }
+        // keep our own marker consistent
+        l._originalColor = 'greenish';
+      });
+    });
+  } catch {}
+}
 
 
 
