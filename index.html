@@ -1149,14 +1149,23 @@ worldMask.eachLayer(layer => {
 });
 
 
-  // ✅ Show roads after MT is clicked
-  map.addLayer(roadsLayerGroup);
-  map.addLayer(roadsBufferGroup);
-  // normalize solved segments now…
+  // optional safety: clear any lingering active name
+try { activeRoadName = ''; } catch {}
+
+map.addLayer(roadsLayerGroup);
+map.addLayer(roadsBufferGroup);
+
+// normalize solved segments now…
 normalizeSolvedRoadStyles();
-// …and again on the next tick so we win over any async restyles
-setTimeout(normalizeSolvedRoadStyles, 0);
+
+// …on the next animation frame…
+requestAnimationFrame(() => {
+  normalizeSolvedRoadStyles();
+
+  // …and one more tick later to beat any late style updates
+  setTimeout(normalizeSolvedRoadStyles, 0);
 });
+
 
                   }
                 }).addTo(map);
