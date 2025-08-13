@@ -496,6 +496,12 @@ function animateIncorrectSegments(segments, delay = 60) {
     }, index * delay);
   });
 }
+function resetCountyTooltip() {
+  const tt = document.getElementById('custom-tooltip');
+  if (!tt) return;
+  tt.style.display = 'none';
+  tt.textContent = '';
+}
 
 
 async function checkLogin() {
