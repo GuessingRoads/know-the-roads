@@ -1204,20 +1204,7 @@ try {
 
 
   // 4) Rebuild the mask to shade OUTSIDE Lancaster only (no interior cover)
-  try {
-    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
-
-    if (countyFeatureRef && typeof createWorldMask === 'function') {
-      worldMask = L.geoJSON(createWorldMask(countyFeatureRef), {
-        style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
-      }).addTo(map);
-
-      // let clicks pass through the mask entirely
-      try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
-    } else {
-      console.warn('countyFeatureRef missing; mask not rebuilt to avoid inverted interior.');
-    }
-  } catch {}
+  rebuildCountyMask();
 
   // 5) Fit to county bounds
   try {
