@@ -557,13 +557,20 @@ function markRoadAsCorrect(roadName) {
 function triggerCorrectDissolveAnimationOnce(layer) {
   const el = layer.getElement?.() || layer._path;
   if (!el) return;
-  el.classList.remove('correct-final');  // ensure fresh start
-  void el.offsetWidth;                   // force reflow
+
+  // fresh run
+  el.classList.remove('correct-final');
+  void el.offsetWidth;            // reflow
   el.classList.add('correct-final');
+
+  // strip it after the animation so it won't replay on re-entry/login
   el.addEventListener('animationend', () => {
-    el.classList.remove('correct-final');  // strip so it won't replay on re-add
+    el.classList.remove('correct-final');
+    // keep final transparent look if your CSS doesn't already
+    // el.style.opacity = String(OPACITY_SOLVED);
   }, { once: true });
 }
+
 
 function reapplySavedStylesWhenReady(retries = 30) {
   const group = roadsLayerGroup;
