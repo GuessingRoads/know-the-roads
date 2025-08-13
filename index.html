@@ -1158,13 +1158,10 @@ map.addLayer(roadsBufferGroup);
 // normalize solved segments now…
 normalizeSolvedRoadStyles();
 
-// …on the next animation frame…
-requestAnimationFrame(() => {
-  normalizeSolvedRoadStyles();
+// …on the next two ticks to beat any late style updates
+setTimeout(normalizeSolvedRoadStyles, 0);
+setTimeout(normalizeSolvedRoadStyles, 50);
 
-  // …and one more tick later to beat any late style updates
-  setTimeout(normalizeSolvedRoadStyles, 0);
-});
 
 
                   }
