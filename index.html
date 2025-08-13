@@ -1067,23 +1067,22 @@ layer.on('mouseout', function () {
             const state = segmentStateMap.get(id);
             if (state?.correct || state?.used_hint) return;
 
-            if (activeRoadName && nameToLayers[activeRoadName]) {
-              for (const l of nameToLayers[activeRoadName]) {
-                const segmentId = String(l.feature.id);
-                const s = segmentStateMap.get(segmentId);
-                if (s?.correct) {
-                  l._path?.classList.add('correct-final');
-                } else if (s?.used_hint) {
-                  l._path?.classList.add('hint-used-final');
-                } else if (s?.incorrect) {
-                  l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
-                  l._originalColor = 'red';
-                } else {
-                  l.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
-                  l._originalColor = 'black';
-                }
-              }
-            }
+           if (activeRoadName && nameToLayers[activeRoadName]) {
+  for (const l of nameToLayers[activeRoadName]) {
+    const segId = String(l?.feature?.id ?? '');
+    const st = segmentStateMap?.get(segId) || {};
+    if (st.correct || st.used_hint || st.incorrect) {
+      applyRoadStateStyle(l, { noAnimate: true });
+    } else {
+      // unsolved/unknown: go back to idle black
+      l.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: 1 });
+      const el = l._path; if (el) el.style.pointerEvents = 'auto';
+      l._originalColor = 'black';
+    }
+    l._isActive = false;
+  }
+}
+
 
             for (const l of nameToLayers[name] || []) {
   const sid = String(l.feature.id);
