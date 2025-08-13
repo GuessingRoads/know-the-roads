@@ -530,22 +530,34 @@ function rebuildCountyMask() {
 function normalizeSolvedRoadStyles() {
   try {
     if (!roadsLayerGroup) return;
+
     roadsLayerGroup.eachLayer(l => {
       const st = segmentStateMap.get(String(l.feature.id));
-      if (st?.correct) {
-        // the green overlay is the visual; hide the base stroke and block hover
-        l.setStyle({ color: 'transparent' });
+      if (st?.correct || st?.used_hint) {
+        // Hide the base stroke completely
+        l.setStyle({ color: 'transparent', opacity: 0 });
+
+        // Make absolutely non-interactive
         l.options.interactive = false;
-        const p = l._path; if (p) p.style.pointerEvents = 'none';
-      } else if (st?.used_hint) {
-        // if you also make orange roads unclickable, keep pointerEvents off too
-        l.options.interactive = false;
-        const p = l._path; if (p) p.style.pointerEvents = 'none';
+        const p = l._path;
+        if (p) p.style.pointerEvents = 'none';
+
+        // Strip any transient classes/attributes that could reapply a stroke
+        const el = l.getElement?.();
+        if (el) {
+          el.classList.remove('hover-green', 'active-highlight', 'hover-gold');
+          el.removeAttribute('stroke');
+          el.removeAttribute('stroke-opacity');
+          el.removeAttribute('stroke-width');
+        }
+
+        // Remove event listeners on solved segments so nothing recolors them later
+        if (typeof l.off === 'function') l.off();
       }
-      // unsolved roads: leave as-is (black/red/yellow)
     });
   } catch {}
 }
+
 
 
 
