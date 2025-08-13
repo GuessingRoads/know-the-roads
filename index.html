@@ -1307,6 +1307,32 @@ setTimeout(refreshRoadStylesFromState, 0); // keep this after adding roads
   // ✅ Show roads after MT is clicked
   map.addLayer(roadsLayerGroup);
 if (roadsBufferGroup) map.addLayer(roadsBufferGroup);
+    // 🔁 Force a full, non-animated repaint of every road segment on re-entry
+requestAnimationFrame(() => {
+  try {
+    roadsLayerGroup?.eachLayer?.(l => {
+      // Reapply saved look (green/orange/red/black) and correct pointer events
+      applyRoadStateStyle(l, { noAnimate: true });
+
+      // Make sure our internal color flag matches the applied state (guards hover/out)
+      const id = String(l?.feature?.id ?? '');
+      const st = segmentStateMap?.get(id) || {};
+      l._originalColor = st.correct ? 'greenish' : (st.used_hint ? 'orange' : (st.incorrect ? 'red' : 'black'));
+
+      // Kill any leftover animation class so nothing re-dissolves on re-entry
+      const el = l._path;
+      if (el) el.classList.remove('correct-final');
+    });
+
+    // Extra safety: ensure the buffer group is on the map and interactive for unsolved
+    if (roadsBufferGroup && !map.hasLayer(roadsBufferGroup)) {
+      map.addLayer(roadsBufferGroup);
+    }
+  } catch (e) {
+    console.warn('Repaint on re-entry failed:', e);
+  }
+});
+
 
 requestAnimationFrame(() => {
   reapplySavedStylesWhenReady();   // instant, no dissolve, no hover needed
