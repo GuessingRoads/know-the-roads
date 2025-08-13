@@ -335,15 +335,6 @@
       <span style="font-size: 16px;">⬅</span>
       <span style="font-size: 15px; font-weight: 600; margin-left: 6px;">Exit</span>
     </button>
-    <button id="back-township-btn" style="display: none;">
-  <span style="font-size: 16px;">⬅</span>
-  <span style="font-size: 15px; font-weight: 600; margin-left: 6px;">Back (Township)</span>
-</button>
-
-<button id="back-county-btn" style="display: none;">
-  <span style="font-size: 16px;">⬅</span>
-  <span style="font-size: 15px; font-weight: 600; margin-left: 6px;">Back (County)</span>
-</button>
   </div>
 </div>
    <div id="music-modal">
@@ -390,17 +381,6 @@
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
   let insideLancaster = false;
   let insideManheim = false;
-  let roadsBufferGroup = null;
-  // ==== Back-nav refs (safe placeholders) ====
-let countyLayerRef = null;    // L.GeoJSON of the county boundary layer
-let townshipLayerRef = null;  // L.Layer for the active township polygon
-let countyFeatureRef = null;  // GeoJSON Feature for county (for mask)
-let townshipFeatureRef = null; // GeoJSON Feature for township (for mask)
-const WEIGHT_DEFAULT = 4;   // unsolved idle
-const WEIGHT_ACTIVE  = 6;   // blue “active” selection
-const WEIGHT_SOLVED  = 6;   // green solved (match your current green thickness)
-const OPACITY_DEFAULT = 1;   // black/orange/red
-const OPACITY_SOLVED  = 0.4; // the “transparent” solved look
 
 
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
@@ -511,197 +491,6 @@ function animateIncorrectSegments(segments, delay = 60) {
     }, index * delay);
   });
 }
-function refreshRoadStylesFromState() {
-  if (!window.nameToLayers || !window.segmentStateMap) return;
-  try {
-    const all = Object.values(nameToLayers).flat();
-    for (const l of all) {
-      const id = String(l?.feature?.id ?? '');
-      if (!id) continue;
-      const st = segmentStateMap.get(id);
-
-      if (st?.correct) {
-        // apply your “correct-green” look and disable interaction
-        l.setStyle({ color: '#00a65a' }); // match your correct color
-        l.options.interactive = false;
-        const el = l._path;
-        if (el) el.style.pointerEvents = 'none';
-      }
-    }
-  } catch (e) {
-    console.warn('refreshRoadStylesFromState error:', e);
-  }
-}
-  function layersFor(name) {
-  return (window.nameToLayers && nameToLayers[name]) ? nameToLayers[name] : [];
-}
-function markRoadAsCorrect(roadName) {
-  const layers = (nameToLayers && nameToLayers[roadName]) ? nameToLayers[roadName] : [];
-  for (const l of layers) {
-    const id = String(l?.feature?.id ?? '');
-    const prev = segmentStateMap.get(id) || {};
-
-    // persist solved state
-    segmentStateMap.set(id, { ...prev, correct: true, used_hint: false, incorrect: false });
-
-    // paint solved (static) immediately, no animation
-    applyRoadStateStyle(l, { noAnimate: true });
-
-    // keep hover logic honest
-    l._originalColor = 'greenish';
-
-    // run the dissolve ONCE, then remove the class so it cannot replay on re-entry
-    // triggerCorrectDissolveAnimationOnce(l); // ← disable for now
-  }
-}
-function triggerCorrectDissolveAnimationOnce(layer) {
-  const el = layer.getElement?.() || layer._path;
-  if (!el) return;
-
-  // fresh run
-  el.classList.remove('correct-final');
-  void el.offsetWidth;            // reflow
-  el.classList.add('correct-final');
-
-  // strip it after the animation so it won't replay on re-entry/login
-  el.addEventListener('animationend', () => {
-    el.classList.remove('correct-final');
-    // keep final transparent look if your CSS doesn't already
-    // el.style.opacity = String(OPACITY_SOLVED);
-  }, { once: true });
-}
-
-
-function reapplySavedStylesWhenReady(retries = 30) {
-  const group = roadsLayerGroup;
-  if (group && typeof group.eachLayer === 'function') {
-    let hasAny = false;
-    group.eachLayer(() => { hasAny = true; });
-    if (hasAny) {
-      group.eachLayer(l => {
-        const el = l._path;
-        if (el) {
-          const prev = el.style.transition;
-          el.style.transition = 'none';   // prevent dissolve on load
-          applyRoadStateStyle(l);         // green/black/orange + weight + pointerEvents + class
-          void el.getBoundingClientRect(); // force reflow
-          el.style.transition = prev;
-        } else {
-          applyRoadStateStyle(l);
-        }
-      });
-      return;
-    }
-  }
-  if (retries > 0) requestAnimationFrame(() => reapplySavedStylesWhenReady(retries - 1));
-}
-
-
-
-function clearActiveHighlight() {
-  if (!window.activeRoadName || !window.nameToLayers) return;
-
-  const layers = nameToLayers[activeRoadName] || [];
-  for (const l of layers) {
-    const id = String(l?.feature?.id ?? '');
-    const st = segmentStateMap.get(id);
-
-if (st?.correct) {
-  l.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1 });
-  l.options.interactive = false;
-  const el = l._path;
-  if (el) { el.style.pointerEvents = 'none'; el.classList.remove('correct-final'); }
-} else if (st?.used_hint) {
-  l.setStyle({ color: 'orange', weight: WEIGHT_DEFAULT, opacity: 1 });
-  l.options.interactive = true;
-  const el = l._path; if (el) { el.style.pointerEvents = 'auto'; el.classList.remove('correct-final'); }
-} else {
-  l.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: 1 });
-  l.options.interactive = true;
-  const el = l._path; if (el) { el.style.pointerEvents = 'auto'; el.classList.remove('correct-final'); }
-}
-
-
-    l._isActive = false; // clear any "blue active" flag
-  }
-}
-
-function normalizeAllRoadStyles() {
-  try {
-    const group = roadsLayerGroup;
-    if (!group || typeof group.eachLayer !== 'function') return;
-
-    group.eachLayer(l => {
-      const id = String(l?.feature?.id ?? '');
-      const st = segmentStateMap?.get(id);
-
-      if (st?.correct) {
-        // solved = green + inert
-        l.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1 });
-        l.options.interactive = false;
-        const el = l._path; if (el) el.style.pointerEvents = 'none';
-      } else if (st?.used_hint) {
-        // hint used = orange + clickable
-        l.setStyle({ color: 'orange', weight: WEIGHT_DEFAULT, opacity: 1 });
-        l.options.interactive = true;
-        const el = l._path; if (el) el.style.pointerEvents = 'auto';
-      } else {
-        // unsolved = black + clickable
-        l.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: 1 });
-        l.options.interactive = true;
-        const el = l._path; if (el) el.style.pointerEvents = 'auto';
-      }
-
-      l._isActive = false; // clear any leftover active flag
-    });
-  } catch (e) {
-    console.warn('normalizeAllRoadStyles error:', e);
-  }
-}
-
-function applyRoadStateStyle(layer, opts = {}) {
-  const { noAnimate = false } = opts;
-
-  const id = String(layer?.feature?.id ?? '');
-  const st = segmentStateMap?.get(id) || {};
-  const el = layer._path;
-
-  // Never animate during re-apply
-  let prevTransition = '';
-  if (noAnimate && el) {
-    prevTransition = el.style.transition;
-    el.style.transition = 'none';
-  }
-
-  if (st.correct) {
-    layer.setStyle({ color: '#00a65a', weight: WEIGHT_SOLVED, opacity: OPACITY_SOLVED });
-    layer.options.interactive = false;
-    if (el) el.style.pointerEvents = 'none';
-    layer._originalColor = 'greenish';
-  } else if (st.used_hint) {
-    layer.setStyle({ color: 'orange', weight: WEIGHT_DEFAULT, opacity: OPACITY_DEFAULT });
-    layer.options.interactive = true;
-    if (el) el.style.pointerEvents = 'auto';
-    layer._originalColor = 'orange';
-  } else if (st.incorrect) {
-    layer.setStyle({ color: 'red', weight: WEIGHT_ACTIVE, opacity: OPACITY_DEFAULT });
-    layer.options.interactive = true;
-    if (el) el.style.pointerEvents = 'auto';
-    layer._originalColor = 'red';
-  } else {
-    layer.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: OPACITY_DEFAULT });
-    layer.options.interactive = true;
-    if (el) el.style.pointerEvents = 'auto';
-    layer._originalColor = 'black';
-  }
-
-  if (noAnimate && el) {
-    void el.getBoundingClientRect();
-    el.style.transition = prevTransition;
-  }
-}
-
-
 
 
 async function checkLogin() {
@@ -891,41 +680,18 @@ async function loadMap() {
     .then(res => res.json())
     .then(data => {
       const roadLayer = L.geoJSON(data, {
-  // Set the *initial* look from saved state so nothing animates on add/re-add
-  style: (feature) => {
-    const id = String(feature.id);
-    const st = segmentStateMap?.get(id);
-    if (st?.correct) {
-      return { pane: 'hiddenRoads', color: '#00a65a', weight: WEIGHT_SOLVED, opacity: 1, lineCap: 'round' };
-    }
-    if (st?.used_hint) {
-      return { pane: 'hiddenRoads', color: 'orange',  weight: WEIGHT_DEFAULT, opacity: 1, lineCap: 'round' };
-    }
-    return { pane: 'hiddenRoads', color: 'black',   weight: WEIGHT_DEFAULT, opacity: 1, lineCap: 'round' };
-  },
+        // ✅ This applies to all roads, unless overridden below
+          style: {
+            pane: 'hiddenRoads'
+          },
 
-  onEachFeature: function (feature, layer) {
-  // Initialize _originalColor from saved state so hover/out logic knows the truth
-  {
-  const segId = String(feature.id);
-  const st = segmentStateMap?.get(segId);
-  layer._originalColor = st?.correct ? 'greenish' : (st?.used_hint ? 'orange' : 'black');
-}
-
-
-  // Whenever this segment is added to the map (e.g., after re-entry), re-apply saved style
-  layer.on('add', () => {
-  applyRoadStateStyle(layer, { noAnimate: true }); // ✅ no dissolve on re-entry/login
-});
-
-
-  const id = String(feature.id);
-  const name = feature.properties.name || "";
-  segmentIdToName[id] = name;
-  if (!nameToLayers[name]) nameToLayers[name] = [];
-  nameToLayers[name].push(layer);
-  layer.options.pane = 'hiddenRoads'; // ✅ Force pane at layer level
-
+        onEachFeature: function (feature, layer) {
+          const id = String(feature.id);
+          const name = feature.properties.name || "";
+          segmentIdToName[id] = name;
+          if (!nameToLayers[name]) nameToLayers[name] = [];
+          nameToLayers[name].push(layer);
+          layer.options.pane = 'hiddenRoads'; // ✅ Force pane at layer level
 
           // ⬛ Style visible road based on state
           if (segmentStateMap.has(id)) {
@@ -952,6 +718,12 @@ async function loadMap() {
                 weight: 6,
                 pane: 'hiddenRoads'
               });
+              setTimeout(() => {
+                if (layer._path) {
+                  layer._path.style.opacity = '';
+                  layer._path.classList.add('correct-final');
+                }
+              }, 0);
               layer._originalColor = 'greenish';
 
             } else {
@@ -980,92 +752,74 @@ async function loadMap() {
               opacity: 0,
               pane: 'clickable-buffer'
             },
-            onEachFeature: function (feature, bufLayer) {
-  // 🆔 Use feature id just for the solved/hint guard
-  const segId = String(feature?.id ?? '');
-  const state = segmentStateMap.get(segId);
+            onEachFeature: function (_, bufLayer) {
+              const state = segmentStateMap.get(id);
+              if (state?.correct || state?.used_hint) return;
+              bufLayer.on('click', () => {
+                layer.fire('click');
+              });
+              bufLayer.on('mouseover', () => {
+                layer.fire('mouseover');
+              });
+              bufLayer.on('mouseout', () => {
+                layer.fire('mouseout');
+              });
+            }
+          });
+          buffer.addTo(map);
 
-  // 🚫 Already solved/hint-solved? Don’t allow activation/hover
-  if (state?.correct || state?.used_hint) return;
-
-  // 🔵 Click → clear any prior active-blue, then forward to the real road layer
-  bufLayer.on('click', () => {
-    if (typeof clearActiveHighlight === 'function') clearActiveHighlight();
-    if (typeof activeRoadName !== 'undefined') activeRoadName = null;
-    layer.fire('click');           // ← forward to the visible road layer
-  });
-
-  // Forward hover events to the real road layer
-  bufLayer.on('mouseover', () => {
-    layer.fire('mouseover');
-  });
-  bufLayer.on('mouseout', () => {
-    layer.fire('mouseout');
-  });
-}
-});
-buffer.addTo(map);
-roadsBufferGroup = buffer;   // ✅ keep reference for back-button add/remove
-
-
-
-
-
-
-         // HOVER (roads)
-layer.on('mouseover', function () {
-  if (!insideLancaster) return;
-
-  // If this road name is currently active with the modal open, don't alter its style
-  if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-
-  // State for THIS segment
-  const segId = String(layer?.feature?.id ?? '');
-  const st = segmentStateMap?.get(segId);
-
-  // ✅ Solved/hint-solved segments should not hover-change color/weight
-  if (st?.correct || st?.used_hint) {
-    // keep your soft green glow if you like
-    const el = layer.getElement();
-    if (st?.correct && el) el.classList.add('hover-green');
-    return;
-  }
-
-  // For the whole road-name group, apply a temporary hover thickness & gold color
-  const matchingLayers = nameToLayers[name] || [];
-  for (const l of matchingLayers) {
-    // don't touch solved/hint members of the group
-    const id2 = String(l?.feature?.id ?? '');
-    const st2 = segmentStateMap?.get(id2);
-    if (st2?.correct || st2?.used_hint) continue;
-
-    l.setStyle({
-      color: '#ffd700',           // gold hover
-      weight: WEIGHT_ACTIVE,      // temporary thicker
-      opacity: 1,
-      lineCap: 'round',
-      pane: 'hiddenRoads'
-    });
-    l.bringToFront?.();
-  }
-});
-
-
-         // UNHOVER (roads)
-layer.on('mouseout', function () {
-  // Remove optional green glow
+          // Hover effect
+          layer.on('mouseover', function () {
+            if (!insideLancaster) return;
+            const matchingLayers = nameToLayers[name] || [];
+            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+            // 🟢 Soft glow if already guessed correctly
+const state = segmentStateMap.get(String(layer.feature.id));
+if (state?.correct) {
   const el = layer.getElement();
-  if (el) el.classList.remove('hover-green');
+  if (el) el.classList.add('hover-green');
+  return;
+}
 
-  // If this road name is currently active with the modal open, keep its active style
-  if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+            for (const l of matchingLayers) {
+              const currentColor = l._originalColor;
+              if (currentColor === 'greenish') return;
+              if (['black', 'red', 'yellow'].includes(currentColor)) {
+                l.setStyle({
+                  color: '#ffd700',
+                  weight: 8,
+                  opacity: 1,
+                  lineCap: 'round',
+                  pane: 'hiddenRoads'
+                });
+              }
+              l.bringToFront?.();
+            }
+          });
 
-  // Restore the true style for each segment in the group based on saved state
-  const matchingLayers = nameToLayers[name] || [];
-  for (const l of matchingLayers) {
-    applyRoadStateStyle(l);   // ← restores color + weight + pointer-events correctly
-  }
-});
+          layer.on('mouseout', function () {
+            const el = layer.getElement();
+if (el) el.classList.remove('hover-green');
+  
+            const matchingLayers = nameToLayers[name] || [];
+            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+            // 🧽 Remove green glow if present
+
+
+
+            for (const l of matchingLayers) {
+              const currentColor = l._originalColor;
+              if (['black', 'red', 'yellow'].includes(currentColor)) {
+                l.setStyle({
+                  color: currentColor,
+                  weight: 6,
+                  opacity: 1,
+                  lineCap: 'round',
+                  pane: 'hiddenRoads'
+                });
+              }
+            }
+          });
 
           layer.on('click', function () {
             const id = feature.id;
@@ -1073,22 +827,23 @@ layer.on('mouseout', function () {
             const state = segmentStateMap.get(id);
             if (state?.correct || state?.used_hint) return;
 
-           if (activeRoadName && nameToLayers[activeRoadName]) {
-  for (const l of nameToLayers[activeRoadName]) {
-    const segId = String(l?.feature?.id ?? '');
-    const st = segmentStateMap?.get(segId) || {};
-    if (st.correct || st.used_hint || st.incorrect) {
-      applyRoadStateStyle(l, { noAnimate: true });
-    } else {
-      // unsolved/unknown: go back to idle black
-      l.setStyle({ color: 'black', weight: WEIGHT_DEFAULT, opacity: 1 });
-      const el = l._path; if (el) el.style.pointerEvents = 'auto';
-      l._originalColor = 'black';
-    }
-    l._isActive = false;
-  }
-}
-
+            if (activeRoadName && nameToLayers[activeRoadName]) {
+              for (const l of nameToLayers[activeRoadName]) {
+                const segmentId = String(l.feature.id);
+                const s = segmentStateMap.get(segmentId);
+                if (s?.correct) {
+                  l._path?.classList.add('correct-final');
+                } else if (s?.used_hint) {
+                  l._path?.classList.add('hint-used-final');
+                } else if (s?.incorrect) {
+                  l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+                  l._originalColor = 'red';
+                } else {
+                  l.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
+                  l._originalColor = 'black';
+                }
+              }
+            }
 
             for (const l of nameToLayers[name] || []) {
   const sid = String(l.feature.id);
@@ -1117,7 +872,6 @@ layer.on('mouseout', function () {
     };
 
 
-
 fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
   .then(data => {
@@ -1129,12 +883,11 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         fillOpacity: 0.7,
         pane: 'countyPolygon'
       },
+
       onEachFeature: function (feature, layer) {
-        countyFeatureRef = feature;
         layer.on('mouseover', function () {
           if (insideLancaster) return;
           const tooltip = document.getElementById('custom-tooltip');
-          tooltip.innerText = 'Lancaster County';          // ✅ add this
           const center = layer.getBounds().getCenter();
           const screenPoint = map.latLngToContainerPoint(center);
           tooltip.style.left = screenPoint.x + 'px';
@@ -1145,8 +898,8 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
         layer.on('mouseout', function () {
           const tooltip = document.getElementById('custom-tooltip');
           tooltip.style.display = 'none';
-          tooltip.innerText = '';                           // ✅ add this
         });
+
         layer.on('click', function () {
           map.fitBounds(layer.getBounds());
           currentLayerDepth = 2;
@@ -1197,8 +950,6 @@ updateBackButtonVisibility();
                     fillOpacity: 0.25
                   },
                   onEachFeature: (feature, mtLayer) => {
-                    townshipLayerRef = mtLayer;
-                    townshipFeatureRef = feature;
                     mtLayer.on('mouseover', function () {
   if (insideManheim) return;
 
@@ -1255,15 +1006,13 @@ mtLayer.on('mouseout', function () {
 
 
                     mtLayer.on('click', () => {
- map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
-console.log("📍 Manheim Township clicked");
-
-insideManheim = true;     // now inside a township
-currentLayerDepth = 3;    // township/roads view
+  map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
+  console.log("📍 Manheim Township clicked");
+                      currentLayerDepth = 2;
 updateBackButtonVisibility();
+insideManheim = true;
 
-mtLayer.unbindTooltip();
-
+                      mtLayer.unbindTooltip();
 
 
   // 🔒 Disable interaction and fade MT polygon
@@ -1300,45 +1049,9 @@ worldMask.eachLayer(layer => {
   if (el) el.style.pointerEvents = 'none';
 });
 
-if (typeof activeRoadName !== 'undefined') activeRoadName = null;
-clearActiveHighlight();
-setTimeout(refreshRoadStylesFromState, 0); // keep this after adding roads
 
   // ✅ Show roads after MT is clicked
   map.addLayer(roadsLayerGroup);
-if (roadsBufferGroup) map.addLayer(roadsBufferGroup);
-    // 🔁 Force a full, non-animated repaint of every road segment on re-entry
-requestAnimationFrame(() => {
-  try {
-    roadsLayerGroup?.eachLayer?.(l => {
-      // Reapply saved look (green/orange/red/black) and correct pointer events
-      applyRoadStateStyle(l, { noAnimate: true });
-
-      // Make sure our internal color flag matches the applied state (guards hover/out)
-      const id = String(l?.feature?.id ?? '');
-      const st = segmentStateMap?.get(id) || {};
-      l._originalColor = st.correct ? 'greenish' : (st.used_hint ? 'orange' : (st.incorrect ? 'red' : 'black'));
-
-      // Kill any leftover animation class so nothing re-dissolves on re-entry
-      const el = l._path;
-      if (el) el.classList.remove('correct-final');
-    });
-
-    // Extra safety: ensure the buffer group is on the map and interactive for unsolved
-    if (roadsBufferGroup && !map.hasLayer(roadsBufferGroup)) {
-      map.addLayer(roadsBufferGroup);
-    }
-  } catch (e) {
-    console.warn('Repaint on re-entry failed:', e);
-  }
-});
-
-
-requestAnimationFrame(() => {
-  reapplySavedStylesWhenReady();   // instant, no dissolve, no hover needed
-});
-
-
 });
 
                   }
@@ -1348,7 +1061,6 @@ requestAnimationFrame(() => {
         });
       }
     }).addTo(map);
-    countyLayerRef = countyLayer; // <-- put this right here
 
     function createWorldMask(feature) {
       const bounds = map.getBounds().pad(1);
@@ -1422,27 +1134,16 @@ loadMap();
 document.getElementById('guess-input').addEventListener('input', async function (e) {
   if (!currentRoad) return;
 
-  const userGuess       = e.target.value.trim();
-  const correctName     = currentRoad.name.trim();
+  const userGuess = e.target.value.trim();
+  const correctName = currentRoad.name.trim();
   const normalizedGuess = normalizeName(userGuess);
   const normalizedCorrect = normalizeName(correctName);
 
   if (normalizedGuess === normalizedCorrect) {
     console.log("⚡ Auto-submitting correct guess:", userGuess);
-
-    // ✅ turn the whole road green right away (no hover needed, no dissolve)
-    const roadNameKey = (typeof activeRoadName !== 'undefined' && activeRoadName) ? activeRoadName : correctName;
-    markRoadAsCorrect(roadNameKey);
-
-    // clear any lingering active-blue
-    if (typeof clearActiveHighlight === 'function') clearActiveHighlight();
-    if (typeof activeRoadName !== 'undefined') activeRoadName = null;
-
-    // proceed with your existing submit flow (attempt counts, server save, etc.)
     document.getElementById('submit-guess').click();
   }
 });
-
 
 document.getElementById('guess-input').addEventListener('input', () => {
   const input = document.getElementById('guess-input').value.trim();
@@ -1480,243 +1181,13 @@ document.getElementById('guess-input').addEventListener('input', () => {
 });
 
 function updateBackButtonVisibility() {
-  const exitBtn    = document.getElementById('exit-zone-btn');       // legacy/general
-  const backTown   = document.getElementById('back-township-btn');   // shown at depth >= 3
-  const backCounty = document.getElementById('back-county-btn');     // shown at depth == 2
-
-  // Hide all by default
-  if (exitBtn)    exitBtn.style.display = 'none';
-  if (backTown)   backTown.style.display = 'none';
-  if (backCounty) backCounty.style.display = 'none';
-
-  // Depth guide used here:
-  // 1 = outside county (no back button)
-  // 2 = inside county (choose township) -> show County Back
-  // 3+ = inside township (roads active) -> show Township Back
-  if (typeof currentLayerDepth === 'number') {
-    if (currentLayerDepth >= 3) {
-      if (backTown) backTown.style.display = 'flex';
-    } else if (currentLayerDepth === 2) {
-      if (backCounty) backCounty.style.display = 'flex';
-    }
-  }
-}
-function setupBackButtons() {
-  const backTown  = document.getElementById('back-township-btn');
-  const backCounty = document.getElementById('back-county-btn');
-
-// Local helper to build the "world mask" with a hole for the county
-function buildMaskFeature(countyFeature) {
-  if (!countyFeature || !countyFeature.geometry) return null;
-
-  // Big rectangle representing the world
-  const worldRing = [
-    [-179.9999, -89.9999],
-    [-179.9999,  89.9999],
-    [ 179.9999,  89.9999],
-    [ 179.9999, -89.9999],
-    [-179.9999, -89.9999]
-  ];
-
-  // County rings (holes)
-  const holes = [];
-  const geom = countyFeature.geometry;
-
-  if (geom.type === 'Polygon') {
-    if (geom.coordinates && geom.coordinates[0]) {
-      holes.push(geom.coordinates[0]);
-    }
-  } else if (geom.type === 'MultiPolygon') {
-    for (const poly of geom.coordinates || []) {
-      if (poly && poly[0]) holes.push(poly[0]);
-    }
+  const backBtn = document.getElementById("exit-zone-btn");
+  if (currentLayerDepth > 1) {
+    backBtn.style.display = "flex"; // "flex" matches your current layout
   } else {
-    return null;
+    backBtn.style.display = "none";
   }
-
-  return {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'Polygon',
-      coordinates: [worldRing, ...holes]
-    }
-  };
 }
-
-
-  function clearHoverOverlay() {
-    if (typeof hoverOverlay !== 'undefined' && hoverOverlay) {
-      map.removeLayer(hoverOverlay);
-      hoverOverlay = null;
-    }
-  }
-
- // 🔙 Township → County
-backTown?.addEventListener('click', () => {
-  // 0) swap UI FIRST so the button changes even if later code fails
-  currentLayerDepth = 2;
-  updateBackButtonVisibility();
-  clearActiveHighlight();
-  if (typeof activeRoadName !== 'undefined') activeRoadName = null;
-  const gm = document.getElementById('guess-modal');
-  if (gm) gm.style.display = 'none';
-
-  try {
-    // 1) hide roads (non-destructive)
-    if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
-      map.removeLayer(roadsLayerGroup);
-    }
-    if (roadsBufferGroup && map.hasLayer(roadsBufferGroup)) {
-      map.removeLayer(roadsBufferGroup);           // ← add this line here
-    }
-
-    // 2) leave township state + restore township polygon interactivity
-    if (typeof insideManheim !== 'undefined') insideManheim = false;
-    if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
-      try {
-        townshipLayerRef.setStyle({
-          fillOpacity: 0.25,
-          weight: 1.5,
-          color: 'black',
-          opacity: 1
-        });
-        const p = townshipLayerRef._path;
-        if (p) {
-          p.style.pointerEvents = 'auto';
-          p.style.outline = '';
-        }
-      } catch (err) {
-        console.warn('Back(Township) restore township style error:', err);
-      }
-    }
-
-    // 2b) clear any hover overlay + tooltip
-    if (typeof hoverOverlay !== 'undefined' && hoverOverlay) {
-      map.removeLayer(hoverOverlay);
-      hoverOverlay = null;
-    }
-    const tt = document.getElementById('custom-tooltip');
-    if (tt) {
-      tt.style.display = 'none';
-      tt.innerText = '';
-    }
-
-    // 3) ZOOM FIRST (county bounds)
-    if (countyLayerRef) {
-      const b = countyLayerRef.getBounds();
-      if (b && b.isValid && b.isValid()) {
-        map.flyToBounds(b, { padding: [40, 40], maxZoom: 12 });
-      }
-    }
-
-    // 4) REAPPLY COUNTY MASK after zoom (slight delay to let view settle)
-    setTimeout(() => {
-      if (typeof insideLancaster !== 'undefined') insideLancaster = true;
-
-      // ensure pane exists
-      let pane = map.getPane('maskPane');
-      if (!pane) {
-        pane = map.createPane('maskPane');
-      }
-      pane.style.zIndex = 450;
-
-      // remove any existing mask
-      if (typeof worldMask !== 'undefined' && worldMask) {
-        map.removeLayer(worldMask);
-        worldMask = null;
-      }
-
-      // get a reliable county feature
-      let countyFeature = countyFeatureRef || null;
-      if (!countyFeature && countyLayerRef) {
-        try {
-          const fc = countyLayerRef.toGeoJSON();
-          if (fc && fc.type === 'FeatureCollection' && fc.features.length) {
-            countyFeature = fc.features[0];
-          }
-        } catch (err) {
-          console.warn('Back(Township) toGeoJSON fallback failed:', err);
-        }
-      }
-
-      if (!countyFeature) {
-        console.warn('Back(Township): missing countyFeatureRef; mask not reapplied.');
-        return;
-      }
-
-      try {
-        const maskFeature = buildMaskFeature(countyFeature);
-if (!maskFeature) {
-  console.warn('Back(Township): could not build mask feature.');
-  return;
-}
-worldMask = L.geoJSON(maskFeature, {
-
-          pane: 'maskPane',
-          style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
-        }).addTo(map);
-
-        worldMask.eachLayer(l => {
-          const el = l.getElement();
-          if (el) el.style.pointerEvents = 'none';
-        });
-      } catch (err) {
-        console.warn('Back(Township): failed to build mask:', err);
-      }
-    }, 150);
-  } catch (err) {
-    console.warn('Back(Township) handler error (non-fatal):', err);
-  }
-});
-
-  // 🔙 County → Outside county (world/state)
-  backCounty?.addEventListener('click', () => {
-    if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
-      map.removeLayer(roadsLayerGroup);
-    }
-    if (roadsBufferGroup && map.hasLayer(roadsBufferGroup)) {
-    map.removeLayer(roadsBufferGroup);             // ← add this line here
-  }
-    clearHoverOverlay();
-  clearActiveHighlight();
-  if (typeof activeRoadName !== 'undefined') activeRoadName = null;
-  const gm = document.getElementById('guess-modal');
-  if (gm) gm.style.display = 'none';
-
-    const tt = document.getElementById('custom-tooltip');
-    if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
-
-    if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef && map.hasLayer(townshipLayerRef)) {
-      try { map.removeLayer(townshipLayerRef); } catch {}
-    }
-
-    if (typeof insideManheim !== 'undefined') insideManheim = false;
-    if (typeof insideLancaster !== 'undefined') insideLancaster = false;
-
-    if (countyLayerRef) {
-      countyLayerRef.eachLayer(l => {
-        try {
-          l.setStyle({ fillOpacity: 0.7 });
-          const p = l._path;
-          if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
-        } catch {}
-      });
-    }
-
-    if (typeof worldMask !== 'undefined' && worldMask) {
-      map.removeLayer(worldMask);
-      worldMask = null;
-    }
-    map.setView([40.09, -76.3], 10);
-
-    if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 1;
-    updateBackButtonVisibility();
-  });
-} // ← CLOSES setupBackButtons()
-
-
-
 
 
 // 🎵 Web Audio API Seamless Loop Logic
@@ -1822,29 +1293,23 @@ let interactionCount = 0;
   });
 }
 function triggerCorrectDissolveAnimation(layer) {
-  const el = layer.getElement?.() || layer._path;
+  const el = layer.getElement();
   if (!el) return;
 
-  // Reset any inline overrides that could interfere
+  // ✅ Reset any inline styles (in case of red/yellow/orange overrides)
   el.style.transition = '';
-  el.style.stroke = '';
+  el.style.stroke = 'rgba(0, 160, 0, 0.4)';
   el.style.strokeDasharray = '';
   el.style.strokeDashoffset = '';
-  el.style.opacity = String(OPACITY_SOLVED); // <- end state after dissolve
+  el.style.opacity = '1';
 
-  // Force a fresh run: remove, reflow, re-add
+  // ✅ Remove class if already applied (force restart)
   el.classList.remove('correct-final');
-  void el.offsetWidth;
+  void el.offsetWidth; // force reflow
+
+  // ✅ Add class to trigger dissolve
   el.classList.add('correct-final');
-
-  // Strip the class when the animation finishes so it can't replay on re-add
-  el.addEventListener('animationend', () => {
-    el.classList.remove('correct-final');
-    el.style.opacity = String(OPACITY_SOLVED); // keep final transparent look
-  }, { once: true });
 }
-
-
 
 
 
@@ -2068,7 +1533,7 @@ document.getElementById('give-up').onclick = async function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, usedHint ? 2000 : 0);
 };
-setupBackButtons();
+
   </script>
 </body>
 </html>
