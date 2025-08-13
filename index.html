@@ -527,49 +527,6 @@ function rebuildCountyMask() {
     try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
   } catch {}
 }
-function normalizeSolvedRoadStyles() {
-  try {
-    if (!roadsLayerGroup) return;
-
-    roadsLayerGroup.eachLayer(l => {
-      const st = segmentStateMap.get(String(l.feature.id));
-      if (!st?.correct && !st?.used_hint) return;
-
-      // Hide the base stroke completely and make non-interactive
-      l.setStyle({ color: 'transparent', opacity: 0, weight: 0.0001 });
-      l.options.interactive = false;
-
-      const el = l.getElement?.();
-      if (el) {
-        // absolutely no clicks/hover and no render flash
-        el.style.pointerEvents = 'none';
-        el.style.display = 'none';                 // <- key: prevents default blue flash
-        el.classList.remove('correct-final', 'hover-green', 'active-highlight', 'hover-gold', 'leaflet-interactive');
-        // scrub any stroke attributes/styles
-        el.removeAttribute('stroke');
-        el.removeAttribute('stroke-opacity');
-        el.removeAttribute('stroke-width');
-        el.style.stroke = 'none';
-        el.style.strokeOpacity = '';
-        el.style.strokeWidth = '';
-      }
-
-      // mark internal color so other logic treats it as solved
-      l._originalColor = 'greenish';
-
-      // solved segments don’t need events
-      if (typeof l.off === 'function') l.off();
-    });
-  } catch {}
-}
-function normalizeSolvedNowAndSoon() {
-  // run now and on two quick ticks to override any late style flashes
-  normalizeSolvedRoadStyles();
-  setTimeout(normalizeSolvedRoadStyles, 0);
-  setTimeout(normalizeSolvedRoadStyles, 50);
-}
-
-
 
 
 
@@ -848,69 +805,59 @@ async function loadMap() {
           });
           buffer.addTo(roadsBufferGroup);
 
-          // HOVER //////////////////////////////////////////////////////////////////////////////
-layer.on('mouseover', function () {
-  if (!insideLancaster) return;
 
-  const modalOpen = document.getElementById('guess-modal').style.display === 'block';
-  if (activeRoadName === name && modalOpen) return;
-
-  const matchingLayers = nameToLayers[name] || [];
-
-  // If THIS segment is solved, show subtle green aura (optional) and bail
-  const selfState = segmentStateMap.get(String(layer.feature.id));
-  if (selfState?.correct || selfState?.used_hint) {
-    const el = layer.getElement();
-    if (el && selfState?.correct) el.classList.add('hover-green');
-    return;
-  }
-
-  // Otherwise, hover all unsolved matching segments
-  for (const l of matchingLayers) {
-    const st = segmentStateMap.get(String(l.feature.id));
-    if (st?.correct || st?.used_hint) continue; // ← skip solved (green/orange)
-
-    const currentColor = l._originalColor || 'black';
-    if (['black', 'red', 'yellow'].includes(currentColor)) {
-      l.setStyle({
-        color: '#ffd700',
-        weight: 8,
-        opacity: 1,
-        lineCap: 'round',
-        pane: 'hiddenRoads'
-      });
-    }
-    l.bringToFront?.();
-  }
-});
-
-// UNHOVER ////////////////////////////////////////////////////////////////////////////
-layer.on('mouseout', function () {
+          // Hover effect
+          layer.on('mouseover', function () {
+            if (!insideLancaster) return;
+            const matchingLayers = nameToLayers[name] || [];
+            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+            // 🟢 Soft glow if already guessed correctly
+const state = segmentStateMap.get(String(layer.feature.id));
+if (state?.correct) {
   const el = layer.getElement();
-  if (el) el.classList.remove('hover-green');
+  if (el) el.classList.add('hover-green');
+  return;
+}
 
-  const modalOpen = document.getElementById('guess-modal').style.display === 'block';
-  if (activeRoadName === name && modalOpen) return;
+            for (const l of matchingLayers) {
+              const currentColor = l._originalColor;
+              if (currentColor === 'greenish') return;
+              if (['black', 'red', 'yellow'].includes(currentColor)) {
+                l.setStyle({
+                  color: '#ffd700',
+                  weight: 8,
+                  opacity: 1,
+                  lineCap: 'round',
+                  pane: 'hiddenRoads'
+                });
+              }
+              l.bringToFront?.();
+            }
+          });
 
-  const matchingLayers = nameToLayers[name] || [];
+          layer.on('mouseout', function () {
+            const el = layer.getElement();
+if (el) el.classList.remove('hover-green');
+  
+            const matchingLayers = nameToLayers[name] || [];
+            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+            // 🧽 Remove green glow if present
 
-  for (const l of matchingLayers) {
-    const st = segmentStateMap.get(String(l.feature.id));
-    if (st?.correct || st?.used_hint) continue; // ← do not touch solved styles
 
-    const baseColor = l._originalColor || 'black';
-    if (['black', 'red', 'yellow'].includes(baseColor)) {
-      l.setStyle({
-        color: baseColor,
-        weight: 6,
-        opacity: 1,
-        lineCap: 'round',
-        pane: 'hiddenRoads'
-      });
-    }
-  }
-});
 
+            for (const l of matchingLayers) {
+              const currentColor = l._originalColor;
+              if (['black', 'red', 'yellow'].includes(currentColor)) {
+                l.setStyle({
+                  color: currentColor,
+                  weight: 6,
+                  opacity: 1,
+                  lineCap: 'round',
+                  pane: 'hiddenRoads'
+                });
+              }
+            }
+          });
 
           layer.on('click', function () {
             const id = feature.id;
@@ -1155,15 +1102,10 @@ worldMask.eachLayer(layer => {
 });
 
 
-// optional safety: clear any lingering active name
-try { activeRoadName = ''; } catch {}
-
-// ✅ Show roads after MT is clicked
-map.addLayer(roadsLayerGroup);
-map.addLayer(roadsBufferGroup);
-
-// normalize solved segments (now and shortly after)
-normalizeSolvedNowAndSoon();
+  // ✅ Show roads after MT is clicked
+  map.addLayer(roadsLayerGroup);
+                        map.addLayer(roadsBufferGroup);
+});
 
                   }
                 }).addTo(map);
