@@ -1058,6 +1058,8 @@ if (!countyMaskFeature) {
 updateBackButtonVisibility();
 
           insideLancaster = true;
+// hide the county tooltip immediately on enter
+{ const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
 
           // (Re)apply the saved outside-only mask for Lancaster
 if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
