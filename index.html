@@ -404,8 +404,6 @@
   let townshipLayerRef;      // MT L.GeoJSON
   let roadsBufferGroup = L.layerGroup(); // holds 20px invisible buffers
   let countyMaskFeature = null; // a prebuilt mask (outer rect with Lanc as hole)
-  let townshipEntering = false; // prevents double-fire on mobile
-
 
 
 
@@ -1110,99 +1108,166 @@ if (countyMaskFeature) {
                     fillOpacity: 0.25
                   },
                   onEachFeature: (feature, mtLayer) => {
-  // --- Tooltip in center while outside township ---
-  mtLayer.on('mouseover', function () {
-    if (insideManheim) return;
-    const tt = document.getElementById('custom-tooltip');
-    if (!tt) return;
-    const center = mtLayer.getBounds().getCenter();
-    const screen = map.latLngToContainerPoint(center);
-    tt.innerText = 'Manheim Township';
-    tt.style.left = screen.x + 'px';
-    tt.style.top  = screen.y + 'px';
-    tt.style.display = 'block';
-  });
+                    mtLayer.on('mouseover', function () {
+  if (insideManheim) return;
 
-  mtLayer.on('mouseout', function () {
-    const tt = document.getElementById('custom-tooltip');
-    if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
-  });
+  const tooltip = document.getElementById('custom-tooltip');
+  const center = mtLayer.getBounds().getCenter();
+  const screenPoint = map.latLngToContainerPoint(center);
 
-  // --- Gold hover overlay (non-interactive) ---
-  mtLayer.on('mouseover', function () {
-    if (insideManheim) return; // already inside, no hover overlay
-    if (hoverOverlay) { try { map.removeLayer(hoverOverlay); } catch {} hoverOverlay = null; }
+  tooltip.innerText = "Manheim Township";
+  tooltip.style.left = screenPoint.x + 'px';
+  tooltip.style.top = screenPoint.y + 'px';
+  tooltip.style.display = 'block';
+});
 
-    if (!map.getPane('hoverPane')) map.createPane('hoverPane');
-    map.getPane('hoverPane').style.zIndex = 350;
+mtLayer.on('mouseout', function () {
+  const tooltip = document.getElementById('custom-tooltip');
+  tooltip.style.display = 'none';
+  tooltip.innerText = '';
+});
+mtLayer.on('mouseover', function () {
+  if (insideManheim) return; // already clicked
 
-    hoverOverlay = L.geoJSON(mtLayer.feature, {
-      pane: 'hoverPane',
-      style: {
-        fillColor: '#ffd700',
-        fillOpacity: 0.30,
-        color: 'black',
-        weight: 1,
-        opacity: 1
-      }
-    }).addTo(map);
-
-    try {
-      hoverOverlay.eachLayer(l => {
-        const el = l.getElement?.();
-        if (el) el.style.pointerEvents = 'none';
-      });
-    } catch {}
-  });
-
-  mtLayer.on('mouseout', function () {
-    if (hoverOverlay) { try { map.removeLayer(hoverOverlay); } catch {} hoverOverlay = null; }
-  });
-
-  // --- Mobile-friendly single-tap enter (wait for zoom, then add roads) ---
-  const enterTownship = (e) => {
-    if (townshipEntering || insideManheim) { if (e) L.DomEvent.stop(e); return; }
-    townshipEntering = true;
-
-    insideManheim     = true;   // now inside MT
-    insideLancaster   = true;   // still inside county
-    currentLayerDepth = 3;
-    updateBackButtonVisibility();
-
-    // clear hover UI so it doesn't intercept
-    if (hoverOverlay) { try { map.removeLayer(hoverOverlay); } catch {} hoverOverlay = null; }
-    const tt = document.getElementById('custom-tooltip');
-    if (tt) { tt.style.display = 'none'; tt.innerText = ''; }
-
-    // disable MT polygon interactivity and fade its fill
-    mtLayer.setStyle({ fillOpacity: 0 });
-    const mtPath = mtLayer._path || mtLayer.getElement?.();
-    if (mtPath) { mtPath.style.pointerEvents = 'none'; mtPath.style.outline = 'none'; }
-
-    // after zoom finishes, add roads so they're clickable immediately
-    const target = mtLayer.getBounds();
-    map.once('moveend', () => {
-      try { if (roadsLayerGroup  && !map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch {}
-      try { if (roadsBufferGroup && !map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch {}
-      try { if (typeof scrubHiddenRoadsBlue === 'function') scrubHiddenRoadsBlue(); } catch {}
-      townshipEntering = false;
-    });
-
-    map.fitBounds(target, { padding: [36, 36], maxZoom: 14 });
-    if (e) L.DomEvent.stop(e);
-  };
-
-  const IS_COARSE = window.matchMedia?.('(pointer: coarse)').matches ?? false;
-  if (IS_COARSE) {
-    mtLayer.on('touchstart', enterTownship);
-    mtLayer.on('click', enterTownship); // guard prevents double-run
-  } else {
-    mtLayer.on('click', enterTownship);
+  // 🧹 Remove old hover overlay if any
+  if (hoverOverlay) {
+    map.removeLayer(hoverOverlay);
+    hoverOverlay = null;
   }
-},  // ← this closes onEachFeature
-}).addTo(map);  // ← this closes the L.geoJSON(mtData, ...).addTo(map)
-                });
 
+  // 🟡 Add gold semi-transparent hover overlay
+  hoverOverlay = L.geoJSON(mtLayer.feature, {
+    pane: 'hoverPane', // we'll define this pane in step 3
+    style: {
+      fillColor: '#ffd700',
+      fillOpacity: 0.3,
+      color: 'black',
+      weight: 1,
+      opacity: 1
+    }
+  }).addTo(map);
+
+  // 🔒 Make hover overlay ignore pointer events
+  hoverOverlay.eachLayer(l => {
+    const el = l.getElement();
+    if (el) el.style.pointerEvents = 'none';
+  });
+});
+mtLayer.on('mouseout', function () {
+  if (hoverOverlay) {
+    map.removeLayer(hoverOverlay);
+    hoverOverlay = null;
+  }
+});
+
+
+
+
+                    mtLayer.on('click', () => {
+  map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
+  console.log("📍 Manheim Township clicked");
+                      currentLayerDepth = 3;
+updateBackButtonVisibility();
+insideManheim = true;
+
+                      mtLayer.unbindTooltip();
+
+
+  // 🔒 Disable interaction and fade MT polygon
+  mtLayer.setStyle({
+    fillOpacity: 0,
+    weight: 1.5,
+    color: 'black',
+    opacity: 1
+  });
+
+  const mtPath = mtLayer._path;
+  if (mtPath) {
+    mtPath.style.pointerEvents = 'none';
+    mtPath.style.outline = 'none';
+  }
+
+  // 🧱 Create mask that reveals only MT
+if (worldMask) {
+  map.removeLayer(worldMask);
+  worldMask = null;
+}
+
+worldMask = L.geoJSON(createWorldMask(feature), {
+  style: {
+    fillColor: '#cccccc',
+    fillOpacity: 0.7,
+    stroke: false,
+    pane: 'maskPane'
+  }
+}).addTo(map);
+
+worldMask.eachLayer(layer => {
+  const el = layer.getElement();
+  if (el) el.style.pointerEvents = 'none';
+});
+
+
+  // optional safety: clear any lingering active name
+try { activeRoadName = ''; } catch {}
+
+// ✅ Show roads after MT is clicked
+armSolvedSegmentsForReentry();     // <-- prep solved segments before re-adding
+map.addLayer(roadsLayerGroup);
+map.addLayer(roadsBufferGroup);
+// Remove any lingering cyan/blue base strokes on solved segments
+scrubHiddenRoadsBlue();
+
+// Hard-reset base road strokes on re-entry so solved roads don't show blue
+try {
+  roadsLayerGroup.eachLayer(l => {
+    const st = segmentStateMap.get(String(l.feature.id));
+    const el = l.getElement?.();
+
+    if (st?.correct || st?.used_hint) {
+      // Hide base stroke completely for solved segments
+      l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+      l.options.interactive = false;
+
+      if (el) {
+        el.style.display = 'none';                      // prevents any flash
+        el.style.stroke = 'none';
+        el.removeAttribute('stroke');
+        el.removeAttribute('stroke-opacity');
+        el.removeAttribute('stroke-width');
+        el.classList.remove('leaflet-interactive','correct-final','active-highlight','hover-green');
+      }
+      l._originalColor = 'greenish'; // keep your internal marker consistent
+    } else {
+      // Ensure unsolved segments are reset off any accidental blue
+      const base = l._originalColor || 'black';
+      l.setStyle({ color: base, weight: 6, opacity: 1, lineCap: 'round', pane: 'hiddenRoads' });
+      l.options.interactive = true;
+
+      if (el) {
+        el.style.display = '';
+        el.style.stroke = '';
+        el.removeAttribute('stroke');
+        el.classList.add('leaflet-interactive');
+      }
+    }
+  });
+} catch {}
+
+
+  // normalize overlays so they never appear blue
+normalizeCorrectOverlays();
+
+});
+
+                  }
+                }).addTo(map);
+              });
+          }, 500);
+        });
+            }
+    });
+    countyLayerRef = countyLayer.addTo(map);
 
 
     function createWorldMask(feature) {
