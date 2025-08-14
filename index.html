@@ -1173,6 +1173,43 @@ armSolvedSegmentsForReentry();     // <-- prep solved segments before re-adding
 map.addLayer(roadsLayerGroup);
 map.addLayer(roadsBufferGroup);
 
+// Hard-reset base road strokes on re-entry so solved roads don't show blue
+try {
+  roadsLayerGroup.eachLayer(l => {
+    const st = segmentStateMap.get(String(l.feature.id));
+    const el = l.getElement?.();
+
+    if (st?.correct || st?.used_hint) {
+      // Hide base stroke completely for solved segments
+      l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+      l.options.interactive = false;
+
+      if (el) {
+        el.style.display = 'none';                      // prevents any flash
+        el.style.stroke = 'none';
+        el.removeAttribute('stroke');
+        el.removeAttribute('stroke-opacity');
+        el.removeAttribute('stroke-width');
+        el.classList.remove('leaflet-interactive','correct-final','active-highlight','hover-green');
+      }
+      l._originalColor = 'greenish'; // keep your internal marker consistent
+    } else {
+      // Ensure unsolved segments are reset off any accidental blue
+      const base = l._originalColor || 'black';
+      l.setStyle({ color: base, weight: 6, opacity: 1, lineCap: 'round', pane: 'hiddenRoads' });
+      l.options.interactive = true;
+
+      if (el) {
+        el.style.display = '';
+        el.style.stroke = '';
+        el.removeAttribute('stroke');
+        el.classList.add('leaflet-interactive');
+      }
+    }
+  });
+} catch {}
+
+
   // normalize overlays so they never appear blue
 normalizeCorrectOverlays();
 
