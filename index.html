@@ -1165,39 +1165,49 @@ mtLayer.on('click', (e) => {
   console.log("📍 Manheim Township clicked");
   currentLayerDepth = 3;
   updateBackButtonVisibility();
-  insideManheim = true;     // still inside county
+  insideManheim = true;
 
-  // stop tooltip + keep polygon from eating taps
+  // kill any hover overlay & tooltip so nothing intercepts taps
+  try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
   try { mtLayer.unbindTooltip(); } catch {}
+
+  // 🔒 Disable interaction and fade MT polygon so roads show through
   mtLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 });
   const mtPath = mtLayer._path || mtLayer.getElement?.();
   if (mtPath) { mtPath.style.pointerEvents = 'none'; mtPath.style.outline = 'none'; }
 
   // 🧱 Create mask that reveals only MT (unchanged)
-  try {
-    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
-    worldMask = L.geoJSON(createWorldMask(feature), {
-      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
-    }).addTo(map);
-    worldMask.eachLayer(layer => { const el = layer.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
-  } catch {}
+  if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
+  worldMask = L.geoJSON(createWorldMask(feature), {
+    style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+  }).addTo(map);
+  worldMask.eachLayer(layer => { const el = layer.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
 
   // optional safety: clear any lingering active name
   try { activeRoadName = ''; } catch {}
 
-  // 🚀 Add roads only AFTER the zoom completes (single-tap fix on mobile)
+  // 🚀 MOBILE FIX: stop any in-flight animation, then add roads only after final zoom
+  map.stop(); // cancel ongoing pan/zoom so we don't catch an intermediate moveend
   const target = mtLayer.getBounds();
+  const desiredZoom = map.getBoundsZoom(target, true);
+
   map.once('moveend', () => {
+    // if we didn't reach the target zoom yet (mobile sometimes stops early), snap once
+    if (map.getZoom() < desiredZoom) {
+      map.setView(target.getCenter(), desiredZoom, { animate: false });
+    }
+
+    // ✅ Show roads only after zoom is settled (single-tap on mobile)
     try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch {}
     try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch {}
 
-    // now that roads are in, normalize styling
+    // normalize any residual styling
     try { armSolvedSegmentsForReentry?.(); } catch {}
     try { scrubHiddenRoadsBlue?.(); } catch {}
     try { normalizeCorrectOverlays?.(); } catch {}
   });
 
-  map.fitBounds(target, { padding: [36, 36], maxZoom: 15 });
+  map.fitBounds(target, { padding: [36, 36], maxZoom: 15, animate: true });
 
   if (e) L.DomEvent.stop(e);
 });
