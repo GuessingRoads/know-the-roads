@@ -252,16 +252,18 @@
   opacity: 1;
   pointer-events: none;
 }
-/* Lock solved overlays to green and make them non-interactive */
+/* Make ALL solved roads look the same (overlay OR base) */
 .leaflet-overlay-pane path.correct-final,
 .leaflet-overlay-pane path.correct-overlay,
-.leaflet-overlay-pane path[data-correct="1"] {
-  stroke: #23c35b !important;      /* soft green */
+.leaflet-overlay-pane path[data-correct="1"],
+.leaflet-hiddenRoads-pane path[data-correct="1"] {
+  stroke: #23c35b !important;   /* your soft green */
   stroke-opacity: 0.6 !important;
   stroke-width: 6px !important;
   fill: none !important;
   pointer-events: none !important;
 }
+
 
 
 
