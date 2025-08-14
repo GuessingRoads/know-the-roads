@@ -252,6 +252,16 @@
   opacity: 1;
   pointer-events: none;
 }
+/* Lock solved overlays to green and make them non-interactive */
+.leaflet-overlay-pane path.correct-final,
+.leaflet-overlay-pane path.correct-overlay,
+.leaflet-overlay-pane path[data-correct="1"] {
+  stroke: #23c35b !important;      /* soft green */
+  stroke-opacity: 0.6 !important;
+  stroke-width: 6px !important;
+  fill: none !important;
+  pointer-events: none !important;
+}
 
 
 
@@ -551,6 +561,32 @@ function armSolvedSegmentsForReentry() {
         // keep our own marker consistent
         l._originalColor = 'greenish';
       });
+    });
+  } catch {}
+}
+function normalizeCorrectOverlays() {
+  try {
+    // Prefer Leaflet panes; fallback to DOM
+    const pane =
+      map.getPane?.('overlayPane') ||
+      map.getPane?.('effectsPane') ||
+      document.querySelector('.leaflet-overlay-pane');
+    if (!pane) return;
+
+    const BLUE = 'rgb(51, 136, 255)'; // Leaflet default
+    pane.querySelectorAll('svg path').forEach(p => {
+      const s = getComputedStyle(p);
+      const isBlue = s.stroke === BLUE || p.getAttribute('stroke') === '#3388ff';
+
+      // If it rendered blue in the overlay pane, force our solved style.
+      if (isBlue) {
+        p.style.stroke = '#23c35b';
+        p.style.strokeOpacity = 0.6;
+        p.style.strokeWidth = '6px';
+        p.style.fill = 'none';
+        p.style.pointerEvents = 'none';
+        p.classList.remove('leaflet-interactive');
+      }
     });
   } catch {}
 }
