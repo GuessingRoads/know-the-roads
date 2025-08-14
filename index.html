@@ -590,6 +590,35 @@ function normalizeCorrectOverlays() {
     });
   } catch {}
 }
+function scrubHiddenRoadsBlue() {
+  try {
+    // Find the pane that holds the base road paths
+    const pane =
+      map.getPane?.('hiddenRoads') ||             // if you created it by name
+      document.querySelector('.leaflet-hiddenRoads-pane'); // Leaflet’s DOM id
+    if (!pane) return;
+
+    const isBlue = (v) =>
+      v === 'rgb(0, 204, 255)' ||  // #00ccff (your active cyan)
+      v === 'rgb(51, 136, 255)';   // #3388ff (Leaflet default blue)
+
+    pane.querySelectorAll('svg path').forEach(p => {
+      const cs = getComputedStyle(p);
+      const attrStroke = p.getAttribute('stroke') || '';
+      const compStroke = cs.stroke || '';
+
+      if (isBlue(compStroke) || attrStroke.toLowerCase() === '#00ccff' || attrStroke.toLowerCase() === '#3388ff') {
+        // Kill the base stroke so it can’t flash blue
+        p.style.display = 'none';     // hard stop render
+        p.style.stroke = 'none';
+        p.removeAttribute('stroke');
+        p.removeAttribute('stroke-opacity');
+        p.removeAttribute('stroke-width');
+        p.classList.remove('leaflet-interactive');
+      }
+    });
+  } catch {}
+}
 
 
 
