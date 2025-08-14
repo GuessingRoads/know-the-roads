@@ -594,31 +594,38 @@ function scrubHiddenRoadsBlue() {
   try {
     // Find the pane that holds the base road paths
     const pane =
-      map.getPane?.('hiddenRoads') ||             // if you created it by name
-      document.querySelector('.leaflet-hiddenRoads-pane'); // Leaflet’s DOM id
+      map.getPane?.('hiddenRoads') ||
+      document.querySelector('.leaflet-hiddenRoads-pane');
     if (!pane) return;
 
     const isBlue = (v) =>
-      v === 'rgb(0, 204, 255)' ||  // #00ccff (your active cyan)
-      v === 'rgb(51, 136, 255)';   // #3388ff (Leaflet default blue)
+      v === 'rgb(0, 204, 255)' ||  // #00ccff
+      v === 'rgb(51, 136, 255)';   // #3388ff
 
     pane.querySelectorAll('svg path').forEach(p => {
       const cs = getComputedStyle(p);
-      const attrStroke = p.getAttribute('stroke') || '';
-      const compStroke = cs.stroke || '';
+      const attrStroke = (p.getAttribute('stroke') || '').toLowerCase();
+      const compStroke = (cs.stroke || '').toLowerCase();
 
-      if (isBlue(compStroke) || attrStroke.toLowerCase() === '#00ccff' || attrStroke.toLowerCase() === '#3388ff') {
-        // Kill the base stroke so it can’t flash blue
-        p.style.display = 'none';     // hard stop render
-        p.style.stroke = 'none';
+      if (isBlue(cs.stroke) || attrStroke === '#00ccff' || attrStroke === '#3388ff') {
+        // ✅ Instead of hiding it, force our solved look on the base path
+        p.style.display = '';                // make sure it's visible
+        p.style.stroke = '#23c35b';          // soft green
+        p.style.strokeOpacity = '0.6';
+        p.style.strokeWidth = '6px';
+        p.style.fill = 'none';
+        p.style.pointerEvents = 'none';      // keep it unclickable
+        p.classList.remove('leaflet-interactive');
+
+        // clean up any conflicting attributes
         p.removeAttribute('stroke');
         p.removeAttribute('stroke-opacity');
         p.removeAttribute('stroke-width');
-        p.classList.remove('leaflet-interactive');
       }
     });
   } catch {}
 }
+
 
 
 
