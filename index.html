@@ -600,7 +600,6 @@ function normalizeCorrectOverlays() {
 }
 function scrubHiddenRoadsBlue() {
   try {
-    // Find the pane that holds the base road paths
     const pane =
       map.getPane?.('hiddenRoads') ||
       document.querySelector('.leaflet-hiddenRoads-pane');
@@ -613,23 +612,23 @@ function scrubHiddenRoadsBlue() {
     pane.querySelectorAll('svg path').forEach(p => {
       const cs = getComputedStyle(p);
       const attrStroke = (p.getAttribute('stroke') || '').toLowerCase();
-      const compStroke = (cs.stroke || '').toLowerCase();
 
-     if (isBlue(cs.stroke) || attrStroke === '#00ccff' || attrStroke === '#3388ff') {
-  // tag as solved and let CSS impose the unified look
-  p.setAttribute('data-correct', '1');
+      if (isBlue(cs.stroke) || attrStroke === '#00ccff' || attrStroke === '#3388ff') {
+        // ✅ Tag as "correct" so our unified CSS style applies
+        p.setAttribute('data-correct', '1');
 
-  // remove any conflicting inline styling so CSS wins
-  p.style.display = '';           // keep visible
-  p.style.stroke = '';            // clear inline
-  p.style.strokeOpacity = '';
-  p.style.strokeWidth = '';
-  p.style.fill = '';
-  p.removeAttribute('stroke');
-  p.removeAttribute('stroke-opacity');
-  p.removeAttribute('stroke-width');
-  p.classList.remove('leaflet-interactive');
-}
+        // Strip inline stroke so CSS wins
+        p.style.stroke = '';
+        p.style.strokeOpacity = '';
+        p.style.strokeWidth = '';
+        p.removeAttribute('stroke');
+        p.removeAttribute('stroke-opacity');
+        p.removeAttribute('stroke-width');
+
+        // Keep base path non-interactive
+        p.classList.remove('leaflet-interactive');
+        p.style.pointerEvents = 'none';
+      }
     });
   } catch {}
 }
