@@ -1161,6 +1161,13 @@ mtLayer.on('mouseout', function () {
     hoverOverlay = null;
   }
 });
+                    mtLayer.on('touchstart', () => {
+  const tt = document.getElementById('custom-tooltip');
+  if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
+  // if you create a hover overlay on mouseover, remove it too
+  try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+});
+
 mtLayer.on('click', (e) => {
   if (insideManheim) { if (e) L.DomEvent.stop(e); return; }
 
@@ -1169,50 +1176,51 @@ mtLayer.on('click', (e) => {
   updateBackButtonVisibility();
   insideManheim = true;
 
-  // kill any hover overlay & tooltip so nothing intercepts taps
-  try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+  // kill tooltip/hover so nothing lingers (mobile fix)
   try { mtLayer.unbindTooltip(); } catch {}
+  { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
+  try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
 
-  // 🔒 Disable interaction and fade MT polygon so roads show through
+  // fade township fill & stop it intercepting taps
   mtLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 });
   const mtPath = mtLayer._path || mtLayer.getElement?.();
   if (mtPath) { mtPath.style.pointerEvents = 'none'; mtPath.style.outline = 'none'; }
 
-  // 🧱 Create mask that reveals only MT (unchanged)
+  // 🧱 Rebuild the "only MT visible" mask (unchanged from your code)
   if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
   worldMask = L.geoJSON(createWorldMask(feature), {
     style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
   }).addTo(map);
-  worldMask.eachLayer(layer => { const el = layer.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
+  worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
 
-  // optional safety: clear any lingering active name
+  // clear any lingering active road name
   try { activeRoadName = ''; } catch {}
 
-  // 🚀 MOBILE FIX: stop any in-flight animation, then add roads only after final zoom
-  map.stop(); // cancel ongoing pan/zoom so we don't catch an intermediate moveend
+  // 🚀 Smooth, slightly *less* zoom than before
   const target = mtLayer.getBounds();
-  const desiredZoom = map.getBoundsZoom(target, true);
+  const PADDING = L.point(56, 56);                      // a touch more breathing room
+  const desired = map.getBoundsZoom(target, true, PADDING);
+  const finalZoom = Math.max(desired - 1, map.getMinZoom()); // one step less tight
 
+  // Add roads only when zoom settles
   map.once('moveend', () => {
-    // if we didn't reach the target zoom yet (mobile sometimes stops early), snap once
-    if (map.getZoom() < desiredZoom) {
-      map.setView(target.getCenter(), desiredZoom, { animate: false });
+    // if some browsers under-zoom, snap once to the intended frame
+    if (map.getZoom() !== finalZoom) {
+      map.setView(target.getCenter(), finalZoom, { animate: false });
     }
-
-    // ✅ Show roads only after zoom is settled (single-tap on mobile)
     try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch {}
     try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch {}
-
-    // normalize any residual styling
     try { armSolvedSegmentsForReentry?.(); } catch {}
     try { scrubHiddenRoadsBlue?.(); } catch {}
     try { normalizeCorrectOverlays?.(); } catch {}
   });
 
-  map.fitBounds(target, { padding: [36, 36], maxZoom: 15, animate: true });
+  // Smooth in (matches your back zoom vibe better)
+  map.flyTo(target.getCenter(), finalZoom, { animate: true, duration: 0.9, easeLinearity: 0.2 });
 
   if (e) L.DomEvent.stop(e);
 });
+
 
 
                   }
