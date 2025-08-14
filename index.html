@@ -1173,6 +1173,9 @@ armSolvedSegmentsForReentry();     // <-- prep solved segments before re-adding
 map.addLayer(roadsLayerGroup);
 map.addLayer(roadsBufferGroup);
 
+  // normalize overlays so they never appear blue
+normalizeCorrectOverlays();
+
 });
 
                   }
