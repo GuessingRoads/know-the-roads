@@ -1201,6 +1201,8 @@ try { activeRoadName = ''; } catch {}
 armSolvedSegmentsForReentry();     // <-- prep solved segments before re-adding
 map.addLayer(roadsLayerGroup);
 map.addLayer(roadsBufferGroup);
+// Remove any lingering cyan/blue base strokes on solved segments
+scrubHiddenRoadsBlue();
 
 // Hard-reset base road strokes on re-entry so solved roads don't show blue
 try {
