@@ -252,14 +252,20 @@
   opacity: 1;
   pointer-events: none;
 }
-/* Make ALL solved roads look the same (overlay OR base) */
+/* === Unified "Correct" road style (matches the thicker purple one) === */
+:root{
+  --correct-green: #23c35b;   /* tweak here if you want a different green */
+  --correct-opacity: 0.85;    /* a bit darker than before */
+  --correct-width: 8px;       /* thicker stroke to match purple */
+}
+
 .leaflet-overlay-pane path.correct-final,
 .leaflet-overlay-pane path.correct-overlay,
 .leaflet-overlay-pane path[data-correct="1"],
-.leaflet-hiddenRoads-pane path[data-correct="1"] {
-  stroke: #23c35b !important;   /* your soft green */
-  stroke-opacity: 0.6 !important;
-  stroke-width: 6px !important;
+.leaflet-hiddenRoads-pane path[data-correct="1"]{
+  stroke: var(--correct-green) !important;
+  stroke-opacity: var(--correct-opacity) !important;
+  stroke-width: var(--correct-width) !important;
   fill: none !important;
   pointer-events: none !important;
 }
