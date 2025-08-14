@@ -1165,23 +1165,51 @@ mtLayer.on('mouseout', function () {
 
 
 
-                    mtLayer.on('click', () => {
-  map.fitBounds(mtLayer.getBounds(), { maxZoom: 15 });
-  console.log("📍 Manheim Township clicked");
-                      currentLayerDepth = 3;
-updateBackButtonVisibility();
-insideManheim = true;
+                   // single-tap enter (works on mobile & desktop)
+const enterTownship = (e) => {
+  if (townshipEntering || insideManheim) { if (e) L.DomEvent.stop(e); return; }
+  townshipEntering = true;
 
-                      mtLayer.unbindTooltip();
+  // we’re going in
+  insideManheim     = true;
+  insideLancaster   = true;     // still inside county
+  currentLayerDepth = 3;
+  updateBackButtonVisibility();
 
+  // remove hover overlay if present so it can’t intercept clicks
+  try {
+    if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
+  } catch {}
 
-  // 🔒 Disable interaction and fade MT polygon
-  mtLayer.setStyle({
-    fillOpacity: 0,
-    weight: 1.5,
-    color: 'black',
-    opacity: 1
+  // stop this polygon from eating clicks over the roads
+  try { mtLayer.closeTooltip?.(); mtLayer.unbindTooltip?.(); } catch {}
+  mtLayer.setStyle({ fillOpacity: 0 }); // fade fill so roads are fully visible
+  const mtPath = mtLayer._path || mtLayer.getElement?.();
+  if (mtPath) { mtPath.style.pointerEvents = 'none'; mtPath.style.outline = 'none'; }
+
+  // add roads AFTER the zoom finishes so no second tap needed
+  const target = mtLayer.getBounds();
+  map.once('moveend', () => {
+    try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch {}
+    try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch {}
+    try { scrubHiddenRoadsBlue?.(); } catch {}   // keep solved roads from flashing blue
+    townshipEntering = false;
   });
+
+  map.fitBounds(target, { padding: [36, 36], maxZoom: 14 });
+
+  if (e) L.DomEvent.stop(e);
+};
+
+// prefer touchstart on phones (plus guarded click to catch synthetic events)
+const IS_COARSE = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+if (IS_COARSE) {
+  mtLayer.on('touchstart', enterTownship);
+  mtLayer.on('click', enterTownship); // guard prevents double run
+} else {
+  mtLayer.on('click', enterTownship);
+}
+
 
   const mtPath = mtLayer._path;
   if (mtPath) {
