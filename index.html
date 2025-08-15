@@ -442,9 +442,39 @@
   map.getPane('hoverPane').style.zIndex = 700; // ↑ was 499; put it ABOVE township (510)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
   map.getPane('maskPane').style.zIndex = 299; // Ensure it renders below roads
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
+function setupTilePaneBlur(map, baseTiles) {
+  const tilePane = map.getPane('tilePane');
+  if (!tilePane || !baseTiles) return;
+
+  let moving = false;
+  let loadsInFlight = 0;
+  let removeTimer = null;
+
+  const apply = () => {
+    const shouldBlur = moving || loadsInFlight > 0;
+    if (shouldBlur) {
+      tilePane.classList.add('blurred');
+      if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
+    } else {
+      removeTimer = setTimeout(() => tilePane.classList.remove('blurred'), 120);
+    }
+  };
+
+  map.on('zoomstart movestart dragstart', () => { moving = true;  apply(); });
+  map.on('zoomend   moveend   dragend',   () => { moving = false; apply(); });
+
+  baseTiles.on('loading', () => { loadsInFlight++; apply(); });
+  baseTiles.on('load',    () => { loadsInFlight = Math.max(0, loadsInFlight - 1); apply(); });
+
+  baseTiles.on('remove',  () => { loadsInFlight = 0; moving = false; apply(); });
+}
+
+// call it once after creating baseTiles:
+setupTilePaneBlur(map, baseTiles);
+
 
 const suffixMap = {
   st: 'street',
