@@ -1206,7 +1206,7 @@ mtLayer.on('click', function (e) {
 
   // 🚀 Smooth in with bounds + padding (desktop vs mobile)
   var IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? true : false;
-  var pad = IS_COARSE ? L.point(60, 84) : L.point(48, 48);
+  var pad = IS_COARSE ? L.point(50, 72) : L.point(40, 40);
   var bounds = mtLayer.getBounds();
 
   // Add roads only when zoom settles
