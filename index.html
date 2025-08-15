@@ -1205,9 +1205,18 @@ mtLayer.on('click', function (e) {
   try { activeRoadName = ''; } catch (err) {}
 
   // 🚀 Smooth in with bounds + padding (desktop vs mobile)
-  var IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? true : false;
-  var pad = IS_COARSE ? L.point(8, 20) : L.point(30, 30);
-  var bounds = mtLayer.getBounds();
+ var IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? true : false;
+var pad = IS_COARSE ? L.point(8, 20) : L.point(30, 30);   // keep your current values
+
+map.flyToBounds(mtLayer.getBounds(), {
+  paddingTopLeft: pad,
+  paddingBottomRight: pad,
+  maxZoom: IS_COARSE ? 16 : 15,   // ↑ mobile only (try 16, then 17 if needed)
+  animate: true,
+  duration: 1.0,
+  easeLinearity: 0.2
+});
+
 
   // Add roads only when zoom settles
   map.once('moveend', function () {
