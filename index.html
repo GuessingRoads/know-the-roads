@@ -1333,7 +1333,12 @@ if (currentLayerDepth === 3) {
       if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
       townshipLayerRef.eachLayer(mt => {
         // county-depth visuals
-        mt.setStyle({ fillOpacity: 0.25 });
+        mt.setStyle({
+    color: 'black',
+    weight: 1.5,
+    fillColor: '#e3f2fd',
+    fillOpacity: 0.75
+  });
         // ensure interactivity
         mt.options.interactive = true;
         const p = mt._path;
