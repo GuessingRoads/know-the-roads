@@ -404,6 +404,10 @@
   let townshipLayerRef;      // MT L.GeoJSON
   let roadsBufferGroup = L.layerGroup(); // holds 20px invisible buffers
   let countyMaskFeature = null; // a prebuilt mask (outer rect with Lanc as hole)
+  const INITIAL_CENTER = [40.09, -76.3];
+  const INITIAL_ZOOM   = 10;
+  const SMOOTH = { animate: true, duration: 1.0, easeLinearity: 0.2 };
+
 
 
 
@@ -1422,7 +1426,7 @@ if (countyLayerRef) {
     } catch {}
 
     // Reset to your initial camera view
-    map.setView([40.09, -76.3], 10); // use your benchmark’s initial view
+    map.flyTo(INITIAL_CENTER, INITIAL_ZOOM, SMOOTH);
 
     currentLayerDepth = 1;
     updateBackButtonVisibility();
