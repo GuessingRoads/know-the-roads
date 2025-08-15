@@ -269,12 +269,20 @@
   fill: none !important;
   pointer-events: none !important;
 }
-/* Blur ONLY the basemap tiles while moving/loading */
+/* Keep this from before — tweak amounts as you like */
 .leaflet-tile-pane.blurred {
-  filter: blur(2.2px) brightness(1.03) saturate(0.9);
-  transition: filter 120ms ease;
-  transform: translateZ(0); /* GPU hint */
-  will-change: filter;
+  /* softens edges + lowers contrast */
+  filter: blur(1.6px) brightness(1.02) saturate(0.85) contrast(0.85);
+  /* dim the tiles so big letters don't pop */
+  opacity: 0.28;                 /* try 0.22–0.35 range */
+  transition: filter 120ms ease, opacity 120ms ease;
+  transform: translateZ(0);
+  will-change: filter, opacity;
+}
+
+/* Key trick: when upscaled, render tiles as chunky pixels = text becomes unreadable */
+.leaflet-tile-pane.blurred .leaflet-tile {
+  image-rendering: pixelated;    /* or 'crisp-edges' as fallback */
 }
 
 
