@@ -1208,7 +1208,7 @@ var bounds    = mtLayer.getBounds();
 if (IS_COARSE) {
   // MOBILE: a bit tighter than before, but capped so it can't over-zoom
   var padM   = L.point(20, 36);      // ↓ smaller = tighter; ↑ bigger = looser
-  var maxZM  = 17;                    // try 16, or 17 if still a tad wide
+  var maxZM  = 20;                    // try 16, or 17 if still a tad wide
   map.flyToBounds(bounds, {
     paddingTopLeft: padM,
     paddingBottomRight: padM,
