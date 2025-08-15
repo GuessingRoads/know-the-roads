@@ -1374,9 +1374,19 @@ if (countyMaskFeature) {
 
   // 5) Fit to county bounds
   try {
-    if (countyLayerRef && typeof countyLayerRef.getBounds === 'function') {
-      map.fitBounds(countyLayerRef.getBounds(), { padding: [40, 40], maxZoom: 12 });
-    }
+    // smooth + slightly relaxed framing (matches zoom-in feel)
+if (countyLayerRef) {
+  const pad = L.point(30, 30); // use the same desktop pad you liked
+  map.flyToBounds(countyLayerRef.getBounds(), {
+    paddingTopLeft: pad,
+    paddingBottomRight: pad,
+    maxZoom: 12,
+    animate: true,
+    duration: 1.0,     // tweak to 1.2 if you want even slower
+    easeLinearity: 0.2 // same easing as your zoom-in
+  });
+}
+
   } catch {}
 
   insideLancaster   = true;
