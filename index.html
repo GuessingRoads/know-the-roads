@@ -1196,30 +1196,29 @@ mtLayer.on('click', (e) => {
   // clear any lingering active road name
   try { activeRoadName = ''; } catch {}
 
-  // 🚀 Smooth, slightly *less* zoom than before
-  const target = mtLayer.getBounds();
-  const PADDING = L.point(56, 56);                      // a touch more breathing room
-  const desired = map.getBoundsZoom(target, true, PADDING);
-  const finalZoom = Math.max(desired - 1, map.getMinZoom()); // one step less tight
+  // 🚀 Smooth in with bounds + padding (desktop vs mobile)
+const IS_COARSE = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+const pad = IS_COARSE ? L.point(68, 96) : L.point(56, 56);
 
-  // Add roads only when zoom settles
-  map.once('moveend', () => {
-    // if some browsers under-zoom, snap once to the intended frame
-    if (map.getZoom() !== finalZoom) {
-      map.setView(target.getCenter(), finalZoom, { animate: false });
-    }
-    try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch {}
-    try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch {}
-    try { armSolvedSegmentsForReentry?.(); } catch {}
-    try { scrubHiddenRoadsBlue?.(); } catch {}
-    try { normalizeCorrectOverlays?.(); } catch {}
-  });
-
-  // Smooth in (matches your back zoom vibe better)
-  map.flyTo(target.getCenter(), finalZoom, { animate: true, duration: 0.9, easeLinearity: 0.2 });
-
-  if (e) L.DomEvent.stop(e);
+// Add roads when zoom settles (keep your existing moveend block)
+map.once('moveend', () => {
+  try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch {}
+  try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch {}
+  try { armSolvedSegmentsForReentry?.(); } catch {}
+  try { scrubHiddenRoadsBlue?.(); } catch {}
+  try { normalizeCorrectOverlays?.(); } catch {}
 });
+
+// Smooth, slightly slower than before; matches your back speed
+map.flyToBounds(mtLayer.getBounds(), {
+  paddingTopLeft: pad,
+  paddingBottomRight: pad,
+  maxZoom: 15,
+  animate: true,
+  duration: 1.0,        // bump to 1.2 if you want slower
+  easeLinearity: 0.2
+});
+
 
 
 
