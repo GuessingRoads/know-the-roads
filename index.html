@@ -878,6 +878,7 @@ async function loadMap() {
         // ✅ This applies to all roads, unless overridden below
           style: {
             pane: 'hiddenRoads'
+            renderer: roadsRenderer, 
           },
 
         onEachFeature: function (feature, layer) {
