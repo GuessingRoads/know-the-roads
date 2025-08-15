@@ -1201,24 +1201,35 @@ mtLayer.on('click', function (e) {
     });
   } catch (err) {}
 
-  // clear any lingering active road name
-  try { activeRoadName = ''; } catch (err) {}
-// 🚀 Smooth in with a computed zoom (mobile gets a tighter bias)
+  // --- Smooth zoom (desktop vs mobile) ---
 var IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? true : false;
-var pad    = IS_COARSE ? L.point(8, 20) : L.point(30, 30);  // keep your current values
-var bounds = mtLayer.getBounds();
-var baseZ  = map.getBoundsZoom(bounds, true, pad);
-var capZ   = (map.getMaxZoom && map.getMaxZoom()) || 20;
+var bounds    = mtLayer.getBounds();
 
-// +1 zoom only on mobile (try +2 if still a bit loose)
-var finalZ = Math.min(baseZ + (IS_COARSE ? 1 : 0), capZ);
+if (IS_COARSE) {
+  // MOBILE: a bit tighter than before, but capped so it can't over-zoom
+  var padM   = L.point(28, 44);      // ↓ smaller = tighter; ↑ bigger = looser
+  var maxZM  = 16;                    // try 16, or 17 if still a tad wide
+  map.flyToBounds(bounds, {
+    paddingTopLeft: padM,
+    paddingBottomRight: padM,
+    maxZoom: maxZM,
+    animate: true,
+    duration: 1.0,                    // bump to 1.2 if you want slower
+    easeLinearity: 0.2
+  });
+} else {
+  // DESKTOP: keep your perfect settings
+  var padD = L.point(30, 30);
+  map.flyToBounds(bounds, {
+    paddingTopLeft: padD,
+    paddingBottomRight: padD,
+    maxZoom: 15,
+    animate: true,
+    duration: 1.0,
+    easeLinearity: 0.2
+  });
+}
 
-// animate to center/zoom (no maxZoom here—finalZ already respects cap)
-map.flyTo(bounds.getCenter(), finalZ, {
-  animate: true,
-  duration: 1.0,     // bump to 1.2 for slower
-  easeLinearity: 0.2
-});
 
 
   // Add roads only when zoom settles
