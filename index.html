@@ -942,12 +942,11 @@ async function loadMap() {
           // 🟠 Add invisible buffer layer for easier clicking/tapping
           const buffer = L.geoJSON(feature, {
             renderer: roadsRenderer, 
+            pane: 'clickable-buffer',
             style: {
               color: 'black',
               weight: 20,
               opacity: 0,
-              pane: 'clickable-buffer',
-              renderer: roadsRenderer
             },
             onEachFeature: function (_, bufLayer) {
               const state = segmentStateMap.get(id);
