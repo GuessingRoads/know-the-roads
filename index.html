@@ -1221,8 +1221,6 @@ map.flyToBounds(mtLayer.getBounds(), {
   // Add roads only when zoom settles
   map.once('moveend', function () {
     // ensure final frame (no under-zoom on some mobiles)
-    try { map.fitBounds(bounds, { paddingTopLeft: pad, paddingBottomRight: pad, maxZoom: 15, animate: false }); } catch (err) {}
-
     try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch (err) {}
     try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch (err) {}
     try { if (typeof armSolvedSegmentsForReentry === 'function') armSolvedSegmentsForReentry(); } catch (err) {}
