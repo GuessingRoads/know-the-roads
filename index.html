@@ -947,7 +947,7 @@ async function loadMap() {
               weight: 20,
               opacity: 0,
               pane: 'clickable-buffer',
-              renderer: roadsRenderer,
+              renderer: roadsRenderer
             },
             onEachFeature: function (_, bufLayer) {
               const state = segmentStateMap.get(id);
