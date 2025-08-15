@@ -274,7 +274,7 @@
   /* softens edges + lowers contrast */
   filter: blur(1.6px) brightness(1.02) saturate(0.85) contrast(0.85);
   /* dim the tiles so big letters don't pop */
-  opacity: 0.28;                 /* try 0.22–0.35 range */
+  opacity: 0.22;                 /* try 0.22–0.35 range */
   transition: filter 120ms ease, opacity 120ms ease;
   transform: translateZ(0);
   will-change: filter, opacity;
@@ -471,8 +471,10 @@ function setupTilePaneBlur(map, baseTiles) {
     }
   };
 
-  map.on('zoomstart movestart dragstart', () => { moving = true;  apply(); });
-  map.on('zoomend   moveend   dragend',   () => { moving = false; apply(); });
+  // blur only during zoom, not pan
+map.on('zoomstart', () => { moving = true;  apply(); });
+map.on('zoomend',   () => { moving = false; apply(); });
+
 
   baseTiles.on('loading', () => { loadsInFlight++; apply(); });
   baseTiles.on('load',    () => { loadsInFlight = Math.max(0, loadsInFlight - 1); apply(); });
