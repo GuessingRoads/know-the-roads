@@ -875,6 +875,7 @@ async function loadMap() {
     .then(res => res.json())
     .then(data => {
       const roadLayer = L.geoJSON(data, {
+        renderer: roadsRenderer,
         // ✅ This applies to all roads, unless overridden below
           style: {
             pane: 'hiddenRoads',
