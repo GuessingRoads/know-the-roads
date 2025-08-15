@@ -432,7 +432,7 @@
   map.createPane('townshipPane');
   map.getPane('townshipPane').style.zIndex = 510;
   map.createPane('hoverPane');
-  map.getPane('hoverPane').style.zIndex = 499;
+  map.getPane('hoverPane').style.zIndex = 700; // ↑ was 499; put it ABOVE township (510)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
   map.getPane('maskPane').style.zIndex = 299; // Ensure it renders below roads
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
