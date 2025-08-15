@@ -1143,15 +1143,17 @@ mtLayer.on('mouseover', function () {
 
   // 🟡 Add gold semi-transparent hover overlay
   hoverOverlay = L.geoJSON(mtLayer.feature, {
-    pane: 'hoverPane', // we'll define this pane in step 3
-    style: {
-      fillColor: '#ffd700',
-      fillOpacity: 0.3,
-      color: 'black',
-      weight: 1,
-      opacity: 1
-    }
-  }).addTo(map);
+  pane: 'hoverPane',
+  style: {
+    fillColor: '#ffd700',
+    fillOpacity: 0.30,
+    color: '#ffd700',   // ← was 'black'
+    weight: 2,          // ← was 1
+    opacity: 1
+  }
+}).addTo(map);
+
+hoverOverlay.bringToFront?.(); // keep it above everything
 
   // 🔒 Make hover overlay ignore pointer events
   hoverOverlay.eachLayer(l => {
