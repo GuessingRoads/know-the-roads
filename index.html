@@ -1211,7 +1211,7 @@ var pad = IS_COARSE ? L.point(8, 20) : L.point(30, 30);   // keep your current v
 map.flyToBounds(mtLayer.getBounds(), {
   paddingTopLeft: pad,
   paddingBottomRight: pad,
-  maxZoom: IS_COARSE ? 17 : 15,   // ↑ mobile only (try 16, then 17 if needed)
+  maxZoom: IS_COARSE ? 17 : 17,   // ↑ mobile only (try 16, then 17 if needed)
   animate: true,
   duration: 1.0,
   easeLinearity: 0.2
