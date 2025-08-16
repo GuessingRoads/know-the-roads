@@ -686,6 +686,46 @@ function scrubHiddenRoadsBlue() {
     });
   } catch {}
 }
+// Keep one overlay per segment id
+const solvedOverlayById = new Map();
+
+/** Hide the black/blue base stroke for a solved segment layer */
+function hideBaseStroke(layer) {
+  const el = layer.getElement?.();
+  // make base invisible & non-interactive
+  layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+  layer.options.interactive = false;
+  if (el) {
+    el.style.display = 'none';
+    el.style.stroke = 'none';
+    el.removeAttribute('stroke');
+    el.removeAttribute('stroke-opacity');
+    el.removeAttribute('stroke-width');
+    el.classList.remove('leaflet-interactive','active-highlight','hover-green','correct-final');
+  }
+  layer._originalColor = 'greenish'; // keep your internal tag
+}
+
+/** Draw the green solved overlay for a layer's feature (no dups) */
+function drawSolvedOverlay(layer) {
+  const segId = String(layer.feature?.id ?? '');
+  if (!segId) return;
+  if (solvedOverlayById.has(segId)) return;
+
+  const ov = L.geoJSON(layer.feature, {
+    pane: 'solvedPane',
+    renderer: roadsRenderer, // reuse your roadsRenderer (with padding)
+    interactive: false,
+    style: {
+      color: '#36a15a',  // your green
+      weight: 7,
+      opacity: 1,
+      lineCap: 'round'
+    }
+  }).addTo(map);
+
+  solvedOverlayById.set(segId, ov);
+}
 
 
 
