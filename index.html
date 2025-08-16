@@ -453,6 +453,7 @@
 const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
+  const roadsRenderer = L.canvas({ padding: 0.5 }); // try 0.5; bump to 0.6 if needed
   const roadsRenderer = L.canvas({ padding: 0.9 }); // try 0.5; bump to 0.6 if needed
 function setupTilePaneBlur(map, baseTiles) {
   const tilePane = map.getPane('tilePane');
@@ -878,8 +879,6 @@ async function loadMap() {
         renderer: roadsRenderer,
         // ✅ This applies to all roads, unless overridden below
           style: {
-            pane: 'hiddenRoads',
-            renderer: roadsRenderer, 
           },
 
         onEachFeature: function (feature, layer) {
@@ -944,12 +943,11 @@ async function loadMap() {
           // 🟠 Add invisible buffer layer for easier clicking/tapping
           const buffer = L.geoJSON(feature, {
             renderer: roadsRenderer, 
+            pane: 'clickable-buffer',
             style: {
               color: 'black',
               weight: 20,
               opacity: 0,
-              pane: 'clickable-buffer',
-              renderer: roadsRenderer
             },
             onEachFeature: function (_, bufLayer) {
               const state = segmentStateMap.get(id);
