@@ -1551,6 +1551,21 @@ if (countyLayerRef) {
   const sid = String(l.feature.id);
   segmentStateMap.set(sid, { correct: true, used_hint: false });
 }
+// Clear any active highlight name so blue can't stick
+try { activeRoadName = ''; } catch {}
+
+// Hide the base stroke(s) and draw the green overlay(s)
+const layersToFix = new Set([
+  ...(nameToLayers[currentRoad.name] || []),
+  ...(currentRoad.segments || [])
+]);
+layersToFix.forEach(l => {
+  hideBaseStroke(l);     // <-- helper from earlier
+  drawSolvedOverlay(l);  // <-- helper from earlier (pane: 'solvedPane')
+});
+
+// Optional: scrub any lingering blue attrs (safe no-op if none)
+try { scrubHiddenRoadsBlue?.(); } catch {}
 
     // ✅ Correct guess
     currentRoad.segments.forEach(layer => {
