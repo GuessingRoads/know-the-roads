@@ -1546,52 +1546,17 @@ if (countyLayerRef) {
   const normalizedGuess = normalizeName(userGuess);
   const normalizedAnswer = normalizeName(currentRoad.name);
 
-  // mark all segments correct (you already do this)
-for (const l of nameToLayers[currentRoad.name] || []) {
+  if (normalizedGuess === normalizedAnswer) {
+    for (const l of nameToLayers[currentRoad.name] || []) {
   const sid = String(l.feature.id);
   segmentStateMap.set(sid, { correct: true, used_hint: false });
 }
 
-// Clear any active highlight name so blue can't stick
-try { activeRoadName = ''; } catch {}
-
-// Run dissolve on the base path, then hide + overlay on animation end
-const layersToFix = new Set([
-  ...(nameToLayers[currentRoad.name] || []),
-  ...(currentRoad.segments || [])
-]);
-
-layersToFix.forEach(l => {
-  const el = l.getElement?.();
-  if (!el) {
-    // Fallback: if no element yet, just finalize
-    hideBaseStroke(l);
-    drawSolvedOverlay(l, { opacity: 0.65 });
-    return;
-  }
-
-  // ensure no lingering hover/active classes
-  el.classList.remove('active-highlight', 'hover-green');
-
-  // trigger your existing dissolve animation (uses your CSS for .correct-final)
-  el.classList.add('correct-final');
-
-  // after the dissolve finishes, finalize it
-  const finalize = () => {
-    el.removeEventListener('animationend', finalize);
-    el.removeEventListener('transitionend', finalize);
-    hideBaseStroke(l);                          // remove base (blue/black) stroke
-    drawSolvedOverlay(l, { opacity: 0.65 });    // place translucent green on solvedPane
-  };
-
-  el.addEventListener('animationend', finalize);
-  el.addEventListener('transitionend', finalize);
-  setTimeout(finalize, 600); // safety fallback (match your dissolve duration ~0.6s)
-});
-
-// (optional belt-and-suspenders)
-try { scrubHiddenRoadsBlue?.(); } catch {}
-
+    // ✅ Correct guess
+    currentRoad.segments.forEach(layer => {
+      layer.setStyle({ color: 'gray' });
+      layer.off('click');
+    });
 
     // Close modal
     document.getElementById('guess-modal').style.display = 'none';
