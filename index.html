@@ -1567,12 +1567,6 @@ layersToFix.forEach(l => {
 // Optional: scrub any lingering blue attrs (safe no-op if none)
 try { scrubHiddenRoadsBlue?.(); } catch {}
 
-    // ✅ Correct guess
-    currentRoad.segments.forEach(layer => {
-      layer.setStyle({ color: 'gray' });
-      layer.off('click');
-    });
-
     // Close modal
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('guess-input').value = '';
