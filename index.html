@@ -446,6 +446,9 @@
   map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
   map.createPane('townshipPane');
   map.getPane('townshipPane').style.zIndex = 510;
+  if (!map.getPane('solvedPane')) map.createPane('solvedPane');
+  map.getPane('solvedPane').style.zIndex = 710;   // above hoverPane (700) & township (510)
+
   map.createPane('hoverPane');
   map.getPane('hoverPane').style.zIndex = 700; // ↑ was 499; put it ABOVE township (510)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
