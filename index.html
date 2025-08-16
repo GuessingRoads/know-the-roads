@@ -111,7 +111,7 @@
   z-index: 1000;
 }
 
-   
+
     #music-modal {
   position: absolute;
   top: 190px;
@@ -312,7 +312,7 @@
 
   <div id="auth-message">Checking login...</div>
   <button id="login-btn" style="margin-top: 2px;">Login with Google</button>
- 
+
 <p id="login-note" style="
   font-size: 12px;
   color: #888;
@@ -446,9 +446,6 @@
   map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
   map.createPane('townshipPane');
   map.getPane('townshipPane').style.zIndex = 510;
-  if (!map.getPane('solvedPane')) map.createPane('solvedPane');
-  map.getPane('solvedPane').style.zIndex = 710;   // above hoverPane (700) & township (510)
-
   map.createPane('hoverPane');
   map.getPane('hoverPane').style.zIndex = 700; // ↑ was 499; put it ABOVE township (510)
   map.createPane('maskPane'); // Create a custom pane for the gray mask
@@ -456,7 +453,7 @@
 const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
-  const roadsRenderer = L.canvas({ padding: 0.9 }); // try 0.5; bump to 0.6 if needed
+  const roadsRenderer = L.canvas({ padding: 0.5 }); // try 0.5; bump to 0.6 if needed
 function setupTilePaneBlur(map, baseTiles) {
   const tilePane = map.getPane('tilePane');
   if (!tilePane || !baseTiles) return;
@@ -878,10 +875,11 @@ async function loadMap() {
     .then(res => res.json())
     .then(data => {
       const roadLayer = L.geoJSON(data, {
-        pane: 'solvedPane',
         renderer: roadsRenderer,
         // ✅ This applies to all roads, unless overridden below
           style: {
+            pane: 'hiddenRoads',
+            renderer: roadsRenderer, 
           },
 
         onEachFeature: function (feature, layer) {
@@ -946,11 +944,12 @@ async function loadMap() {
           // 🟠 Add invisible buffer layer for easier clicking/tapping
           const buffer = L.geoJSON(feature, {
             renderer: roadsRenderer, 
-            pane: 'clickable-buffer',
             style: {
               color: 'black',
               weight: 20,
               opacity: 0,
+              pane: 'clickable-buffer',
+              renderer: roadsRenderer
             },
             onEachFeature: function (_, bufLayer) {
               const state = segmentStateMap.get(id);
@@ -1001,7 +1000,7 @@ if (state?.correct) {
           layer.on('mouseout', function () {
             const el = layer.getElement();
 if (el) el.classList.remove('hover-green');
-  
+
             const matchingLayers = nameToLayers[name] || [];
             if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
             // 🧽 Remove green glow if present
