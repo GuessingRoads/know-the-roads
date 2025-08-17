@@ -779,6 +779,8 @@ function removeMatchingBuffers(segmentIds) {
     } catch {}
   });
 }
+function showSolvedPane()  { try { const p = map.getPane('solvedPane'); if (p) p.style.display = ''; } catch {} }
+function hideSolvedPane()  { try { const p = map.getPane('solvedPane'); if (p) p.style.display = 'none'; } catch {} }
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
