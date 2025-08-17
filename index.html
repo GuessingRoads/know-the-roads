@@ -1600,6 +1600,9 @@ normalizeCorrectOverlays();   // no try/catch — we want errors if it’s not r
     // after you mark segmentStateMap for all layers of currentRoad.name
 const solvedLayers = nameToLayers[currentRoad.name] || [];
 const segmentIds = solvedLayers.map(l => String(l.feature.id));
+    console.log('segmentIds just marked correct →', segmentIds);
+
+normalizeCorrectOverlays();   // keep this before closing the modal
 
 saveGuessSegmentIds(segmentIds, true, false); // <-- array of ids
 
