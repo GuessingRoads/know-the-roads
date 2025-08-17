@@ -1467,6 +1467,7 @@ if (currentLayerDepth === 3) {
     if (map.hasLayer(roadsLayerGroup))  map.removeLayer(roadsLayerGroup);
     if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
   } catch {}
+hideSolvedPane();
 
   // 2) Make sure MT is visible and CLICKABLE again at county depth
   try {
