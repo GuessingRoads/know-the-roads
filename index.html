@@ -1739,22 +1739,39 @@ let interactionCount = 0;
   });
 }
 function triggerCorrectDissolveAnimation(layer) {
-  const el = layer.getElement();
+  const el = layer.getElement?.();
   if (!el) return;
 
-  // ✅ Reset any inline styles (in case of red/yellow/orange overrides)
-  el.style.transition = '';
-  el.style.stroke = 'rgba(0, 160, 0, 0.4)';
-  el.style.strokeDasharray = '';
-  el.style.strokeDashoffset = '';
-  el.style.opacity = '1';
-
-  // ✅ Remove class if already applied (force restart)
-  el.classList.remove('correct-final');
-  void el.offsetWidth; // force reflow
-
-  // ✅ Add class to trigger dissolve
+  // Ensure it starts from the active stroke (blue) and can animate
+  el.classList.remove('correct-final'); // reset if previously set
+  void el.offsetWidth;                  // reflow to restart animation
   el.classList.add('correct-final');
+
+  // When dissolve finishes: hide base stroke, disable it, and draw overlay once
+  const onDone = () => {
+    el.removeEventListener('animationend', onDone);
+
+    // Hide/scrub the base path (so it won’t re-hover or re-click)
+    layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+    layer.options.interactive = false;
+    el.style.display = 'none';
+    el.style.stroke = 'none';
+    el.removeAttribute('stroke');
+    el.removeAttribute('stroke-opacity');
+    el.removeAttribute('stroke-width');
+
+    // Add permanent green overlay (idempotent)
+    if (!layer.__hasSolvedOverlay) {
+      L.geoJSON(layer.feature, {
+        pane: 'solvedPane',
+        renderer: roadsRenderer,
+        interactive: false,
+        style: { color: '#36a15a', weight: 7, opacity: 0.65, lineCap: 'round' }
+      }).addTo(map);
+      layer.__hasSolvedOverlay = true;
+    }
+  };
+  el.addEventListener('animationend', onDone, { once: true });
 }
 
 
