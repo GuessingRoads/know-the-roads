@@ -654,49 +654,57 @@ function normalizeCorrectOverlays() {
   // pick the roads group we actually have
   const group =
     (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) ? roadsLayerGroup :
-    (typeof roadLayer       !== 'undefined' && roadLayer)       ? roadLayer       :
+    (typeof roadLayer       !== 'undefined' && roadLayer)       ? roadLayer :
     null;
   if (!group) return;
 
-  let hits = 0; // <— define it
+  let hits = 0;
 
-  group.eachLayer(l => {
-    const rawId = String(l.feature?.id ?? '');
-    const st =
-  segmentStateMap.get(rawId) ||
-  segmentStateMap.get(rawId.startsWith('way/') ? rawId : `way/${rawId}`);
-    if (!st || (!st.correct && !st.used_hint)) return;
+  // descend into the GeoJSON so we touch each segment layer
+  const visit = (layer) => {
+    const id = String(layer?.feature?.id ?? '');
+    if (!id) return;
+    const st = segmentStateMap.get(id);
+    if (!(st?.correct)) return;
 
-    hits++;
-
-    // hide base stroke
-    const el = l.getElement?.();
-    l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-    l.options.interactive = false;
+    // hide/scrub the base stroke
+    const el = layer.getElement?.();
+    layer.setStyle({ color: 'transparent', opacity: 0, weight: layer.options.weight || 6 });
+    layer.options.interactive = false;
     if (el) {
       el.style.display = 'none';
       el.style.stroke = 'none';
       el.removeAttribute('stroke');
       el.removeAttribute('stroke-opacity');
       el.removeAttribute('stroke-width');
-      el.classList.remove('leaflet-interactive','active-highlight','hover-green','correct-final');
+      el.classList.remove('correct-final','hover-green','active-highlight','leaflet-interactive');
     }
-    l._originalColor = 'greenish';
+    layer._originalColor = 'greenish';
 
-    // add solved overlay once
-    if (!l.__hasSolvedOverlay) {
-      L.geoJSON(l.feature, {
+    // add the permanent green overlay (idempotent)
+    if (!layer.__hasSolvedOverlay) {
+      L.geoJSON(layer.feature, {
         pane: 'solvedPane',
         renderer: roadsRenderer,
         interactive: false,
         style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
       }).addTo(map);
-      l.__hasSolvedOverlay = true;
+      layer.__hasSolvedOverlay = true;
+    }
+    hits++;
+  };
+
+  group.eachLayer(top => {
+    if (typeof top.eachLayer === 'function') {
+      top.eachLayer(visit);   // descend into the GeoJSON
+    } else {
+      visit(top);
     }
   });
 
-  console.log('normalizeCorrectOverlays hits:', hits);
+  try { console.log('normalizeCorrectOverlays hits:', hits); } catch {}
 }
+
 
 
 function scrubHiddenRoadsBlue() {
