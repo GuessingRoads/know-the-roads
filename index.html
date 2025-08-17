@@ -1778,11 +1778,12 @@ function triggerCorrectDissolveAnimation(layer) {
     // Add permanent green overlay (idempotent)
     if (!layer.__hasSolvedOverlay) {
       L.geoJSON(layer.feature, {
-        pane: 'solvedPane',
-        renderer: roadsRenderer,
-        interactive: false,
-        style: { color: '#36a15a', weight: 7, opacity: 0.65, lineCap: 'round' }
-      }).addTo(map);
+  pane: 'solvedPane',
+  renderer: roadsRenderer,
+  interactive: false,
+  style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
+}).addTo(map);
+
       layer.__hasSolvedOverlay = true;
     }
   };
