@@ -475,7 +475,7 @@ map.getPane('solvedPane').style.zIndex = 710;
 const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
-  const roadsRenderer = L.canvas({ padding: 1.0 }); // try 0.5; bump to 0.6 if needed
+  const roadsRenderer = L.svg({ padding: 1.0 }); // try 0.5; bump to 0.6 if needed
 function setupTilePaneBlur(map, baseTiles) {
   const tilePane = map.getPane('tilePane');
   if (!tilePane || !baseTiles) return;
