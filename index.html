@@ -657,8 +657,10 @@ function normalizeCorrectOverlays() {
   let hits = 0; // <— define it
 
   group.eachLayer(l => {
-    const segId = String(l.feature?.id ?? '');
-    const st = segmentStateMap.get(segId);
+    const rawId = String(l.feature?.id ?? '');
+    const st =
+  segmentStateMap.get(rawId) ||
+  segmentStateMap.get(rawId.startsWith('way/') ? rawId : `way/${rawId}`);
     if (!st || (!st.correct && !st.used_hint)) return;
 
     hits++;
