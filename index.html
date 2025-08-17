@@ -996,18 +996,11 @@ async function loadMap() {
               layer._originalColor = 'orangeish';
 
             } else if (state.correct) {
-              layer.setStyle({
-                color: '#00994466',
-                weight: 6,
-                pane: 'hiddenRoads'
-              });
-              setTimeout(() => {
-                if (layer._path) {
-                  layer._path.style.opacity = '';
-                  layer._path.classList.add('correct-final');
-                }
-              }, 0);
-              layer._originalColor = 'greenish';
+  // Hide base immediately; overlay will be drawn by normalizeCorrectOverlays()
+  layer.setStyle({ color: 'transparent', opacity: 0, weight: 0, pane: 'hiddenRoads' });
+  layer.options.interactive = false;
+  layer._originalColor = 'greenish';
+
 
             } else {
               layer.setStyle({
