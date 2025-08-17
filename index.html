@@ -764,12 +764,7 @@ function drawSolvedOverlay(layer) {
     pane: 'solvedPane',
     renderer: roadsRenderer, // reuse your roadsRenderer (with padding)
     interactive: false,
-    style: {
-      color: '#36a15a',  // your green
-      weight: 7,
-      opacity: 1,
-      lineCap: 'round'
-    }
+    style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
   }).addTo(map);
 
   solvedOverlayById.set(segId, ov);
