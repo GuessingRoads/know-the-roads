@@ -832,95 +832,88 @@ async function loadGuessedSegmentIds() {
 }
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
-  for (const id of segmentIds) {
+  // 🔐 make sure we have a session/user id
+  const { data: { session } } = await supabase.auth.getSession();
+  const userId = session?.user?.id ?? currentUserId ?? null;
+  if (!userId) {
+    console.warn('saveGuessSegmentIds: no session; skipping write');
+    return;
+  }
+
+  // 🧰 normalize input to an array
+  const ids = Array.isArray(segmentIds) ? segmentIds : [segmentIds];
+
+  for (const id of ids) {
     const stringId = String(id);
-    let normalized;
 
-    if (stringId.startsWith('way/')) {
-      const rawName = segmentIdToName[stringId] || "";
-      normalized = normalizeName(rawName);
-    } else {
-      normalized = normalizeName(stringId);
-    }
+    // derive a normalized name for convenience
+    const rawName = stringId.startsWith('way/')
+      ? (segmentIdToName[stringId] || '')
+      : stringId;
+    const normalized = normalizeName(rawName);
 
-    console.log("🔗 Handling segment:", { stringId, normalized, isCorrect, usedHint });
+    console.log('🔗 Handling segment:', { stringId, normalized, isCorrect, usedHint });
 
-    // Check for existing row in Supabase
+    // SELECT existing (kept your flow, though upsert would also cover it)
     const { data: existingRows, error: fetchError } = await supabase
       .from('road_guesses')
       .select('*')
-      .eq('user_id', currentUserId)
+      .eq('user_id', userId)
       .eq('road_id', stringId);
 
     if (fetchError) {
-      console.error("❌ Fetch error during saveGuessSegmentIds:", fetchError);
+      console.error('❌ Fetch error during saveGuessSegmentIds:', fetchError);
       continue;
     }
 
     const existing = existingRows[0];
 
-    // CASE 1: No existing row → INSERT
     if (!existing) {
-      console.log("🆕 No existing guess found. Inserting new row:", {
-        user_id: currentUserId,
-        road_id: stringId,
-        road_name: normalized,
-        correct: isCorrect,
-        used_hint: usedHint
-      });
-
+      // INSERT / UPSERT new row
       const { error: insertError } = await supabase.from('road_guesses').upsert([{
-  user_id: currentUserId,
-  road_id: stringId,
-  road_name: normalized,
-  correct: isCorrect,
-  used_hint: usedHint
-}], {
-  onConflict: 'user_id,road_id'
-});
-
+        user_id:  userId,
+        road_id:  stringId,      // ← make sure this column is TEXT in your DB
+        road_name: normalized,
+        correct:  !!isCorrect,
+        used_hint: !!usedHint
+      }], { onConflict: 'user_id,road_id' });
 
       if (insertError) {
-        console.error("❌ Supabase insert error:", insertError);
+        console.error('❌ Supabase insert error:', insertError);
       } else {
-        segmentStateMap.set(stringId, { correct: isCorrect, used_hint: usedHint });
+        segmentStateMap.set(stringId, { correct: !!isCorrect, used_hint: !!usedHint });
       }
 
     } else {
-      // CASE 2: Row exists → may need UPDATE
+      // UPDATE only if state changes
       const needsUpdate =
         (isCorrect && !existing.correct) ||
         (usedHint && !existing.used_hint);
 
       if (needsUpdate) {
         const updates = {
-          correct: isCorrect || existing.correct,
-          used_hint: usedHint || existing.used_hint
+          correct:   isCorrect || existing.correct,
+          used_hint: usedHint   || existing.used_hint
         };
-
-        console.log("✏️ Updating existing guess:", {
-          user_id: currentUserId,
-          road_id: stringId,
-          updates
-        });
 
         const { error: updateError } = await supabase
           .from('road_guesses')
           .update(updates)
-          .eq('user_id', currentUserId)
+          .eq('user_id', userId)
           .eq('road_id', stringId);
 
         if (updateError) {
-          console.error("❌ Supabase update error:", updateError);
+          console.error('❌ Supabase update error:', updateError);
         } else {
           segmentStateMap.set(stringId, updates);
         }
       } else {
-        console.log("✅ No update needed. Existing values already match.");
+        console.log('✅ No update needed. Existing values already match.');
       }
     }
   }
 }
+
 
 
 function applyColorToAllSegments(name, color) {
