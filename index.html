@@ -1589,6 +1589,8 @@ if (countyLayerRef) {
     for (const l of nameToLayers[currentRoad.name] || []) {
   const sid = String(l.feature.id);
   segmentStateMap.set(sid, { correct: true, used_hint: false });
+      try { normalizeCorrectOverlays(); } catch {}
+
 }
 
     // ✅ Correct guess
