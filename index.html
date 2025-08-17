@@ -770,19 +770,6 @@ function drawSolvedOverlay(layer) {
   solvedOverlayById.set(segId, ov);
 }
 
-function ensureSolvedOverlay(l) {
-  if (l.__hasSolvedOverlay) return;
-  L.geoJSON(l.feature, {
-    pane: 'solvedPane',
-    renderer: roadsRenderer,  // keep using your existing renderer
-    interactive: false,
-    style: { color: '#36a15a', weight: 7, opacity: 0.65, lineCap: 'round' }
-  }).addTo(map);
-  l.__hasSolvedOverlay = true;
-}
-
-
-
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
   const loginNote = document.getElementById('login-note');
@@ -1609,36 +1596,37 @@ if (countyLayerRef) {
     const segmentIds = layers.map(l => String(l.feature.id));
     console.log('calling normalizeCorrectOverlays() with segments:', segmentIds);
 
-   // 4) play the existing dissolve animation, then finalize
+  // 4) draw green overlays & hide base strokes (force immediately)
 layers.forEach(l => {
+  // hide base stroke so it can’t flash blue
   const el = l.getElement?.();
-  if (!el) return;
-
-  // stop interactions while it animates
+  l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
   l.options.interactive = false;
-  el.classList.remove('hover-green','active-highlight','correct-dissolve','correct-final');
-
-  // restart CSS animation if this element was used before
-  // (reflow trick so keyframes fire each time)
-  void el.offsetWidth;
-
-  // kick off your CSS dissolve (uses @keyframes dissolveBlueToGreen)
-  el.classList.add('correct-final');
-
-  // add the permanent green overlay so it’s there as the blue dissolves
-  ensureSolvedOverlay(l);
-
-  // when the animation finishes, hide the base stroke completely
-  const onEnd = () => {
-    el.removeEventListener('animationend', onEnd);
-    l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+  if (el) {
     el.style.display = 'none';
+    el.style.stroke = 'none';
     el.removeAttribute('stroke');
     el.removeAttribute('stroke-opacity');
     el.removeAttribute('stroke-width');
-  };
-  el.addEventListener('animationend', onEnd);
+    el.classList.remove('leaflet-interactive','active-highlight','hover-green','correct-final');
+  }
+  l._originalColor = 'greenish';
+
+  // add the green overlay once on the solved pane
+  if (!l.__hasSolvedOverlay) {
+    L.geoJSON(l.feature, {
+      pane: 'solvedPane',
+      renderer: roadsRenderer,
+      interactive: false,
+      style: { color: '#36a15a', weight: 7, opacity: 0.65, lineCap: 'round' }
+    }).addTo(map);
+    l.__hasSolvedOverlay = true;
+  }
 });
+
+// (optional safety, fine to keep)
+try { normalizeCorrectOverlays(); } catch {}
+
 
 
 
