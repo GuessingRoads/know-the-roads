@@ -1319,7 +1319,7 @@ mtLayer.on('click', function (e) {
   currentLayerDepth = 3;
   updateBackButtonVisibility();
   insideManheim = true;
-
+  showSolvedPane();
   // kill tooltip/hover so nothing lingers
   try { mtLayer.unbindTooltip(); } catch (err) {}
   (function () {
