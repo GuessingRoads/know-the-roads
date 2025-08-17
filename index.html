@@ -1137,12 +1137,12 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
   .then(res => res.json())
   .then(data => {
     const countyLayer = L.geoJSON(data, {
+      pane: 'countyPolygon'
       style: {
         color: 'black',
         weight: 1.5,
         fillColor: '#cccccc',
         fillOpacity: 0.7,
-        pane: 'countyPolygon'
       },
 
       onEachFeature: function (feature, layer) {
