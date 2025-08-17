@@ -648,6 +648,7 @@ function armSolvedSegmentsForReentry() {
 }
 function normalizeCorrectOverlays() {
   try {
+    // Pick whichever exists in your build
     const group =
       (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) ? roadsLayerGroup :
       (typeof roadLayer       !== 'undefined' && roadLayer)       ? roadLayer       :
@@ -659,7 +660,7 @@ function normalizeCorrectOverlays() {
       const st = segmentStateMap.get(segId);
       if (!st || (!st.correct && !st.used_hint)) return;
 
-      // hide the base stroke so blue/black can’t show
+      // Hide the base stroke so it can’t show blue/black
       const el = l.getElement?.();
       l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
       l.options.interactive = false;
@@ -673,7 +674,7 @@ function normalizeCorrectOverlays() {
       }
       l._originalColor = 'greenish';
 
-      // draw the green overlay ABOVE on solvedPane (once)
+      // Draw/ensure a green overlay ABOVE on solvedPane (once)
       if (!l.__hasSolvedOverlay) {
         L.geoJSON(l.feature, {
           pane: 'solvedPane',
@@ -686,7 +687,6 @@ function normalizeCorrectOverlays() {
     });
   } catch {}
 }
-
 
 function scrubHiddenRoadsBlue() {
   try {
