@@ -1583,6 +1583,7 @@ if (countyLayerRef) {
   const sid = String(l.feature.id);
   segmentStateMap.set(sid, { correct: true, used_hint: false });
       console.log('➡️ calling normalizeCorrectOverlays()');
+      console.log('segmentIds just marked correct →', segmentIds);
 normalizeCorrectOverlays();   // no try/catch — we want errors if it’s not reachable
 
 }
