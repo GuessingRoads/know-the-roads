@@ -1599,7 +1599,12 @@ if (countyLayerRef) {
     document.getElementById('feedback-message').innerText = '';
 
     // Save correct guess to Supabase
-    saveGuessSegmentIds(currentRoad.name, true, false);
+    // after you mark segmentStateMap for all layers of currentRoad.name
+const solvedLayers = nameToLayers[currentRoad.name] || [];
+const segmentIds = solvedLayers.map(l => String(l.feature.id));
+
+saveGuessSegmentIds(segmentIds, true, false); // <-- array of ids
+
   } else {
     // ❌ Incorrect guess
     handleIncorrectGuess(userGuess);
