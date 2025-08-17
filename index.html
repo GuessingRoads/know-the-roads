@@ -259,7 +259,7 @@
   --correct-width: 8px;       /* thicker stroke to match purple */
 }
 
-.leaflet-overlay-pane path.correct-final,
+/* do NOT target .correct-final here — let it animate from blue → green */
 .leaflet-overlay-pane path.correct-overlay,
 .leaflet-overlay-pane path[data-correct="1"],
 .leaflet-hiddenRoads-pane path[data-correct="1"]{
@@ -269,6 +269,7 @@
   fill: none !important;
   pointer-events: none !important;
 }
+
 /* Keep this from before — tweak amounts as you like */
 .leaflet-tile-pane.blurred {
   /* softens edges + lowers contrast */
