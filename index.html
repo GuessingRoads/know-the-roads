@@ -1599,8 +1599,37 @@ if (countyLayerRef) {
     const segmentIds = layers.map(l => String(l.feature.id));
     console.log('calling normalizeCorrectOverlays() with segments:', segmentIds);
 
-    // 4) draw green overlays & hide base strokes
-    normalizeCorrectOverlays();
+    // 4) draw green overlays & hide base strokes (force immediately)
+layers.forEach(l => {
+  // hide base stroke so it can’t flash blue
+  const el = l.getElement?.();
+  l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+  l.options.interactive = false;
+  if (el) {
+    el.style.display = 'none';
+    el.style.stroke = 'none';
+    el.removeAttribute('stroke');
+    el.removeAttribute('stroke-opacity');
+    el.removeAttribute('stroke-width');
+    el.classList.remove('leaflet-interactive','active-highlight','hover-green','correct-final');
+  }
+  l._originalColor = 'greenish';
+
+  // add the green overlay once on the solved pane
+  if (!l.__hasSolvedOverlay) {
+    L.geoJSON(l.feature, {
+      pane: 'solvedPane',
+      renderer: roadsRenderer,
+      interactive: false,
+      style: { color: '#36a15a', weight: 7, opacity: 0.65, lineCap: 'round' }
+    }).addTo(map);
+    l.__hasSolvedOverlay = true;
+  }
+});
+
+// (optional safety, fine to keep)
+try { normalizeCorrectOverlays(); } catch {}
+
 
     // 5) close modal + clear inputs
     document.getElementById('guess-modal').style.display = 'none';
