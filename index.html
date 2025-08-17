@@ -936,19 +936,21 @@ async function loadMap() {
   fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
     .then(res => res.json())
     .then(data => {
-      const roadLayer = L.geoJSON(data, {
-        renderer: roadsRenderer,
-        // ✅ This applies to all roads, unless overridden below
-          style: {
-          },
-
-        onEachFeature: function (feature, layer) {
+     const roadLayer = L.geoJSON(data, {
+  pane: 'hiddenRoads',          // ← TOP-LEVEL
+  renderer: roadsRenderer,      // ← TOP-LEVEL (keeps padding during drags)
+  style: {
+    color: 'black',
+    weight: 6,
+    opacity: 1,
+    lineCap: 'round'
+  },
+  onEachFeature: function (feature, layer) {
           const id = String(feature.id);
           const name = feature.properties.name || "";
           segmentIdToName[id] = name;
           if (!nameToLayers[name]) nameToLayers[name] = [];
           nameToLayers[name].push(layer);
-          layer.options.pane = 'hiddenRoads'; // ✅ Force pane at layer level
 
           // ⬛ Style visible road based on state
           if (segmentStateMap.has(id)) {
