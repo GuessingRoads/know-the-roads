@@ -437,21 +437,41 @@
   import { roadNameToIds } from './Conversions/Convert_Lancaster_ManheimTownship.js';
   console.log("Loaded roadNameToIds:", Object.keys(roadNameToIds));
   const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 10);
-  map.createPane('clickable-buffer');
-  map.getPane('clickable-buffer').style.pointerEvents = 'auto';
-  map.createPane('hiddenRoads');
-  map.getPane('hiddenRoads').style.pointerEvents = 'none'; // Roads cannot block clicks initially
-  map.getPane('clickable-buffer').style.opacity = '1';
-  map.createPane('countyPolygon');
-  map.getPane('countyPolygon').style.zIndex = 650; // higher than roads (default is 400 or 600)
-  map.createPane('townshipPane');
-  map.getPane('townshipPane').style.zIndex = 510;
-  map.createPane('hoverPane');
-  map.getPane('hoverPane').style.zIndex = 700; // ↑ was 499; put it ABOVE township (510)
-  if (!map.getPane('solvedPane')) map.createPane('solvedPane');
-  map.getPane('solvedPane').style.zIndex = 710;
-  map.createPane('maskPane'); // Create a custom pane for the gray mask
-  map.getPane('maskPane').style.zIndex = 299; // Ensure it renders below roads
+  // ---------- Pane stack (LOW → HIGH) ----------
+// tiles (Leaflet default) live below everything we create
+
+// Gray world mask (below everything else we draw)
+if (!map.getPane('maskPane')) map.createPane('maskPane');
+map.getPane('maskPane').style.zIndex = 299;
+
+// Township fill/outline (sits under roads)
+if (!map.getPane('townshipPane')) map.createPane('townshipPane');
+map.getPane('townshipPane').style.zIndex = 510;
+
+// Base road strokes (black/active-blue)
+if (!map.getPane('hiddenRoads')) map.createPane('hiddenRoads');
+map.getPane('hiddenRoads').style.zIndex = 620;
+map.getPane('hiddenRoads').style.pointerEvents = 'none';   // base paths never catch clicks
+
+// County polygon (you wanted it above roads but below hover/solved)
+if (!map.getPane('countyPolygon')) map.createPane('countyPolygon');
+map.getPane('countyPolygon').style.zIndex = 650;
+
+// Clickable buffer (fat invisible stroke used for hit-targets)
+if (!map.getPane('clickable-buffer')) map.createPane('clickable-buffer');
+map.getPane('clickable-buffer').style.zIndex = 660;
+map.getPane('clickable-buffer').style.pointerEvents = 'auto';
+map.getPane('clickable-buffer').style.opacity = '1';
+
+// Gold hover overlay (visual only)
+if (!map.getPane('hoverPane')) map.createPane('hoverPane');
+map.getPane('hoverPane').style.zIndex = 700;
+
+// ✅ Solved (green) overlays — must be on top of all of the above
+if (!map.getPane('solvedPane')) map.createPane('solvedPane');
+map.getPane('solvedPane').style.zIndex = 710;
+// ---------------------------------------------
+
 const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
