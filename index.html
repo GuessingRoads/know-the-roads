@@ -1589,15 +1589,9 @@ if (countyLayerRef) {
     for (const l of nameToLayers[currentRoad.name] || []) {
   const sid = String(l.feature.id);
   segmentStateMap.set(sid, { correct: true, used_hint: false });
-      try { normalizeCorrectOverlays(); } catch {}
-
 }
-
-    // ✅ Correct guess
-    currentRoad.segments.forEach(layer => {
-      layer.setStyle({ color: 'gray' });
-      layer.off('click');
-    });
+// run once here (outside the loop)
+  try { normalizeCorrectOverlays(); } catch {}
 
     // Close modal
     document.getElementById('guess-modal').style.display = 'none';
