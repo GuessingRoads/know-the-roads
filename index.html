@@ -1596,23 +1596,12 @@ if (countyLayerRef) {
     const segmentIds = layers.map(l => String(l.feature.id));
     console.log('calling normalizeCorrectOverlays() with segments:', segmentIds);
 
-  // 4) draw green overlays & hide base strokes (force immediately)
+  // 4) add permanent green overlay, then run your .correct-dissolve on the BASE path
 layers.forEach(l => {
-  // hide base stroke so it can’t flash blue
   const el = l.getElement?.();
-  l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-  l.options.interactive = false;
-  if (el) {
-    el.style.display = 'none';
-    el.style.stroke = 'none';
-    el.removeAttribute('stroke');
-    el.removeAttribute('stroke-opacity');
-    el.removeAttribute('stroke-width');
-    el.classList.remove('leaflet-interactive','active-highlight','hover-green','correct-final');
-  }
-  l._originalColor = 'greenish';
+  if (!el) return;
 
-  // add the green overlay once on the solved pane
+  // add the permanent green overlay (same code you already use)
   if (!l.__hasSolvedOverlay) {
     L.geoJSON(l.feature, {
       pane: 'solvedPane',
@@ -1622,10 +1611,26 @@ layers.forEach(l => {
     }).addTo(map);
     l.__hasSolvedOverlay = true;
   }
+
+  // run your CSS dissolve on the base (blue) path
+  l.options.interactive = false;
+  el.classList.remove('hover-green','active-highlight','correct-final','correct-dissolve');
+  void el.offsetWidth;                 // reflow so the transition restarts
+  el.classList.add('correct-dissolve'); // ← uses your CSS (opacity 0 with transition)
+
+  // after the opacity transition ends, hide the base stroke for good
+  const onEnd = (e) => {
+    if (e.propertyName !== 'opacity') return;
+    el.removeEventListener('transitionend', onEnd);
+    l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+    el.style.display = 'none';
+    el.removeAttribute('stroke');
+    el.removeAttribute('stroke-opacity');
+    el.removeAttribute('stroke-width');
+  };
+  el.addEventListener('transitionend', onEnd);
 });
 
-// (optional safety, fine to keep)
-try { normalizeCorrectOverlays(); } catch {}
 
 
 
