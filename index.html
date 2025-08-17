@@ -769,6 +769,16 @@ function drawSolvedOverlay(layer) {
 
   solvedOverlayById.set(segId, ov);
 }
+function removeMatchingBuffers(segmentIds) {
+  if (!roadsBufferGroup) return;
+  const want = new Set(segmentIds.map(String));
+  roadsBufferGroup.eachLayer(bl => {
+    try {
+      const id = String(bl.feature?.id ?? '');
+      if (want.has(id)) roadsBufferGroup.removeLayer(bl);
+    } catch {}
+  });
+}
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -1858,9 +1868,21 @@ if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
   const layers = nameToLayers[normalizedKey] || [];
 
 if (isCorrect) {
+    // ——— Block A: mark state so future logic sees these as solved ———
+  for (const l of layers) {
+    const sid = String(l.feature.id);
+    segmentStateMap.set(sid, { correct: true, used_hint: false });
+  }
+
+  // ——— Block B: remove their buffers so they stop receiving clicks ———
+  removeMatchingBuffers(segmentIds);
+
+  // keep your dissolve call
   for (const layer of layers) {
     triggerCorrectDissolveAnimation(layer);
     layer._originalColor = 'greenish';
+  }
+}
   }
 } else if (usedHint) {
   for (const layer of layers) {
