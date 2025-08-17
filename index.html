@@ -1561,6 +1561,7 @@ if (countyLayerRef) {
       if (typeof roadsBufferGroup !== 'undefined' && map.hasLayer(roadsBufferGroup))  map.removeLayer(roadsBufferGroup);
       if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
     } catch {}
+hideSolvedPane();
 
     // Restore county polygon UI (optional safeguard)
     try {
