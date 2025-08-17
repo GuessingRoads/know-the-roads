@@ -647,47 +647,51 @@ function armSolvedSegmentsForReentry() {
   } catch {}
 }
 function normalizeCorrectOverlays() {
-  try {
-    // Pick whichever exists in your build
-    const group =
-      (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) ? roadsLayerGroup :
-      (typeof roadLayer       !== 'undefined' && roadLayer)       ? roadLayer       :
-      null;
-    if (!group) return;
+  // pick the roads group we actually have
+  const group =
+    (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) ? roadsLayerGroup :
+    (typeof roadLayer       !== 'undefined' && roadLayer)       ? roadLayer       :
+    null;
+  if (!group) return;
 
-    group.eachLayer(l => {
-      const segId = String(l.feature?.id ?? '');
-      const st = segmentStateMap.get(segId);
-      if (!st || (!st.correct && !st.used_hint)) return;
+  let hits = 0; // <— define it
 
-      // Hide the base stroke so it can’t show blue/black
-      const el = l.getElement?.();
-      l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-      l.options.interactive = false;
-      if (el) {
-        el.style.display = 'none';
-        el.style.stroke = 'none';
-        el.removeAttribute('stroke');
-        el.removeAttribute('stroke-opacity');
-        el.removeAttribute('stroke-width');
-        el.classList.remove('leaflet-interactive','active-highlight','hover-green','correct-final');
-      }
-      l._originalColor = 'greenish';
+  group.eachLayer(l => {
+    const segId = String(l.feature?.id ?? '');
+    const st = segmentStateMap.get(segId);
+    if (!st || (!st.correct && !st.used_hint)) return;
 
-      // Draw/ensure a green overlay ABOVE on solvedPane (once)
-      if (!l.__hasSolvedOverlay) {
-        L.geoJSON(l.feature, {
-          pane: 'solvedPane',
-          renderer: roadsRenderer,
-          interactive: false,
-          style: { color: '#36a15a', weight: 7, opacity: 0.65, lineCap: 'round' }
-        }).addTo(map);
-        l.__hasSolvedOverlay = true;
-      }
-    });
-    console.log('normalizeCorrectOverlays sees solved segments →', hits); // ← add
-  } catch {}
+    hits++;
+
+    // hide base stroke
+    const el = l.getElement?.();
+    l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+    l.options.interactive = false;
+    if (el) {
+      el.style.display = 'none';
+      el.style.stroke = 'none';
+      el.removeAttribute('stroke');
+      el.removeAttribute('stroke-opacity');
+      el.removeAttribute('stroke-width');
+      el.classList.remove('leaflet-interactive','active-highlight','hover-green','correct-final');
+    }
+    l._originalColor = 'greenish';
+
+    // add solved overlay once
+    if (!l.__hasSolvedOverlay) {
+      L.geoJSON(l.feature, {
+        pane: 'solvedPane',
+        renderer: roadsRenderer,
+        interactive: false,
+        style: { color: '#36a15a', weight: 7, opacity: 0.65, lineCap: 'round' }
+      }).addTo(map);
+      l.__hasSolvedOverlay = true;
+    }
+  });
+
+  console.log('normalizeCorrectOverlays hits:', hits);
 }
+
 
 function scrubHiddenRoadsBlue() {
   try {
