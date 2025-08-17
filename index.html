@@ -1312,7 +1312,8 @@ mtLayer.on('click', function (e) {
   if (worldMask) { try { map.removeLayer(worldMask); } catch (err) {} worldMask = null; }
   try {
     worldMask = L.geoJSON(createWorldMask(feature), {
-      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+      pane: 'maskPane',
+      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false}
     }).addTo(map);
     worldMask.eachLayer(function (layer) {
       var el = (typeof layer.getElement === 'function') ? layer.getElement() : null;
