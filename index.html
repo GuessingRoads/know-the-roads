@@ -1576,45 +1576,44 @@ if (countyLayerRef) {
     document.getElementById('submit-guess').click();
   }
 });
-  document.getElementById('submit-guess').addEventListener('click', () => {
+ document.getElementById('submit-guess').addEventListener('click', () => {
   const userGuess = document.getElementById('guess-input').value.trim();
   if (!currentRoad || !currentRoad.name) return;
 
-  const normalizedGuess = normalizeName(userGuess);
-  const normalizedAnswer = normalizeName(currentRoad.name);
+  const normalizedGuess   = normalizeName(userGuess);
+  const normalizedAnswer  = normalizeName(currentRoad.name);
 
   if (normalizedGuess === normalizedAnswer) {
-    for (const l of nameToLayers[currentRoad.name] || []) {
-  const sid = String(l.feature.id);
-  segmentStateMap.set(sid, { correct: true, used_hint: false });
-      console.log('➡️ calling normalizeCorrectOverlays()');
-      console.log('segmentIds just marked correct →', segmentIds);
-normalizeCorrectOverlays();   // no try/catch — we want errors if it’s not reachable
+    // 1) all layers for this road
+    const layers = nameToLayers[currentRoad.name] || [];
 
-}
-// run once here (outside the loop)
-  try { normalizeCorrectOverlays(); } catch {}
+    // 2) mark each segment as correct in state
+    for (const l of layers) {
+      const sid = String(l.feature.id);
+      segmentStateMap.set(sid, { correct: true, used_hint: false });
+    }
 
-    // Close modal
+    // 3) build segmentIds BEFORE any logs/uses
+    const segmentIds = layers.map(l => String(l.feature.id));
+    console.log('calling normalizeCorrectOverlays() with segments:', segmentIds);
+
+    // 4) draw green overlays & hide base strokes
+    normalizeCorrectOverlays();
+
+    // 5) close modal + clear inputs
     document.getElementById('guess-modal').style.display = 'none';
     document.getElementById('guess-input').value = '';
     document.getElementById('feedback-message').innerText = '';
 
-    // Save correct guess to Supabase
-    // after you mark segmentStateMap for all layers of currentRoad.name
-const solvedLayers = nameToLayers[currentRoad.name] || [];
-const segmentIds = solvedLayers.map(l => String(l.feature.id));
-    console.log('segmentIds just marked correct →', segmentIds);
-
-normalizeCorrectOverlays();   // keep this before closing the modal
-
-saveGuessSegmentIds(segmentIds, true, false); // <-- array of ids
+    // 6) persist (and optional local queue if you added it)
+    try { queueSolvedSegments?.(segmentIds, true, false); } catch {}
+    try { saveGuessSegmentIds?.(segmentIds, true, false); } catch {}
 
   } else {
-    // ❌ Incorrect guess
     handleIncorrectGuess(userGuess);
   }
 });
+
 
 document.getElementById('guess-input').addEventListener('input', async function (e) {
   if (!currentRoad) return;
