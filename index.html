@@ -788,6 +788,14 @@ function removeMatchingBuffers(segmentIds) {
 }
 function showSolvedPane()  { try { const p = map.getPane('solvedPane'); if (p) p.style.display = ''; } catch {} }
 function hideSolvedPane()  { try { const p = map.getPane('solvedPane'); if (p) p.style.display = 'none'; } catch {} }
+function clearSolvedOverlays() {
+  try {
+    if (solvedOverlayById && solvedOverlayById.size) {
+      solvedOverlayById.forEach(ov => { try { map.removeLayer(ov); } catch {} });
+      solvedOverlayById.clear();
+    }
+  } catch {}
+}
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
