@@ -770,6 +770,16 @@ function drawSolvedOverlay(layer) {
   solvedOverlayById.set(segId, ov);
 }
 
+function ensureSolvedOverlay(l) {
+  if (l.__hasSolvedOverlay) return;
+  L.geoJSON(l.feature, {
+    pane: 'solvedPane',
+    renderer: roadsRenderer,  // keep using your existing renderer
+    interactive: false,
+    style: { color: '#36a15a', weight: 7, opacity: 0.65, lineCap: 'round' }
+  }).addTo(map);
+  l.__hasSolvedOverlay = true;
+}
 
 
 
