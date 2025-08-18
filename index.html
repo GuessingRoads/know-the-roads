@@ -1864,12 +1864,14 @@ let interactionCount = 0;
   function maybeShowEncouragement() {
   const session = supabase.auth.getSession();
   session.then(({ data }) => {
-    if (!data.session && interactionCount === 3) {
+    if (!data?.session && interactionCount >= 3 && !encouragementShown) {  // ← >= and guard
       const inlineEnc = document.getElementById('inline-encouragement');
       if (inlineEnc) inlineEnc.style.display = 'block';
+      encouragementShown = true;  // ← ensure it only shows once
     }
   });
 }
+
 function triggerCorrectDissolveAnimation(layer) {
   const el = layer.getElement?.();
   if (!el) return;
