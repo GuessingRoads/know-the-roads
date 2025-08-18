@@ -740,6 +740,23 @@ function normalizeAfterRoadsReady() {
   requestAnimationFrame(tick);
 }
 
+function mergeState(a = {}, b = {}) {
+  return {
+    used_hint: !!(a.used_hint || b.used_hint),
+    correct:   !!(a.correct   || b.correct),
+  };
+}
+
+function setSegmentsState(segmentIds = [], delta = {}) {
+  for (const rawId of segmentIds) {
+    const id = String(rawId);
+    const prev = segmentStateMap.get(id) || {};
+    segmentStateMap.set(id, mergeState(prev, {
+      used_hint: !!delta.used_hint,
+      correct:   !!delta.correct
+    }));
+  }
+}
 
 
 function scrubHiddenRoadsBlue() {
