@@ -649,7 +649,11 @@ function rebuildCountyMask() {
   layer.__hasSolvedOverlay = false;
 }
 
-
+function removeHintOverlay(layer) {
+  try {
+    if (layer.__hintOverlay) { map.removeLayer(layer.__hintOverlay); layer.__hintOverlay = null; }
+  } catch {}
+}
 function armSolvedSegmentsForReentry() {
   try {
     if (!roadsLayerGroup) return;
