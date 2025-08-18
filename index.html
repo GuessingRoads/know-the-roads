@@ -1280,9 +1280,9 @@ if (el) el.classList.remove('hover-green');
   l._originalColor = 'red';
 
 } else {
-  l.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
-  l._originalColor = 'black';
+  restoreLayerFromState(l);  // respects red/orange/green/default
 }
+
 
               }
             }
