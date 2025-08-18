@@ -675,6 +675,13 @@ function armSolvedSegmentsForReentry() {
     });
   } catch {}
 }
+  function resetOverlaysForLogin() {
+  try { hideSolvedPane(); } catch {}
+  try { clearSolvedPaneLayers(); } catch {}
+  // (belt-and-suspenders) don’t show overlays until MT click
+  // currentLayerDepth/insideManheim stay as-is; no need to change them here
+}
+
   function removeSolvedOverlay(layer) {
   try {
     if (layer.__solvedOverlay) { map.removeLayer(layer.__solvedOverlay); layer.__solvedOverlay = null; }
