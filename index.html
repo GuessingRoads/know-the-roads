@@ -621,8 +621,8 @@ function rebuildCountyMask() {
 }
   // ORANGE (always wins; replaces green if present)
 function drawHintOverlay(layer) {
-  showSolvedPane();                  // visible only inside MT (Step 1 governs calls)
-
+  if (!canShowOverlays()) return;        // ← guard
+  // (remove any showSolvedPane() call from here)
   const el = layer.getElement?.();
   layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
   layer.options.interactive = false;
@@ -633,9 +633,7 @@ function drawHintOverlay(layer) {
     el.removeAttribute('stroke-opacity');
     el.removeAttribute('stroke-width');
   }
-
-  removeSolvedOverlay(layer);        // ensure green is gone
-
+  removeSolvedOverlay(layer);
   const ov = L.geoJSON(layer.feature, {
     pane: 'solvedPane',
     renderer: roadsRenderer,
