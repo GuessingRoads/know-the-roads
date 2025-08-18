@@ -1958,14 +1958,9 @@ if (isCorrect) {
   }
 } else if (usedHint) {
   for (const layer of layers) {
-    layer.setStyle({
-  color: '#FF8000',   
-  weight: 7,
-  opacity: 0.9,
-  pane: 'hiddenRoads'
-});
+    drawHintOverlay(layer);
+layer._originalColor = 'orange';
 
-    layer._originalColor = '#FF8000';
   }
 } else {
   // Animate incorrect red segments
