@@ -1054,21 +1054,10 @@ async function loadMap() {
             const state = segmentStateMap.get(id);
 
             if (state.used_hint) {
-              layer.setStyle({
-                color: 'rgba(255, 165, 0, 0.4)',
-                weight: 6,
-                opacity: 0.7,
-                pane: 'hiddenRoads'
-              });
-              setTimeout(() => {
-                if (layer._path) {
-                  layer._path.style.opacity = '';
-                  layer._path.classList.add('hint-used-final');
-                }
-              }, 0);
-              layer._originalColor = 'orangeish';
-
-            } else if (state.correct) {
+  // unified orange overlay (instant; never paint base)
+  drawHintOverlay(layer);      // uses HINT_COLOR / HINT_WEIGHT / HINT_OPACITY
+  layer._originalColor = 'orange';
+} else if (state.correct) {
   // Hide base immediately; overlay will be drawn by normalizeCorrectOverlays()
   layer.setStyle({ color: 'transparent', opacity: 0, weight: 0, pane: 'hiddenRoads' });
   layer.options.interactive = false;
