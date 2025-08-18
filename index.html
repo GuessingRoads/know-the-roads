@@ -2003,20 +2003,34 @@ if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
   const layers = nameToLayers[normalizedKey] || [];
 
 if (isCorrect) {
-    // ——— Block A: mark state so future logic sees these as solved ———
-  for (const l of layers) {
+  // was a hint used for this road (either now or earlier)?
+  const wasHint = !!usedHint || (layers || []).some(l => {
     const sid = String(l.feature.id);
-    segmentStateMap.set(sid, { correct: true, used_hint: false });
+    return (segmentStateMap.get(sid) || {}).used_hint;
+  });
+
+  // A) state: mark correct and preserve/OR used_hint
+  for (const l of layers) {
+    const sid  = String(l.feature.id);
+    const prev = segmentStateMap.get(sid) || {};
+    segmentStateMap.set(sid, { correct: true, used_hint: !!(prev.used_hint || wasHint) });
   }
 
-  // ——— Block B: remove their buffers so they stop receiving clicks ———
+  // B) stop further clicks
   removeMatchingBuffers(segmentIds);
 
-  // keep your dissolve call
+  // C) render: ORANGE if hint was used, else GREEN dissolve
   for (const layer of layers) {
-    triggerCorrectDissolveAnimation(layer);
-    layer._originalColor = 'greenish';
+    if (wasHint) {
+      drawHintOverlay(layer);        // instant orange
+      layer._originalColor = 'orange';
+    } else {
+      triggerCorrectDissolveAnimation(layer);  // blue → dissolve → green
+      layer._originalColor = 'greenish';
+    }
   }
+}
+
 } else if (usedHint) {
   for (const layer of layers) {
     drawHintOverlay(layer);
