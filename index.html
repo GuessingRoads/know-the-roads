@@ -1877,6 +1877,12 @@ let encouragementShown = false;
 
 
 function triggerCorrectDissolveAnimation(layer) {
+  const sid = String(layer?.feature?.id ?? '');
+  const st  = segmentStateMap.get(sid);
+  if (st?.used_hint) {        // never run green dissolve if hint was used
+    drawHintOverlay(layer);
+    return;
+  }
   const el = layer.getElement?.();
   if (!el) return;
 
