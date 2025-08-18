@@ -931,15 +931,20 @@ async function loadGuessedSegmentIds() {
   }
 
   guessedSegmentIds.clear();
-  segmentStateMap.clear();
+  //segmentStateMap.clear();
 
   data.forEach(row => {
-    guessedSegmentIds.add(row.road_id);
-    segmentStateMap.set(row.road_id, {
-      correct: row.correct,
-      used_hint: row.used_hint
-    });
+  const id = String(row.road_id);           // keep keys consistent
+  guessedSegmentIds.add(id);
+
+  const prev = segmentStateMap.get(id) || {};
+  const next = mergeState(prev, {           // OR the booleans
+    correct:   !!row.correct,
+    used_hint: !!row.used_hint
   });
+  segmentStateMap.set(id, next);
+});
+
 }
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
