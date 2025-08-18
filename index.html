@@ -2037,15 +2037,17 @@ layer._originalColor = 'orange';
 
   }
 } else {
-  // Animate incorrect red segments
+  // mark red in state first so follow-up UI respects it
+  for (const id of segmentIds) {
+    const sid  = String(id);
+    const prev = segmentStateMap.get(sid) || {};
+    segmentStateMap.set(sid, { ...prev, incorrect: true, correct: !!prev.correct, used_hint: !!prev.used_hint });
+  }
+
+  // now style/animate red
   animateIncorrectSegments(layers);
 }
-// ✅ Mark red segments as incorrect in segmentStateMap
-if (!isCorrect && !usedHint) {
-  for (const id of segmentIds) {
-    segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
-  }
-}
+
 
 
 if (currentUserId) {
