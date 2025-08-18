@@ -1388,6 +1388,7 @@ mtLayer.on('click', function (e) {
   updateBackButtonVisibility();
   insideManheim = true;
   showSolvedPane();
+  normalizeAfterRoadsReady();
   // kill tooltip/hover so nothing lingers
   try { mtLayer.unbindTooltip(); } catch (err) {}
   (function () {
