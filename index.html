@@ -1162,17 +1162,25 @@ if (el) el.classList.remove('hover-green');
               for (const l of nameToLayers[activeRoadName]) {
                 const segmentId = String(l.feature.id);
                 const s = segmentStateMap.get(segmentId);
-                if (s?.correct) {
-                  l._path?.classList.add('correct-final');
-                } else if (s?.used_hint) {
-                  l._path?.classList.add('hint-used-final');
-                } else if (s?.incorrect) {
-                  l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
-                  l._originalColor = 'red';
-                } else {
-                  l.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
-                  l._originalColor = 'black';
-                }
+               if (s?.used_hint) {
+  // one source of truth for orange
+  drawHintOverlay(l);
+  l._originalColor = 'orange';
+
+} else if (s?.correct) {
+  // solved: ensure base is hidden; overlay already handles the look
+  l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+  l.options.interactive = false;
+
+} else if (s?.incorrect) {
+  l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+  l._originalColor = 'red';
+
+} else {
+  l.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
+  l._originalColor = 'black';
+}
+
               }
             }
 
