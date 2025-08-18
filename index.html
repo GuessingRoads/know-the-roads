@@ -796,6 +796,32 @@ function clearSolvedOverlays() {
     }
   } catch {}
 }
+function clearSolvedPaneLayers() {
+  try {
+    // remove every Leaflet layer whose pane is 'solvedPane'
+    Object.values(map._layers || {}).forEach(l => {
+      if (l && l.options && l.options.pane === 'solvedPane') {
+        try { map.removeLayer(l); } catch {}
+      }
+    });
+
+    // clear any cached references you may have
+    try { solvedOverlayById?.forEach(ov => { try { map.removeLayer(ov); } catch {} }); solvedOverlayById?.clear?.(); } catch {}
+
+    // allow overlays to be recreated next time
+    try {
+      if (roadsLayerGroup) {
+        roadsLayerGroup.eachLayer(top => {
+          if (typeof top.eachLayer === 'function') {
+            top.eachLayer(seg => { if (seg && seg.__hasSolvedOverlay) seg.__hasSolvedOverlay = false; });
+          } else {
+            if (top && top.__hasSolvedOverlay) top.__hasSolvedOverlay = false;
+          }
+        });
+      }
+    } catch {}
+  } catch {}
+}
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
