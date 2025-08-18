@@ -469,6 +469,7 @@ map.getPane('hoverPane').style.zIndex = 700;
 // ✅ Solved (green) overlays — must be on top of all of the above
 if (!map.getPane('solvedPane')) map.createPane('solvedPane');
 map.getPane('solvedPane').style.zIndex = 710;
+map.getPane('solvedPane').style.display = 'none';   // start hidden
 // ---------------------------------------------
 
 const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
