@@ -580,16 +580,34 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 function animateIncorrectSegments(segments, delay = 60) {
   segments.forEach((layer, index) => {
-    layer._originalColor = 'red';
+    const sid = String(layer.feature.id);
+
+    // 1) Record red immediately so any follow-up restyle respects it
+    const prev = segmentStateMap.get(sid) || {};
+    segmentStateMap.set(sid, { ...prev, incorrect: true });
+
+    // 2) Apply the visual (optionally staggered)
     setTimeout(() => {
+      // If this segment became orange/green since we queued the timeout, bail.
+      const st = segmentStateMap.get(sid);
+      if (st?.used_hint || st?.correct) return;
+
+      // Ensure the base path is visible and red, and remains clickable.
+      const el = layer.getElement?.();
+      if (el) { el.style.display = ''; el.style.stroke = ''; }
+
       layer.setStyle({
-  color: 'red',
-  weight: 6,
-  pane: 'clickable-buffer'
-});
+        color: 'red',
+        weight: 6,
+        opacity: 1,
+        pane: 'clickable-buffer'
+      });
+      layer.options.interactive = true;
+      layer._originalColor = 'red';
     }, index * delay);
   });
 }
+
 function resetCountyTooltip() {
   const tt = document.getElementById('custom-tooltip');
   if (!tt) return;
