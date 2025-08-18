@@ -817,17 +817,13 @@ function hideBaseStroke(layer) {
   layer._originalColor = 'greenish'; // keep your internal tag
 }
 
-// GREEN (only if not used_hint)
 function drawSolvedOverlay(layer) {
-  const id = String(layer?.feature?.id ?? '');
-  const st = segmentStateMap.get(id) || {};
-  if (st.used_hint) return;          // orange has priority; bail
-
-  removeHintOverlay(layer);          // ensure no orange remains
-
+  if (!canShowOverlays()) return;        // ← guard
+  // (remove any showSolvedPane() call from here)
+  removeHintOverlay(layer);
   const ov = L.geoJSON(layer.feature, {
     pane: 'solvedPane',
-    renderer: roadsRenderer,         // L.svg(...)
+    renderer: roadsRenderer,
     interactive: false,
     style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
   }).addTo(map);
