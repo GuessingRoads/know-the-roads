@@ -1144,37 +1144,33 @@ async function loadMap() {
           nameToLayers[name].push(layer);
 
           // ⬛ Style visible road based on state
-          if (segmentStateMap.has(id)) {
-            const state = segmentStateMap.get(id);
+         // Style visible road based on state (precedence: orange > green > red > black)
+const st = segmentStateMap.get(id) || null;
 
-            if (state.used_hint) {
-  // unified orange overlay (instant; never paint base)
-  drawHintOverlay(layer);      // uses HINT_COLOR / HINT_WEIGHT / HINT_OPACITY
+if (st?.used_hint) {
+  // ORANGE overlay; never paint base
+  drawHintOverlay(layer);
   layer._originalColor = 'orange';
-} else if (state.correct) {
-  // Hide base immediately; overlay will be drawn by normalizeCorrectOverlays()
+
+} else if (st?.correct) {
+  // GREEN overlay; hide base
   layer.setStyle({ color: 'transparent', opacity: 0, weight: 0, pane: 'hiddenRoads' });
   layer.options.interactive = false;
   layer._originalColor = 'greenish';
 
+} else if (st?.incorrect) {
+  // RED base; keep clickable
+  layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+  layer.options.interactive = true;
+  layer._originalColor = 'red';
 
-            } else {
-              layer.setStyle({
-                color: 'red',
-                weight: 6,
-                pane: 'hiddenRoads'
-              });
-              layer._originalColor = 'red';
-            }
+} else {
+  // Default BLACK; keep clickable
+  layer.setStyle({ color: 'black', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+  layer.options.interactive = true;
+  layer._originalColor = 'black';
+}
 
-          } else {
-            layer.setStyle({
-              color: 'black',
-              weight: 6,
-              pane: 'hiddenRoads'
-            });
-            layer._originalColor = 'black';
-          }
 
           // 🟠 Add invisible buffer layer for easier clicking/tapping
           const buffer = L.geoJSON(feature, {
