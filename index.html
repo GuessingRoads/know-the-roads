@@ -677,6 +677,11 @@ function armSolvedSegmentsForReentry() {
     });
   } catch {}
 }
+  function removeSolvedOverlay(layer) {
+  try {
+    if (layer.__solvedOverlay) { map.removeLayer(layer.__solvedOverlay); layer.__solvedOverlay = null; }
+  } catch {}
+}
 function normalizeCorrectOverlays() {
   // pick the roads group we actually have
   const group =
