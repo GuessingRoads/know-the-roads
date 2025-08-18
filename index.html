@@ -425,6 +425,10 @@
   const SOLVED_COLOR   = '#009944'; // match keyframes 100%
   const SOLVED_WEIGHT  = 6;         // match .correct-final stroke-width
   const SOLVED_OPACITY = 0.7;       // match keyframes 100%
+  const HINT_COLOR   = '#FF8000';
+  const HINT_WEIGHT  = 7;
+  const HINT_OPACITY = 0.9;
+
 
 
 
@@ -623,6 +627,33 @@ function rebuildCountyMask() {
     try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
   } catch {}
 }
+  function drawHintOverlay(layer) {
+  // hide/scrub the base stroke so only the overlay is visible
+  const el = layer.getElement?.();
+  layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+  layer.options.interactive = false;
+  if (el) {
+    el.style.display = 'none';
+    el.style.stroke = 'none';
+    el.removeAttribute('stroke');
+    el.removeAttribute('stroke-opacity');
+    el.removeAttribute('stroke-width');
+  }
+
+  // add an orange overlay if not already present
+  if (!layer.__hasHintOverlay) {
+    L.geoJSON(layer.feature, {
+      pane: 'solvedPane',              // reuse same pane so Back clears it
+      renderer: roadsRenderer,
+      interactive: false,
+      style: { color: HINT_COLOR, weight: HINT_WEIGHT, opacity: HINT_OPACITY, lineCap: 'round' }
+    }).addTo(map);
+    layer.__hasHintOverlay = true;
+    // if a green overlay flag existed, clear it so orange has precedence
+    layer.__hasSolvedOverlay = false;
+  }
+}
+
 function armSolvedSegmentsForReentry() {
   try {
     if (!roadsLayerGroup) return;
