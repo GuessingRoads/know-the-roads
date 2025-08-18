@@ -2025,17 +2025,20 @@ document.getElementById('give-up').onclick = async function () {
     return; // ✅ Wait for next user input
   }
 
-  // Otherwise, mark road (red or orange based on hint state)
   usedHint = currentRoad.hintGiven;
 
-  for (const layer of layers) {
-  const style = usedHint
-    ? { color: 'rgba(255, 165, 0, 0.4)', weight: 6, opacity: 0.7, pane: 'clickable-buffer' }
-    : { color: 'red', weight: 6, pane: 'clickable-buffer' };
-
-  layer.setStyle(style);
-  layer._originalColor = usedHint ? 'rgba(255, 165, 0, 0.4)' : 'red';
+for (const layer of layers) {
+  if (usedHint) {
+    // unified orange overlay; never paint the base path
+    drawHintOverlay(layer);          // uses HINT_COLOR / HINT_WEIGHT / HINT_OPACITY
+    layer._originalColor = 'orange';
+  } else {
+    // red stays as-is
+    layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+    layer._originalColor = 'red';
+  }
 }
+
 
 
   if (currentUserId) {
