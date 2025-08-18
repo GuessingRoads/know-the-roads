@@ -1863,15 +1863,18 @@ let interactionCount = 0;
 let encouragementShown = false;
 
   function maybeShowEncouragement() {
-  const session = supabase.auth.getSession();
-  session.then(({ data }) => {
-    if (!data?.session && interactionCount >= 3 && !encouragementShown) {  // ← >= and guard
-      const inlineEnc = document.getElementById('inline-encouragement');
-      if (inlineEnc) inlineEnc.style.display = 'block';
-      encouragementShown = true;  // ← ensure it only shows once
+  if (encouragementShown) return;  // already shown this session
+
+  supabase.auth.getSession().then(({ data }) => {
+    // show only if NOT logged in, and after 3+ submissions
+    if (!data?.session && interactionCount >= 3) {
+      const el = document.getElementById('inline-encouragement');
+      if (el) el.style.display = 'block';
+      encouragementShown = true;
     }
-  });
+  }).catch(() => {});
 }
+
 
 function triggerCorrectDissolveAnimation(layer) {
   const el = layer.getElement?.();
