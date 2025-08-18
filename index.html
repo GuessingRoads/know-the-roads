@@ -2090,6 +2090,7 @@ for (const layer of layers) {
     // red stays as-is
     layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
     layer._originalColor = 'red';
+    setSegmentsState([layer.feature.id], { incorrect: true });
   }
 }
 
