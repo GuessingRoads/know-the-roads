@@ -682,26 +682,27 @@ function armSolvedSegmentsForReentry() {
     if (layer.__solvedOverlay) { map.removeLayer(layer.__solvedOverlay); layer.__solvedOverlay = null; }
   } catch {}
 }
+// Rebuild overlays when *inside* MT only.
+// Orange (used_hint) takes priority over green (correct).
 function normalizeCorrectOverlays() {
-  // pick the roads group we actually have
-  const group =
-    (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) ? roadsLayerGroup :
-    (typeof roadLayer       !== 'undefined' && roadLayer)       ? roadLayer :
-    null;
+  // only run inside the township view
+  if (typeof currentLayerDepth !== 'undefined' && currentLayerDepth !== 3) return;
+
+  const group = (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup)
+             || (typeof roadLayer       !== 'undefined' && roadLayer)
+             || null;
   if (!group) return;
 
-  let hits = 0;
-
-  // descend into the GeoJSON so we touch each segment layer
   const visit = (layer) => {
     const id = String(layer?.feature?.id ?? '');
     if (!id) return;
-    const st = segmentStateMap.get(id);
-    if (!(st?.correct)) return;
 
-    // hide/scrub the base stroke
+    const st = segmentStateMap.get(id);
+    if (!st) return;
+
+    // Hide the base stroke so only overlays represent the state
     const el = layer.getElement?.();
-    layer.setStyle({ color: 'transparent', opacity: 0, weight: layer.options.weight || 6 });
+    layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
     layer.options.interactive = false;
     if (el) {
       el.style.display = 'none';
@@ -711,30 +712,17 @@ function normalizeCorrectOverlays() {
       el.removeAttribute('stroke-width');
       el.classList.remove('correct-final','hover-green','active-highlight','leaflet-interactive');
     }
-    layer._originalColor = 'greenish';
 
-    // add the permanent green overlay (idempotent)
-    if (!layer.__hasSolvedOverlay) {
-      L.geoJSON(layer.feature, {
-        pane: 'solvedPane',
-        renderer: roadsRenderer,
-        interactive: false,
-        style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
-      }).addTo(map);
-      layer.__hasSolvedOverlay = true;
-    }
-    hits++;
+    // Draw exactly one overlay with precedence: ORANGE → GREEN
+    if (st.used_hint) { drawHintOverlay(layer); return; }
+    if (st.correct)   { drawSolvedOverlay(layer); return; }
+    // if neither flag, leave it invisible/interactive=false
   };
 
   group.eachLayer(top => {
-    if (typeof top.eachLayer === 'function') {
-      top.eachLayer(visit);   // descend into the GeoJSON
-    } else {
-      visit(top);
-    }
+    if (typeof top.eachLayer === 'function') top.eachLayer(visit);
+    else visit(top);
   });
-
-  try { console.log('normalizeCorrectOverlays hits:', hits); } catch {}
 }
 
 
