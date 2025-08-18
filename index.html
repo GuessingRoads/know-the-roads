@@ -724,6 +724,21 @@ function normalizeCorrectOverlays() {
     else visit(top);
   });
 }
+function normalizeAfterRoadsReady() {
+  let tries = 0;
+  const tick = () => {
+    tries++;
+    // run only when roads are actually present on the map
+    if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
+      normalizeCorrectOverlays();
+    } else if (typeof roadLayer !== 'undefined' && map.hasLayer(roadLayer)) {
+      normalizeCorrectOverlays();
+    } else if (tries < 20) {
+      requestAnimationFrame(tick);
+    }
+  };
+  requestAnimationFrame(tick);
+}
 
 
 
