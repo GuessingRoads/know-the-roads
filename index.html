@@ -746,20 +746,23 @@ function normalizeAfterRoadsReady() {
 }
 
 function mergeState(a = {}, b = {}) {
-  return {
-    used_hint: !!(a.used_hint || b.used_hint),
-    correct:   !!(a.correct   || b.correct),
-  };
+  // OR the flags, but if a road is green/orange it is no longer "incorrect"
+  const used_hint = !!(a.used_hint || b.used_hint);
+  const correct   = !!(a.correct   || b.correct);
+  const incorrect = !!(a.incorrect || b.incorrect) && !(used_hint || correct);
+  return { used_hint, correct, incorrect };
 }
 
 function setSegmentsState(segmentIds = [], delta = {}) {
   for (const rawId of segmentIds) {
     const id = String(rawId);
     const prev = segmentStateMap.get(id) || {};
-    segmentStateMap.set(id, mergeState(prev, {
+    const next = mergeState(prev, {
       used_hint: !!delta.used_hint,
-      correct:   !!delta.correct
-    }));
+      correct:   !!delta.correct,
+      incorrect: !!delta.incorrect,
+    });
+    segmentStateMap.set(id, next);
   }
 }
 function canShowOverlays() {
