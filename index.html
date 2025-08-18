@@ -917,6 +917,31 @@ function clearSolvedPaneLayers() {
     } catch {}
   } catch {}
 }
+function restoreLayerFromState(layer) {
+  const sid = String(layer?.feature?.id ?? '');
+  const st  = segmentStateMap.get(sid) || {};
+
+  // precedence: orange > green > red > default
+  if (st.used_hint) {            // ORANGE overlay, base hidden
+    drawHintOverlay(layer);
+    return;
+  }
+  if (st.correct) {              // GREEN overlay, base hidden
+    layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+    layer.options.interactive = false;
+    return;
+  }
+  if (st.incorrect) {            // RED base, clickable
+    layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+    layer.options.interactive = true;
+    layer._originalColor = 'red';
+    return;
+  }
+  // default: BLACK
+  layer.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
+  layer.options.interactive = true;
+  layer._originalColor = 'black';
+}
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
