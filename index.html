@@ -619,7 +619,9 @@ function rebuildCountyMask() {
   } catch {}
 }
   function drawHintOverlay(layer) {
-  // hide/scrub the base stroke so only the overlay is visible
+  showSolvedPane();  // make sure pane is visible
+
+  // hide base
   const el = layer.getElement?.();
   layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
   layer.options.interactive = false;
@@ -631,19 +633,21 @@ function rebuildCountyMask() {
     el.removeAttribute('stroke-width');
   }
 
-  // add an orange overlay if not already present
-  if (!layer.__hasHintOverlay) {
-    L.geoJSON(layer.feature, {
-      pane: 'solvedPane',              // reuse same pane so Back clears it
-      renderer: roadsRenderer,
-      interactive: false,
-      style: { color: HINT_COLOR, weight: HINT_WEIGHT, opacity: HINT_OPACITY, lineCap: 'round' }
-    }).addTo(map);
-    layer.__hasHintOverlay = true;
-    // if a green overlay flag existed, clear it so orange has precedence
-    layer.__hasSolvedOverlay = false;
-  }
+  // recreate the orange overlay each time to avoid stale flags
+  try { if (layer.__hintOverlay) map.removeLayer(layer.__hintOverlay); } catch {}
+  const ov = L.geoJSON(layer.feature, {
+    pane: 'solvedPane',
+    renderer: roadsRenderer,       // should be L.svg({...})
+    interactive: false,
+    style: { color: HINT_COLOR, weight: HINT_WEIGHT, opacity: HINT_OPACITY, lineCap: 'round' }
+  }).addTo(map);
+  layer.__hintOverlay = ov;
+
+  // precedence: orange takes visual priority over green
+  layer.__hasHintOverlay = true;
+  layer.__hasSolvedOverlay = false;
 }
+
 
 function armSolvedSegmentsForReentry() {
   try {
