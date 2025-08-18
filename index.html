@@ -1860,6 +1860,7 @@ window.addEventListener('click', async () => {
   }
 });
 let interactionCount = 0;
+let encouragementShown = false;
 
   function maybeShowEncouragement() {
   const session = supabase.auth.getSession();
