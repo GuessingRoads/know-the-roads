@@ -690,12 +690,10 @@ function armSolvedSegmentsForReentry() {
 // Rebuild overlays when *inside* MT only.
 // Orange (used_hint) takes priority over green (correct).
 function normalizeCorrectOverlays() {
-  // only run inside the township view
-  if (typeof currentLayerDepth !== 'undefined' && currentLayerDepth !== 3) return;
+  // Only inside MT view
+  if (currentLayerDepth !== 3) return;
 
-  const group = (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup)
-             || (typeof roadLayer       !== 'undefined' && roadLayer)
-             || null;
+  const group = (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) || roadLayer;
   if (!group) return;
 
   const visit = (layer) => {
@@ -705,23 +703,39 @@ function normalizeCorrectOverlays() {
     const st = segmentStateMap.get(id);
     if (!st) return;
 
-    // Hide the base stroke so only overlays represent the state
-    const el = layer.getElement?.();
-    layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-    layer.options.interactive = false;
-    if (el) {
-      el.style.display = 'none';
-      el.style.stroke = 'none';
-      el.removeAttribute('stroke');
-      el.removeAttribute('stroke-opacity');
-      el.removeAttribute('stroke-width');
-      el.classList.remove('correct-final','hover-green','active-highlight','leaflet-interactive');
+    // 1) ORANGE wins: hide base, draw orange overlay
+    if (st.used_hint) {
+      // hide base
+      const el1 = layer.getElement?.();
+      layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+      layer.options.interactive = false;
+      if (el1) { el1.style.display = 'none'; el1.style.stroke = 'none';
+        el1.removeAttribute('stroke'); el1.removeAttribute('stroke-opacity'); el1.removeAttribute('stroke-width'); }
+      drawHintOverlay(layer);
+      return;
     }
 
-    // Draw exactly one overlay with precedence: ORANGE → GREEN
-    if (st.used_hint) { drawHintOverlay(layer); return; }
-    if (st.correct)   { drawSolvedOverlay(layer); return; }
-    // if neither flag, leave it invisible/interactive=false
+    // 2) GREEN next: hide base, draw green overlay
+    if (st.correct) {
+      const el2 = layer.getElement?.();
+      layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+      layer.options.interactive = false;
+      if (el2) { el2.style.display = 'none'; el2.style.stroke = 'none';
+        el2.removeAttribute('stroke'); el2.removeAttribute('stroke-opacity'); el2.removeAttribute('stroke-width'); }
+      drawSolvedOverlay(layer);
+      return;
+    }
+
+    // 3) RED: show base as red (clickable), no overlay
+    if (st.incorrect) {
+      const el3 = layer.getElement?.();
+      if (el3) { el3.style.display = ''; el3.style.stroke = ''; }
+      layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+      layer.options.interactive = true;
+      return;
+    }
+
+    // 4) No state → leave as default (black, clickable)
   };
 
   group.eachLayer(top => {
@@ -729,6 +743,7 @@ function normalizeCorrectOverlays() {
     else visit(top);
   });
 }
+
 function normalizeAfterRoadsReady() {
   let tries = 0;
   const tick = () => {
