@@ -757,6 +757,10 @@ function setSegmentsState(segmentIds = [], delta = {}) {
     }));
   }
 }
+function canShowOverlays() {
+  // Only show overlays when actually inside Manheim/Township view
+  return currentLayerDepth === 3 && insideManheim === true;
+}
 
 
 function scrubHiddenRoadsBlue() {
