@@ -962,7 +962,6 @@ function restoreLayerFromState(layer) {
 }
 
 async function checkLogin() {
-  console.log('[checkLogin] session?', !!session, 'queue size:', getPreLoginGuesses().length);
   const { data: { session } } = await supabase.auth.getSession();
 
   const loginNote = document.getElementById('login-note');
