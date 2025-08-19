@@ -990,6 +990,12 @@ async function checkLogin() {
 
   // Load server guesses for this user (your existing function)
   await loadGuessedSegmentIds();
+  // If user is already viewing MT, rebuild overlays immediately
+if (insideManheim === true && currentLayerDepth === 3) {
+  try { showSolvedPane(); } catch {}
+  try { normalizeCorrectOverlays?.(); } catch {}
+}
+
 
   updateAuthUI(user);
 }
