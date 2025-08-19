@@ -548,6 +548,23 @@ function savePreLoginGuess(guess) {
 function clearPreLoginGuesses() {
   localStorage.removeItem('preLoginGuesses');
 }
+async function flushPreLoginGuessesToSupabaseIfLoggedIn() {
+  // only flush if we actually have a session
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+
+  const items = getPreLoginGuesses() || [];
+  if (!items.length) return;
+
+  for (const it of items) {
+    try {
+      await saveGuessSegmentIds(it.segmentIds, !!it.isCorrect, !!it.usedHint);
+    } catch (e) {
+      console.warn('prelogin flush failed', it, e);
+    }
+  }
+  clearPreLoginGuesses(); // removes 'preLoginGuesses' from localStorage
+}
 
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
