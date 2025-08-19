@@ -1019,14 +1019,13 @@ async function loadGuessedSegmentIds() {
   if (!currentUserId) return;
 
   const { data, error } = await supabase
-    .from('road_guesses')                        // ← make sure this matches the saver
+    .from('road_guesses')                 // ← must match the saver
     .select('road_id, correct, used_hint')
     .eq('user_id', currentUserId);
 
   if (error) { console.error('❌ Error loading guesses:', error); return; }
 
-  // IMPORTANT: do NOT clear segmentStateMap(); merge with local state
-  // guessedSegmentIds.clear();  // ok to clear this set if you want
+  // DO NOT: segmentStateMap.clear()
   for (const row of data) {
     const id   = String(row.road_id);
     const prev = segmentStateMap.get(id) || {};
@@ -1038,6 +1037,7 @@ async function loadGuessedSegmentIds() {
     });
   }
 }
+
 
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
