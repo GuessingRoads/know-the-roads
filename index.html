@@ -2228,7 +2228,11 @@ for (const layer of layers) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, usedHint ? 2000 : 0);
 };
-
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
+    checkLogin();                 // flush pre-login guesses + load server guesses + update UI
+  }
+});
   </script>
 </body>
 </html>
