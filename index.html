@@ -534,7 +534,7 @@ let currentUserId = null;
   const completedRoads = new Set(); // Tracks roads finalized via correct guess or 4th attempt
 let segmentStateMap = new Map();
   const segmentIdToName = {};
-  function getPreLoginGuesses() {
+function getPreLoginGuesses() {
   const stored = localStorage.getItem('preLoginGuesses');
   return stored ? JSON.parse(stored) : [];
 }
