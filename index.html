@@ -963,31 +963,37 @@ function restoreLayerFromState(layer) {
 
 async function checkLogin() {
   const { data: { session } } = await supabase.auth.getSession();
-  const loginNote = document.getElementById('login-note');
-if (loginNote) {
-  loginNote.style.display = session ? 'none' : 'block';
-}
-  const user = session?.user;
-  if (user) {
-  currentUserId = user.id;
 
- // Submit any saved pre-login guesses from localStorage
+  const loginNote = document.getElementById('login-note');
+  if (loginNote) loginNote.style.display = session ? 'none' : 'block';
+
+  const user = session?.user || null;
+  if (user) currentUserId = user.id;
+
+  // If not logged in, stop here. Do NOT flush or load.
+  if (!session) {
+    updateAuthUI(null);
+    return;
+  }
+
+  // Submit any saved pre-login guesses (then clear)
   const savedGuesses = getPreLoginGuesses();
   for (const guess of savedGuesses) {
     try {
-      console.log('⚡ Auto-submitting pre-login guess:', guess.segmentIds);
-      await saveGuessSegmentIds(guess.segmentIds, guess.isCorrect, guess.usedHint);
+      console.log('🟠 Auto-submitting pre-login guess:', guess.segmentIds);
+      await saveGuessSegmentIds(guess.segmentIds, !!guess.isCorrect, !!guess.usedHint);
     } catch (error) {
       console.error('❌ Failed to submit pre-login guess:', guess, error);
     }
   }
   clearPreLoginGuesses();
 
+  // Load server guesses for this user (your existing function)
   await loadGuessedSegmentIds();
-}
 
   updateAuthUI(user);
 }
+
 
 function updateAuthUI(user) {
   if (user) {
