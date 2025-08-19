@@ -591,6 +591,7 @@ supabase.auth.onAuthStateChange((event, session) => {
 
   if (event === 'SIGNED_IN') {
     loginNote.style.display = 'none';
+    flushPreLoginGuessesToSupabaseIfLoggedIn().catch(() => {});  // ← add this
   } else if (event === 'SIGNED_OUT') {
     loginNote.style.display = 'block';
   }
