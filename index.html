@@ -1016,32 +1016,29 @@ function updateAuthUI(user) {
 
 
 async function loadGuessedSegmentIds() {
+  if (!currentUserId) return;
+
   const { data, error } = await supabase
-    .from('road_guesses')
+    .from('road_guesses')                        // ← make sure this matches the saver
     .select('road_id, correct, used_hint')
     .eq('user_id', currentUserId);
 
-  if (error) {
-    console.error('❌ Error loading guesses:', error);
-    return;
+  if (error) { console.error('❌ Error loading guesses:', error); return; }
+
+  // IMPORTANT: do NOT clear segmentStateMap(); merge with local state
+  // guessedSegmentIds.clear();  // ok to clear this set if you want
+  for (const row of data) {
+    const id   = String(row.road_id);
+    const prev = segmentStateMap.get(id) || {};
+    segmentStateMap.set(id, {
+      used_hint: !!(prev.used_hint || row.used_hint),
+      correct:   !!(prev.correct   || row.correct),
+      // keep red only if it hasn't become orange/green
+      incorrect: !!prev.incorrect && !(row.used_hint || row.correct),
+    });
   }
-
-  guessedSegmentIds.clear();
-  //segmentStateMap.clear();
-
-  data.forEach(row => {
-  const id = String(row.road_id);           // keep keys consistent
-  guessedSegmentIds.add(id);
-
-  const prev = segmentStateMap.get(id) || {};
-  const next = mergeState(prev, {           // OR the booleans
-    correct:   !!row.correct,
-    used_hint: !!row.used_hint
-  });
-  segmentStateMap.set(id, next);
-});
-
 }
+
 
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   // 🔐 make sure we have a session/user id
