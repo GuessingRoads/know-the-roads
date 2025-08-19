@@ -544,9 +544,24 @@ function savePreLoginGuess(guess) {
   guesses.push(guess);
   localStorage.setItem('preLoginGuesses', JSON.stringify(guesses));
 }
+let preLoginFlushed = false;  // avoid double-runs
 
-function clearPreLoginGuesses() {
-  localStorage.removeItem('preLoginGuesses');
+async function flushPreLoginGuessesToSupabase() {
+  if (preLoginFlushed) return;
+  const items = getPreLoginGuesses();        // uses localStorage 'preLoginGuesses'
+  if (!items || !items.length) { preLoginFlushed = true; return; }
+
+  // push each saved guess up using your existing writer
+  for (const it of items) {
+    try {
+      await saveGuessSegmentIds(it.segmentIds, !!it.isCorrect, !!it.usedHint);
+    } catch (e) {
+      console.warn('prelogin flush failed for item', it, e);
+    }
+  }
+
+  clearPreLoginGuesses();                     // localStorage.removeItem('preLoginGuesses')
+  preLoginFlushed = true;
 }
 
 const loginBtn = document.getElementById('login-btn');
