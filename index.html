@@ -1055,6 +1055,7 @@ async function loadGuessedSegmentIds() {
 async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
   // 🔐 make sure we have a session/user id
   const { data: { session } } = await supabase.auth.getSession();
+  if (session) { try { await flushPreLoginGuessesToSupabase(); } catch {} }
   const userId = session?.user?.id ?? currentUserId ?? null;
   if (!userId) {
     console.warn('saveGuessSegmentIds: no session; skipping write');
