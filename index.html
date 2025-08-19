@@ -581,18 +581,42 @@ logoutBtn.onclick = async () => {
   else location.reload();
 };
 
-supabase.auth.onAuthStateChange((event, session) => {
+// helper once (near your get/save/clear helpers)
+let preLoginFlushed = false;
+async function flushPreLoginGuessesToSupabase() {
+  if (preLoginFlushed) return;
+  const items = getPreLoginGuesses() || [];
+  if (!items.length) { preLoginFlushed = true; return; }
+  for (const it of items) {
+    try { await saveGuessSegmentIds(it.segmentIds, !!it.isCorrect, !!it.usedHint); }
+    catch (e) { console.warn('prelogin flush failed', it, e); }
+  }
+  clearPreLoginGuesses();
+  preLoginFlushed = true;
+}
+
+// REPLACE your existing onAuthStateChange with this:
+supabase.auth.onAuthStateChange(async (event, session) => {
   updateAuthUI(session?.user);
+  try { window.currentUserId = session?.user?.id || null; } catch {}
 
   const loginNote = document.getElementById('login-note');
-  if (!loginNote) return;
-
-  if (event === 'SIGNED_IN') {
-    loginNote.style.display = 'none';
-  } else if (event === 'SIGNED_OUT') {
-    loginNote.style.display = 'block';
+  if (loginNote) {
+    if ((event === 'SIGNED_IN') || (event === 'INITIAL_SESSION' && session)) {
+      loginNote.style.display = 'none';
+    } else if (event === 'SIGNED_OUT') {
+      loginNote.style.display = 'block';
+    }
   }
+
+  if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+    try { await flushPreLoginGuessesToSupabase(); } catch {}
+    // optionally: await loadUserGuessesFromSupabase();
+  }
+
+  if (event === 'SIGNED_OUT') preLoginFlushed = false;
 });
+
 function animateIncorrectSegments(segments, delay = 60) {
   segments.forEach((layer, index) => {
     const sid = String(layer.feature.id);
