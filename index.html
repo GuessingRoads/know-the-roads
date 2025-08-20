@@ -1021,7 +1021,7 @@ async function loadGuessedSegmentIds() {
 
   const { data, error } = await supabase
     .from('road_guesses')                 // ← must match the saver
-    .select('road_id, correct, used_hint')
+    .select('road_id, correct, used_hint, incorrect')
     .eq('user_id', currentUserId);
 
   if (error) { console.error('❌ Error loading guesses:', error); return; }
