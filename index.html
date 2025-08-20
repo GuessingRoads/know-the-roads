@@ -1020,8 +1020,8 @@ async function loadGuessedSegmentIds() {
   if (!currentUserId) return;
 
   const { data, error } = await supabase
-    .from('road_guesses')                               // must match the saver
-    .select('road_id, correct, used_hint, incorrect')   // includes incorrect
+    .from('road_guesses')                           // same table you write to
+    .select('road_id, correct, used_hint')          // ← remove 'incorrect'
     .eq('user_id', currentUserId);
 
   if (error) { console.error('❌ Error loading guesses:', error); return; }
@@ -1033,18 +1033,18 @@ async function loadGuessedSegmentIds() {
 
     const mergedUsedHint  = !!(prev.used_hint  || row.used_hint);
     const mergedCorrect   = !!(prev.correct    || row.correct);
-    const mergedIncorrect = !!(prev.incorrect  || row.incorrect) && !(mergedUsedHint || mergedCorrect);
+    // derive red from the row: a row with both flags false means “incorrect”
+    const rowIncorrect    = (row.correct === false) && (row.used_hint === false);
+    const mergedIncorrect = !!(prev.incorrect || rowIncorrect) && !(mergedUsedHint || mergedCorrect);
 
     segmentStateMap.set(id, {
       used_hint: mergedUsedHint,
       correct:   mergedCorrect,
       incorrect: mergedIncorrect,
     });
-
-    // If you still use this set elsewhere, keep it in sync:
-    // guessedSegmentIds?.add?.(id);
   }
 }
+
 
 
 
