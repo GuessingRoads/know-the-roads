@@ -211,6 +211,7 @@
 
     .hint-dissolve {
   transition: opacity 2s ease;
+  opacity: 1;
 }
 
 .correct-dissolve {
@@ -221,6 +222,7 @@
 .correct-final {
   stroke: #00ccff;               /* Start as active blue */
   stroke-width: 6;
+  opacity: 1;
   animation: dissolveBlueToGreen 2.5s ease-out forwards;
   pointer-events: none;
 }
@@ -230,12 +232,15 @@
 
 
 
-/* ensure the stroke fades out fully and stays hidden */
 @keyframes dissolveBlueToGreen {
-  0%   { stroke: #00ccff; stroke-opacity: 1; }
-  70%  { stroke: #009944; stroke-opacity: 0.35; }
-  99%  { stroke: #009944; stroke-opacity: 0.01; }
-  100% { stroke-opacity: 0; }        /* stays hidden because of 'forwards' */
+  0% {
+    stroke: #00ccff;             /* Blue */
+    opacity: 1;
+  }
+  100% {
+    stroke: #009944;             /* Final green */
+    opacity: 0.7;                /* Slight transparency */
+  }
 }
 
 /* === Unified "Correct" road style (matches the thicker purple one) === */
@@ -621,27 +626,6 @@ function animateIncorrectSegments(segments, delay = 60) {
     }, index * delay);
   });
 }
-function reapplyOverlayOpacities() {
-  if (!window.map || !map._layers) return;
-
-  for (const l of Object.values(map._layers)) {
-    const pane = l?.options?.pane;
-    if (!pane || typeof l.setStyle !== 'function') continue;
-
-    if (pane === 'solvedPane') {
-      l.setStyle({ opacity: SOLVED_OPACITY });   // green
-    } else if (pane === 'hiddenRoads') {
-      l.setStyle({ opacity: HINT_OPACITY });     // orange
-    }
-  }
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') reapplyOverlayOpacities();
-});
-
-// optional extra belt-and-suspenders:
-window.addEventListener('focus', reapplyOverlayOpacities);
 
 function resetCountyTooltip() {
   const tt = document.getElementById('custom-tooltip');
