@@ -211,7 +211,6 @@
 
     .hint-dissolve {
   transition: opacity 2s ease;
-  opacity: 1;
 }
 
 .correct-dissolve {
@@ -222,7 +221,6 @@
 .correct-final {
   stroke: #00ccff;               /* Start as active blue */
   stroke-width: 6;
-  opacity: 1;
   animation: dissolveBlueToGreen 2.5s ease-out forwards;
   pointer-events: none;
 }
@@ -232,15 +230,12 @@
 
 
 
+/* ensure the stroke fades out fully and stays hidden */
 @keyframes dissolveBlueToGreen {
-  0% {
-    stroke: #00ccff;             /* Blue */
-    opacity: 1;
-  }
-  100% {
-    stroke: #009944;             /* Final green */
-    opacity: 0.7;                /* Slight transparency */
-  }
+  0%   { stroke: #00ccff; stroke-opacity: 1; }
+  70%  { stroke: #009944; stroke-opacity: 0.35; }
+  99%  { stroke: #009944; stroke-opacity: 0.01; }
+  100% { stroke-opacity: 0; }        /* stays hidden because of 'forwards' */
 }
 
 /* === Unified "Correct" road style (matches the thicker purple one) === */
