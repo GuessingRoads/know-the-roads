@@ -626,6 +626,27 @@ function animateIncorrectSegments(segments, delay = 60) {
     }, index * delay);
   });
 }
+function reapplyOverlayOpacities() {
+  if (!window.map || !map._layers) return;
+
+  for (const l of Object.values(map._layers)) {
+    const pane = l?.options?.pane;
+    if (!pane || typeof l.setStyle !== 'function') continue;
+
+    if (pane === 'solvedPane') {
+      l.setStyle({ opacity: SOLVED_OPACITY });   // green
+    } else if (pane === 'hiddenRoads') {
+      l.setStyle({ opacity: HINT_OPACITY });     // orange
+    }
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') reapplyOverlayOpacities();
+});
+
+// optional extra belt-and-suspenders:
+window.addEventListener('focus', reapplyOverlayOpacities);
 
 function resetCountyTooltip() {
   const tt = document.getElementById('custom-tooltip');
