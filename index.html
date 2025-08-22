@@ -637,6 +637,20 @@ function animateIncorrectSegments(segments, delay = 60) {
     }, index * delay);
   });
 }
+function hideBasePath(el) {
+  if (!el) return;
+  el.style.animation = 'none';      // stop any CSS animation from re-running
+  el.style.opacity = '0';
+  el.style.strokeOpacity = '0';
+  el.removeAttribute('stroke-opacity');
+  el.classList.remove('correct-final', 'hint-dissolve', 'correct-dissolve', 'hint-used-final');
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  // wipe any base strokes that might have been re-stamped to 1.0
+  document.querySelectorAll('path.correct-final, path.hint-dissolve, path.correct-dissolve').forEach(hideBasePath);
+});
 
 function resetCountyTooltip() {
   const tt = document.getElementById('custom-tooltip');
