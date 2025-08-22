@@ -275,16 +275,17 @@
 .leaflet-tile-pane.blurred .leaflet-tile {
   image-rendering: pixelated;    /* or 'crisp-edges' as fallback */
 }
-/* Keep overlay opacities stable even after tab resume/animation restyles */
-#solvedPane path {
-  opacity: 0.7 !important;
+/* Only overlays, not the black base paths */
+.leaflet-solvedPane-pane path {
+  opacity: 0.7 !important;         /* SOLVED_OPACITY */
   stroke-opacity: 0.7 !important;
 }
 
-#hiddenRoads path {
-  opacity: 0.7 !important;
+.leaflet-hiddenRoads-pane path {
+  opacity: 0.7 !important;         /* HINT_OPACITY */
   stroke-opacity: 0.7 !important;
 }
+
 
 
 
