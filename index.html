@@ -637,20 +637,6 @@ function animateIncorrectSegments(segments, delay = 60) {
     }, index * delay);
   });
 }
-function hideBasePath(el) {
-  if (!el) return;
-  el.style.animation = 'none';      // stop any CSS animation from re-running
-  el.style.opacity = '0';
-  el.style.strokeOpacity = '0';
-  el.removeAttribute('stroke-opacity');
-  el.classList.remove('correct-final', 'hint-dissolve', 'correct-dissolve', 'hint-used-final');
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible') return;
-  // wipe any base strokes that might have been re-stamped to 1.0
-  document.querySelectorAll('path.correct-final, path.hint-dissolve, path.correct-dissolve').forEach(hideBasePath);
-});
 
 function resetCountyTooltip() {
   const tt = document.getElementById('custom-tooltip');
@@ -2270,6 +2256,65 @@ supabase.auth.onAuthStateChange((event, session) => {
     checkLogin();                 // flush pre-login guesses + load server guesses + update UI
   }
 });
+  function hardLockRoadOpacities() {
+  if (!window.map || !map._layers) return;
+
+  const shots = [0, 16, 60]; // now, next frame, then a tick later
+
+  const stamp = () => {
+    for (const l of Object.values(map._layers)) {
+      if (!l || typeof l.setStyle !== 'function') continue;
+      const pane = l.options?.pane;
+      const el = l.getElement?.();
+
+      // 1) Overlays: force their target opacity (both Leaflet + DOM)
+      if (pane === 'solvedPane') {
+        l.options.opacity = SOLVED_OPACITY;
+        l.setStyle({ opacity: SOLVED_OPACITY });
+        if (el) {
+          el.style.strokeOpacity = String(SOLVED_OPACITY);
+          el.setAttribute('stroke-opacity', String(SOLVED_OPACITY));
+        }
+      } else if (pane === 'hiddenRoads') {
+        l.options.opacity = HINT_OPACITY;
+        l.setStyle({ opacity: HINT_OPACITY });
+        if (el) {
+          el.style.strokeOpacity = String(HINT_OPACITY);
+          el.setAttribute('stroke-opacity', String(HINT_OPACITY));
+        }
+      }
+
+      // 2) Buffers: never visible
+      if (pane === 'clickable-buffer') {
+        l.setStyle({ opacity: 0, color: '#0000' });
+        if (el) {
+          el.style.opacity = '0';
+          el.style.strokeOpacity = '0';
+          el.setAttribute('stroke-opacity', '0');
+        }
+      }
+    }
+
+    // 3) Base animation paths: kill any that revived on resume
+    document.querySelectorAll(
+      'path.correct-final, path.correct-dissolve, path.hint-dissolve, path.hint-used-final'
+    ).forEach(el => {
+      el.style.animation = 'none';
+      el.style.opacity = '0';
+      el.style.strokeOpacity = '0';
+      el.setAttribute('stroke-opacity', '0');
+    });
+  };
+
+  shots.forEach(ms => setTimeout(stamp, ms));
+}
+
+// Run whenever we return to the tab / window regains focus
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') hardLockRoadOpacities();
+});
+window.addEventListener('focus', hardLockRoadOpacities);
+
   </script>
 </body>
 </html>
