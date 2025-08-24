@@ -1253,7 +1253,9 @@ if (st?.used_hint) {
 
 
           // Hover effect
-          layer.on('mouseover', function () {
+          layer.on('mouseover', function (e) {
+           if (!hoverOK()) return;  // no hover on touch devices
+           if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return; // safety for hybrids
             if (!insideLancaster) return;
             const matchingLayers = nameToLayers[name] || [];
             if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
@@ -1281,7 +1283,9 @@ if (state?.correct) {
             }
           });
 
-          layer.on('mouseout', function () {
+          layer.on('mouseout', function (e) {
+  if (!hoverOK()) return;
+  if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return;
             const el = layer.getElement();
 if (el) el.classList.remove('hover-green');
 
