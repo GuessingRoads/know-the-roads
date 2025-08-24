@@ -887,6 +887,13 @@ function hideBaseStroke(layer) {
   }
   layer._originalColor = 'greenish'; // keep your internal tag
 }
+function hoverOK() {
+  // “Can this device actually hover with a fine pointer (mouse/trackpad)?”
+  const canHoverFine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  // Extra guard: if only touch pointers are present, treat as no-hover
+  const hasOnlyTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+  return canHoverFine && !hasOnlyTouch;
+}
 
 function drawSolvedOverlay(layer) {
   if (!canShowOverlays()) return;        // ← guard
