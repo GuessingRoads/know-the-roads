@@ -475,21 +475,53 @@ let currentTownship = null;
  * Lightweight loader for township context.
  * For now: set state + update the preview badge. No zoom/masks/roads yet.
  */
-function loadTownship(name) {
+// ─── Township loader (minimal) ────────────────────────────────────────────────
+async function loadTownship(name) {
   const t = TOWNSHIPS[name];
   if (!t) {
     console.warn("Unknown township:", name);
     return;
   }
 
+  // update simple state + badge (same as before)
   currentTownship = name;
-
-  // Update the little gold preview badge so we can see this working
   const badge = document.getElementById("preview-badge");
   if (badge) badge.textContent = `PREVIEW: ${t.key} — ${name}`;
 
-  console.log(`[Loader] Township set → ${name}`, t);
+  try {
+    // fetch + cache the layer only once
+    if (!townshipLayers[name]) {
+      const res = await fetch(t.path, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Failed to load ${t.path} (${res.status})`);
+      const data = await res.json();
+
+      const layer = L.geoJSON(data, {
+        style: {
+          color: "#111",       // subtle outline
+          weight: 2,
+          fillColor: "#5b6b80",
+          fillOpacity: 0.12
+        },
+        interactive: false     // make sure it never steals clicks
+      });
+
+      layer.addTo(map);
+      townshipLayers[name] = { layer, bounds: layer.getBounds() };
+    }
+
+    // reveal + bring to front + fit the view
+    const { layer, bounds } = townshipLayers[name];
+    layer.addTo(map).bringToFront();
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [30, 30] });
+    }
+
+    console.log(`[Loader] Township loaded → ${name}`, t);
+  } catch (err) {
+    console.error("loadTownship error:", err);
+  }
 }
+
 // ─── Environment flags (simple + robust) ──────────────────────────────────────
 const IS_PRODUCTION = location.hostname.includes('knowtheroads.com');
 const IS_PREVIEW = !IS_PRODUCTION;
@@ -499,11 +531,8 @@ if (IS_PRODUCTION) {
   document.getElementById('preview-badge')?.remove();
   document.getElementById('ep-debug-btn')?.remove();
 }
-
-
-
-
-
+// One-time cache of loaded township layers
+const townshipLayers = Object.create(null); // { "East Petersburg": { layer, bounds } }
 
 
 
