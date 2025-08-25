@@ -471,11 +471,26 @@ const TOWNSHIPS = {
 
 let currentTownship = null;
 
-/**
- * Lightweight loader for township context.
- * For now: set state + update the preview badge. No zoom/masks/roads yet.
- */
-// ─── Township loader (minimal) ────────────────────────────────────────────────
+// Minimal placeholder polygon centered near East Petersburg (approx)
+const EP_PLACEHOLDER = {
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "properties": { "name": "East Petersburg (placeholder)" },
+    "geometry": {
+      "type": "Polygon",
+      "coordinates": [[
+        [-76.365, 40.107],  // W-SW
+        [-76.365, 40.118],  // W-NW
+        [-76.345, 40.118],  // E-NW
+        [-76.345, 40.107],  // E-SW
+        [-76.365, 40.107]   // close
+      ]]
+    }
+  }]
+};
+
+// ─── Township loader (with robust fallback + logs) ────────────────────────────
 async function loadTownship(name) {
   const t = TOWNSHIPS[name];
   if (!t) {
@@ -483,44 +498,60 @@ async function loadTownship(name) {
     return;
   }
 
-  // update simple state + badge (same as before)
   currentTownship = name;
   const badge = document.getElementById("preview-badge");
   if (badge) badge.textContent = `PREVIEW: ${t.key} — ${name}`;
 
   try {
-    // fetch + cache the layer only once
+    // Only build the layer once per township
     if (!townshipLayers[name]) {
-      const res = await fetch(t.path, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Failed to load ${t.path} (${res.status})`);
-      const data = await res.json();
+      let data = null;
+
+      // 1) Try fetching the real file
+      if (t.path) {
+        console.log(`[Loader] Fetching ${t.path} ...`);
+        const res = await fetch(t.path, { cache: "no-store" });
+        if (res.ok) {
+          data = await res.json();
+          console.log(`[Loader] Loaded ${t.path}`);
+        } else {
+          console.warn(`[Loader] ${t.path} returned ${res.status}. Using placeholder.`);
+        }
+      }
+
+      // 2) Fallback to placeholder if needed
+      if (!data) {
+        data = EP_PLACEHOLDER;
+      }
 
       const layer = L.geoJSON(data, {
         style: {
-          color: "#111",       // subtle outline
+          color: "#111",
           weight: 2,
           fillColor: "#5b6b80",
           fillOpacity: 0.12
         },
-        interactive: false     // make sure it never steals clicks
+        interactive: false
       });
 
       layer.addTo(map);
       townshipLayers[name] = { layer, bounds: layer.getBounds() };
     }
 
-    // reveal + bring to front + fit the view
+    // Reveal + fit
     const { layer, bounds } = townshipLayers[name];
     layer.addTo(map).bringToFront();
     if (bounds && bounds.isValid()) {
       map.fitBounds(bounds, { padding: [30, 30] });
+      console.log(`[Loader] Fit to ${name}`, bounds.toBBoxString());
+    } else {
+      console.warn(`[Loader] Bounds invalid for ${name}`);
     }
-
-    console.log(`[Loader] Township loaded → ${name}`, t);
   } catch (err) {
     console.error("loadTownship error:", err);
   }
 }
+
 
 // ─── Environment flags (simple + robust) ──────────────────────────────────────
 const IS_PRODUCTION = location.hostname.includes('knowtheroads.com');
