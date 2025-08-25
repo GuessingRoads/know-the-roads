@@ -39,8 +39,21 @@
   box-shadow: 0 1px 6px rgba(0,0,0,.2);
   pointer-events: none; /* never blocks map clicks */
 }
-
-
+#ep-debug-btn {
+  position: fixed;
+  top: 40px;             /* just under the gold preview badge */
+  left: 10px;
+  z-index: 10001;
+  padding: 6px 10px;
+  font: 600 12px/1.2 system-ui, sans-serif;
+  border-radius: 6px;
+  border: 0;
+  background: rgba(0,0,0,.75);
+  color: #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,.2);
+  cursor: pointer;
+}
+#ep-debug-btn:hover { opacity: .9; }
 .legend-item {
   display: flex;
   align-items: center;
@@ -308,6 +321,7 @@
 <body>
   <!-- EP preview test -->
 <div id="preview-badge">PREVIEW: east-pete</div>
+<button id="ep-debug-btn" type="button">Enter East Pete (debug)</button>
 
   <div id="auth-box" style="
   position: absolute;
@@ -447,6 +461,36 @@
   const HINT_COLOR   = '#FF8000';
   const HINT_WEIGHT  = 6;
   const HINT_OPACITY = 0.7;
+  // ─── Township registry (scalable) ─────────────────────────────────────────────
+const TOWNSHIPS = {
+  "East Petersburg": {
+    key: "east-pete",
+    path: "Townships/East_Petersburg.geojson" // ok if not added yet; we'll fetch later
+  }
+};
+
+let currentTownship = null;
+
+/**
+ * Lightweight loader for township context.
+ * For now: set state + update the preview badge. No zoom/masks/roads yet.
+ */
+function loadTownship(name) {
+  const t = TOWNSHIPS[name];
+  if (!t) {
+    console.warn("Unknown township:", name);
+    return;
+  }
+
+  currentTownship = name;
+
+  // Update the little gold preview badge so we can see this working
+  const badge = document.getElementById("preview-badge");
+  if (badge) badge.textContent = `PREVIEW: ${t.key} — ${name}`;
+
+  console.log(`[Loader] Township set → ${name}`, t);
+}
+
 
 
 
@@ -562,6 +606,10 @@ let currentUserId = null;
   const completedRoads = new Set(); // Tracks roads finalized via correct guess or 4th attempt
 let segmentStateMap = new Map();
   const segmentIdToName = {};
+document.getElementById("ep-debug-btn")?.addEventListener("click", () => {
+  loadTownship("East Petersburg");
+});
+
 function getPreLoginGuesses() {
   const stored = localStorage.getItem('preLoginGuesses');
   return stored ? JSON.parse(stored) : [];
