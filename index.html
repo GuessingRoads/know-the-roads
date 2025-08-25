@@ -490,6 +490,15 @@ function loadTownship(name) {
 
   console.log(`[Loader] Township set → ${name}`, t);
 }
+// ─── Environment flags (simple + robust) ──────────────────────────────────────
+const IS_PRODUCTION = location.hostname.includes('knowtheroads.com');
+const IS_PREVIEW = !IS_PRODUCTION;
+
+// Hide dev helpers on production automatically
+if (IS_PRODUCTION) {
+  document.getElementById('preview-badge')?.remove();
+  document.getElementById('ep-debug-btn')?.remove();
+}
 
 
 
