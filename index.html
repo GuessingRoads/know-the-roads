@@ -532,12 +532,13 @@ function buildWorldMaskFrom(layer) {
 
   worldMask = L.polygon(coords, {
     // dim outside, see-through over EP
+    pane: 'maskPane',
     color: "#000000",
     weight: 0,
     fillColor: "#000000",
     fillOpacity: 0.35,
     interactive: false
-  }).addTo(map).bringToFront();
+  }).addTo(map); 
 }
 
 // ─── Township loader (with robust fallback + logs) ────────────────────────────
@@ -575,6 +576,7 @@ async function loadTownship(name) {
       }
 
       const layer = L.geoJSON(data, {
+        pane: 'townshipPane',
         style: {
           color: "#111",
           weight: 2,
