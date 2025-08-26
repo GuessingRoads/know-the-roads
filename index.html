@@ -1528,49 +1528,50 @@ mtLayer.on('mouseout', function () {
   try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
 });
 const townshipLayersByName = Object.create(null); // cache
+// simple stub so township clicks work (we’ll enhance next)
 async function enterTownship(name) {
   const lyr = await showTownshipOutline(name);
   const b = lyr.getBounds();
-  if (b.isValid()) map.fitBounds(b, { padding: [30, 30] });
-  // (next step we’ll add the world mask + load that township’s roads)
+  if (b.isValid()) map.fitBounds(b, { padding:[30,30] });
 }
 
+// draw one township outline (same UX as MT)
 async function showTownshipOutline(name) {
-  if (townshipLayersByName[name]) return townshipLayersByName[name];
-
-  const res = await fetch(TOWNSHIPS[name], { cache: "no-store" });
+  if (townshipLayersByName[name]) {
+    const lyr = townshipLayersByName[name];
+    lyr.addTo(map).bringToFront();
+    return lyr;
+  }
+  const url = TOWNSHIPS[name];
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load ${name} (${res.status})`);
   const data = await res.json();
 
   const layer = L.geoJSON(data, {
-    pane: 'townshipPane',
+    pane: "townshipPane",
+    interactive: true,
     style: { color:"#111", weight:2, fillColor:"#5b6b80", fillOpacity:0.12 },
     onEachFeature: (_f, lyr) => {
-      // match your MT UX:
-      lyr.on('mouseover', () => lyr.setStyle({ color:"#2a72ff", weight:3, fillOpacity:0.18 }));
-      lyr.on('mouseout',  () => lyr.setStyle({ color:"#111",    weight:2, fillOpacity:0.12 }));
-      lyr.bindTooltip(name, { direction:'center', sticky:true });
-      lyr.on('click', () => enterTownship(name)); // your existing “enter” logic can hook here next
+      lyr.on("mouseover", () => lyr.setStyle({ color:"#2a72ff", weight:3, fillOpacity:0.18 }));
+      lyr.on("mouseout",  () => lyr.setStyle({ color:"#111",    weight:2, fillOpacity:0.12 }));
+      lyr.bindTooltip(name, { direction:"center", sticky:true });
+      lyr.on("click", () => enterTownship(name));  // stub exists below
     }
   });
 
-  layer.addTo(map).bringToFront();
   townshipLayersByName[name] = layer;
+  layer.addTo(map).bringToFront();
   return layer;
 }
+// show MT + EP together after clicking Lancaster
 async function enterLancasterView() {
   const [mt, ep] = await Promise.all([
     showTownshipOutline("Manheim Township"),
     showTownshipOutline("East Petersburg")
   ]);
-
+  console.log("Lanc view ready:", { mt: !!mt, ep: !!ep });
   const bounds = L.featureGroup([mt, ep]).getBounds();
-  if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40] });
-  console.log("Lanc view ready:", {
-  mt: !!townshipLayersByName["Manheim Township"],
-  ep: !!townshipLayersByName["East Petersburg"]
-});
-
+  if (bounds.isValid()) map.fitBounds(bounds, { padding:[40,40] });
 }
 
 mtLayer.on('click', function (e) {
