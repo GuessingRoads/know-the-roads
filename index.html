@@ -1566,6 +1566,11 @@ async function enterLancasterView() {
 
   const bounds = L.featureGroup([mt, ep]).getBounds();
   if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40] });
+  console.log("Lanc view ready:", {
+  mt: !!townshipLayersByName["Manheim Township"],
+  ep: !!townshipLayersByName["East Petersburg"]
+});
+
 }
 
 mtLayer.on('click', function (e) {
