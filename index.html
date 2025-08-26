@@ -443,7 +443,7 @@
   let currentLayerDepth = 0; // 1 = county, 2 = township, 3 = roads
   let activeRoadName = null;
   let hoverOverlay = null;
-  let worldMask;
+  let worldMask = null;
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
   let insideLancaster = false;
   let insideManheim = false;
@@ -470,8 +470,8 @@ const TOWNSHIPS = {
   "East Petersburg": {
     key: "east-pete",
     path: "/Townships/Boundaries_Township_EastPetersburg_PA.geojson.geojson"
-  }
-};
+    }
+  };
 
 
 
@@ -495,6 +495,50 @@ const EP_PLACEHOLDER = {
     }
   }]
 };
+// Create a world mask with a hole that matches the township polygon.
+// layer: an L.GeoJSON for the township boundary.
+function buildWorldMaskFrom(layer) {
+  // Big outer ring (world-ish rectangle around PA)
+  const outer = [
+    [90, -180], [90, 180], [-90, 180], [-90, -180] // full world
+  ];
+
+  // Extract inner rings (the township polygons).
+  // Leaflet stores latlngs possibly nested: [ [ [latlng...] ] ] for MultiPolygon
+  const innerRings = [];
+  const each = (latlngs) => {
+    if (!latlngs) return;
+    if (Array.isArray(latlngs[0])) {
+      // recurse until we hit a ring (array of LatLng)
+      for (const part of latlngs) each(part);
+    } else {
+      innerRings.push(latlngs.map(ll => [ll.lat, ll.lng]));
+    }
+  };
+
+  // Collect all rings from every layer
+  layer.eachLayer(sub => {
+    const ll = sub.getLatLngs?.();
+    each(ll);
+  });
+
+  // Build a single polygon with a "hole" for each inner ring
+  const coords = [outer, ...innerRings];
+
+  if (worldMask) {
+    map.removeLayer(worldMask);
+    worldMask = null;
+  }
+
+  worldMask = L.polygon(coords, {
+    // dim outside, see-through over EP
+    color: "#000000",
+    weight: 0,
+    fillColor: "#000000",
+    fillOpacity: 0.35,
+    interactive: false
+  }).addTo(map).bringToFront();
+}
 
 // ─── Township loader (with robust fallback + logs) ────────────────────────────
 async function loadTownship(name) {
@@ -553,6 +597,8 @@ async function loadTownship(name) {
     } else {
       console.warn(`[Loader] Bounds invalid for ${name}`);
     }
+    // ⬇️ build the dim-outside mask AFTER the polygon is on the map
+buildWorldMaskFrom(layer);
   } catch (err) {
     console.error("loadTownship error:", err);
   }
