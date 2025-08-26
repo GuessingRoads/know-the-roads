@@ -461,13 +461,19 @@
   const HINT_COLOR   = '#FF8000';
   const HINT_WEIGHT  = 6;
   const HINT_OPACITY = 0.7;
-  // ─── Township registry (scalable) ─────────────────────────────────────────────
+// ─── Township registry (authoritative boundaries) ────────────────────────────
 const TOWNSHIPS = {
+  "Manheim Township": {
+    key: "mt",
+    path: "Boundaries_Township_ManheimTownship_PA.geojson" // your existing MT file
+  },
   "East Petersburg": {
     key: "east-pete",
-    path: "Townships/East_Petersburg.geojson" // ok if not added yet; we'll fetch later
+    // per your screenshot: double .geojson in the filename
+    path: "Boundaries_Township_EastPetersburg_PA.geojson.geojson"
   }
 };
+
 
 let currentTownship = null;
 
