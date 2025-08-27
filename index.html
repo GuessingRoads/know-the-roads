@@ -1920,6 +1920,19 @@ if (countyLayerRef) {
       if (typeof roadsBufferGroup !== 'undefined' && map.hasLayer(roadsBufferGroup))  map.removeLayer(roadsBufferGroup);
       if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
     } catch {}
+    // Also remove any additional township outlines we added at county depth (e.g., EP)
+try {
+  if (typeof townshipLayersByName !== 'undefined' && townshipLayersByName) {
+    Object.values(townshipLayersByName).forEach(lyr => {
+      if (lyr && map.hasLayer(lyr)) map.removeLayer(lyr); // keep cached; just hide
+    });
+  }
+} catch {}
+
+// Clean up any lingering hover overlay / custom tooltip
+try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+{ const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
+
 clearSolvedOverlays();
 hideSolvedPane();
 clearSolvedPaneLayers();
