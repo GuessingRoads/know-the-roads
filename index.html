@@ -1156,19 +1156,56 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
 }
 const townshipLayersByName = Object.create(null); // cache
 // simple stub so township clicks work (we’ll enhance next)
-async function enterTownship(name) {
-  const lyr = await showTownshipOutline(name);
-  const b = lyr.getBounds();
-  if (b.isValid()) map.fitBounds(b, { padding:[30,30] });
+function enterTownship(name, feature, tLayer, e) {
+  // Clear hover/tooltip like MT
+  try { tLayer.unbindTooltip?.(); } catch {}
+  try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+  { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
+
+  // Dim outside using your county-style mask creator (works for any polygon)
+  if (worldMask) { try { map.removeLayer(worldMask); } catch {} worldMask = null; }
+  try {
+    worldMask = L.geoJSON(createWorldMask(feature), {
+      pane: 'maskPane',
+      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
+    }).addTo(map);
+    worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
+  } catch {}
+
+  // Fade township fill and block further taps (match MT visuals)
+  try { tLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 }); } catch {}
+  const el = tLayer._path || tLayer.getElement?.();
+  if (el) { el.style.pointerEvents = 'none'; el.style.outline = 'none'; }
+
+  // Zoom (reuse your mobile/desktop distinction)
+  const b = tLayer.getBounds();
+  const IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  map.flyToBounds(b, {
+    paddingTopLeft: IS_COARSE ? L.point(6,18) : L.point(30,30),
+    paddingBottomRight: IS_COARSE ? L.point(6,18) : L.point(30,30),
+    maxZoom: IS_COARSE ? 20 : 15,
+    animate: true, duration: 1.0, easeLinearity: 0.2
+  });
+
+  // Your state flags (parallel to MT)
+  currentLayerDepth = 3;
+  updateBackButtonVisibility();
+  insideManheim = (name === "Manheim Township"); // keep your existing guard
+  currentTownship = name;
+
+  if (e) L.DomEvent.stop(e);
+
+  // (Next step we’ll attach per-township roads here.)
 }
 
-// draw one township outline (same UX as MT)
+
 async function showTownshipOutline(name) {
   if (townshipLayersByName[name]) {
     const lyr = townshipLayersByName[name];
     lyr.addTo(map).bringToFront();
     return lyr;
   }
+
   const url = TOWNSHIPS[name];
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load ${name} (${res.status})`);
@@ -1176,13 +1213,39 @@ async function showTownshipOutline(name) {
 
   const layer = L.geoJSON(data, {
     pane: "townshipPane",
-    interactive: true,
-    style: { color:"#111", weight:2, fillColor:"#5b6b80", fillOpacity:0.12 },
-    onEachFeature: (_f, lyr) => {
-      lyr.on("mouseover", () => lyr.setStyle({ color:"#2a72ff", weight:3, fillOpacity:0.18 }));
-      lyr.on("mouseout",  () => lyr.setStyle({ color:"#111",    weight:2, fillOpacity:0.12 }));
-      lyr.bindTooltip(name, { direction:"center", sticky:true });
-      lyr.on("click", () => enterTownship(name));  // stub exists below
+    // ⬇️ avoid point/marker features that draw the “waypoint” icon
+    filter: f => f.geometry && (f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon"),
+    style: { color: "black", weight: 1.5, fillColor: "#e3f2fd", fillOpacity: 0.75 },
+    onEachFeature: (feature, tLayer) => {
+      // 🟨 Hover tooltip (same behavior as MT)
+      tLayer.on("mouseover", function () {
+        if (insideManheim && name === "Manheim Township") return; // keep your guard
+        const tooltip = document.getElementById("custom-tooltip");
+        const center = tLayer.getBounds().getCenter();
+        const pt = map.latLngToContainerPoint(center);
+        tooltip.innerText = name;
+        tooltip.style.left = pt.x + "px";
+        tooltip.style.top = pt.y + "px";
+        tooltip.style.display = "block";
+
+        // Gold hover overlay (matches MT)
+        if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
+        hoverOverlay = L.geoJSON(tLayer.feature, {
+          pane: "hoverPane",
+          style: { fillColor: "#ffd700", fillOpacity: 0.30, color: "black", weight: 1, opacity: 1 }
+        }).addTo(map);
+        hoverOverlay.bringToFront?.();
+        hoverOverlay.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = "none"; });
+      });
+
+      tLayer.on("mouseout", function () {
+        const tt = document.getElementById("custom-tooltip");
+        tt.style.display = "none"; tt.innerText = "";
+        if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
+      });
+
+      // Click → enter this township (we’ll share MT’s logic)
+      tLayer.on("click", e => enterTownship(name, feature, tLayer, e));
     }
   });
 
@@ -1190,6 +1253,7 @@ async function showTownshipOutline(name) {
   layer.addTo(map).bringToFront();
   return layer;
 }
+
 // show MT + EP together after clicking Lancaster
 async function enterLancasterView() {
   const [mt, ep] = await Promise.all([
