@@ -1410,7 +1410,6 @@ fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
 if (!countyMaskFeature) {
   countyMaskFeature = createWorldMask(feature);
 }
-enterLancasterView().catch(console.error);
 
           currentLayerDepth = 2;
 updateBackButtonVisibility();
