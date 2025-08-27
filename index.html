@@ -1154,7 +1154,52 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
     }
   }
 }
+const townshipLayersByName = Object.create(null); // cache
+// simple stub so township clicks work (we’ll enhance next)
+async function enterTownship(name) {
+  const lyr = await showTownshipOutline(name);
+  const b = lyr.getBounds();
+  if (b.isValid()) map.fitBounds(b, { padding:[30,30] });
+}
 
+// draw one township outline (same UX as MT)
+async function showTownshipOutline(name) {
+  if (townshipLayersByName[name]) {
+    const lyr = townshipLayersByName[name];
+    lyr.addTo(map).bringToFront();
+    return lyr;
+  }
+  const url = TOWNSHIPS[name];
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to load ${name} (${res.status})`);
+  const data = await res.json();
+
+  const layer = L.geoJSON(data, {
+    pane: "townshipPane",
+    interactive: true,
+    style: { color:"#111", weight:2, fillColor:"#5b6b80", fillOpacity:0.12 },
+    onEachFeature: (_f, lyr) => {
+      lyr.on("mouseover", () => lyr.setStyle({ color:"#2a72ff", weight:3, fillOpacity:0.18 }));
+      lyr.on("mouseout",  () => lyr.setStyle({ color:"#111",    weight:2, fillOpacity:0.12 }));
+      lyr.bindTooltip(name, { direction:"center", sticky:true });
+      lyr.on("click", () => enterTownship(name));  // stub exists below
+    }
+  });
+
+  townshipLayersByName[name] = layer;
+  layer.addTo(map).bringToFront();
+  return layer;
+}
+// show MT + EP together after clicking Lancaster
+async function enterLancasterView() {
+  const [mt, ep] = await Promise.all([
+    showTownshipOutline("Manheim Township"),
+    showTownshipOutline("East Petersburg")
+  ]);
+  console.log("Lanc view ready:", { mt: !!mt, ep: !!ep });
+  const bounds = L.featureGroup([mt, ep]).getBounds();
+  if (bounds.isValid()) map.fitBounds(bounds, { padding:[40,40] });
+}
 
 
 function applyColorToAllSegments(name, color) {
@@ -1526,52 +1571,6 @@ mtLayer.on('mouseout', function () {
   // if you create a hover overlay on mouseover, remove it too
   try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
 });
-const townshipLayersByName = Object.create(null); // cache
-// simple stub so township clicks work (we’ll enhance next)
-async function enterTownship(name) {
-  const lyr = await showTownshipOutline(name);
-  const b = lyr.getBounds();
-  if (b.isValid()) map.fitBounds(b, { padding:[30,30] });
-}
-
-// draw one township outline (same UX as MT)
-async function showTownshipOutline(name) {
-  if (townshipLayersByName[name]) {
-    const lyr = townshipLayersByName[name];
-    lyr.addTo(map).bringToFront();
-    return lyr;
-  }
-  const url = TOWNSHIPS[name];
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Failed to load ${name} (${res.status})`);
-  const data = await res.json();
-
-  const layer = L.geoJSON(data, {
-    pane: "townshipPane",
-    interactive: true,
-    style: { color:"#111", weight:2, fillColor:"#5b6b80", fillOpacity:0.12 },
-    onEachFeature: (_f, lyr) => {
-      lyr.on("mouseover", () => lyr.setStyle({ color:"#2a72ff", weight:3, fillOpacity:0.18 }));
-      lyr.on("mouseout",  () => lyr.setStyle({ color:"#111",    weight:2, fillOpacity:0.12 }));
-      lyr.bindTooltip(name, { direction:"center", sticky:true });
-      lyr.on("click", () => enterTownship(name));  // stub exists below
-    }
-  });
-
-  townshipLayersByName[name] = layer;
-  layer.addTo(map).bringToFront();
-  return layer;
-}
-// show MT + EP together after clicking Lancaster
-async function enterLancasterView() {
-  const [mt, ep] = await Promise.all([
-    showTownshipOutline("Manheim Township"),
-    showTownshipOutline("East Petersburg")
-  ]);
-  console.log("Lanc view ready:", { mt: !!mt, ep: !!ep });
-  const bounds = L.featureGroup([mt, ep]).getBounds();
-  if (bounds.isValid()) map.fitBounds(bounds, { padding:[40,40] });
-}
 
 mtLayer.on('click', function (e) {
   if (insideManheim) { if (e) L.DomEvent.stop(e); return; }
@@ -1657,6 +1656,8 @@ if (IS_COARSE) {
 
                   }
                 }).addTo(map);
+                // ✅ Add East Petersburg alongside MT
+showTownshipOutline("East Petersburg").catch(console.error);
               });
           }, 500);
         });
