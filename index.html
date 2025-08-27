@@ -1818,6 +1818,36 @@ clearSolvedPaneLayers();
       });
     }
   } catch {}
+// 2b) Make sure EP is visible and CLICKABLE again at county depth
+try {
+  const epLayer = (typeof townshipLayersByName !== 'undefined')
+    ? townshipLayersByName["East Petersburg"]
+    : null;
+
+  if (epLayer) {
+    if (!map.hasLayer(epLayer)) epLayer.addTo(map);
+
+    epLayer.eachLayer(ep => {
+      // county-depth visuals (match MT)
+      ep.setStyle({
+        color: 'black',
+        weight: 1.5,
+        fillColor: '#e3f2fd',
+        fillOpacity: 0.75
+      });
+
+      // ensure interactivity
+      ep.options.interactive = true;
+      const p = ep._path || (typeof ep.getElement === 'function' ? ep.getElement() : null);
+      if (p) p.style.pointerEvents = 'auto';
+    });
+
+    if (epLayer.bringToFront) epLayer.bringToFront(); // above mask just in case
+  }
+} catch {}
+// 2c) Remove any lingering hover overlay / tooltip
+try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+{ const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
 
   // 3) County polygon should be hidden and NON-interactive at county depth
 try {
