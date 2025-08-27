@@ -412,6 +412,7 @@
   let currentRoad = null;
   let currentLayerDepth = 0; // 1 = county, 2 = township, 3 = roads
   let activeRoadName = null;
+  let activeTownship = null;
   let hoverOverlay = null;
   let worldMask;
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
@@ -1219,6 +1220,7 @@ async function showTownshipOutline(name) {
     onEachFeature: (feature, tLayer) => {
       // 🟨 Hover tooltip (same behavior as MT)
       tLayer.on("mouseover", function () {
+        if (activeTownship) return;   // put this at the top of both handlers
         if (insideManheim && name === "Manheim Township") return; // keep your guard
         const tooltip = document.getElementById("custom-tooltip");
         const center = tLayer.getBounds().getCenter();
@@ -1239,13 +1241,20 @@ async function showTownshipOutline(name) {
       });
 
       tLayer.on("mouseout", function () {
+        if (activeTownship) return;   // put this at the top of both handlers
         const tt = document.getElementById("custom-tooltip");
         tt.style.display = "none"; tt.innerText = "";
         if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
       });
 
       // Click → enter this township (we’ll share MT’s logic)
-      tLayer.on("click", e => enterTownship(name, feature, tLayer, e));
+      tLayer.on("click", function (e) {
+  if (activeTownship) {    // already inside one
+    if (e) L.DomEvent.stop(e); 
+    return;
+  }
+  enterTownship(name, feature, tLayer, e);
+});
     }
   });
 
