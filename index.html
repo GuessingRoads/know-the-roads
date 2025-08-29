@@ -1163,6 +1163,17 @@ function enterTownship(name, feature, tLayer, e) {
   try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
   { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
 
+  // 1) Guarantee pane exists and sits above tiles but below outlines
+if (!map.getPane('maskPane')) map.createPane('maskPane');
+map.getPane('maskPane').style.zIndex = 350;   // tiles ≈ 200, townshipPane ≈ 400+
+
+// 2) Make the mask itself non-interactive (nice-to-have, not required to render)
+worldMask = L.geoJSON(createWorldMask(feature), {
+  pane: 'maskPane',
+  interactive: false,                         // <- avoids any chance of swallowing events
+  style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
+}).addTo(map);
+
   // Dim outside using your county-style mask creator (works for any polygon)
   if (worldMask) { try { map.removeLayer(worldMask); } catch {} worldMask = null; }
   try {
