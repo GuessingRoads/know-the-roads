@@ -414,6 +414,7 @@
   let activeRoadName = null;
   let activeTownship = null;
   let hoverOverlay = null;
+  let currentTownship = null;
   let worldMask;
   let roadsLayerGroup = L.layerGroup(); // Holds all road layers
   let insideLancaster = false;
@@ -960,6 +961,32 @@ function clearSolvedPaneLayers() {
     } catch {}
   } catch {}
 }
+ function createWorldMask(feature) {
+      const bounds = map.getBounds().pad(1);
+      const outer = [
+        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
+        [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
+        [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
+        [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
+        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
+      ];
+
+      let holes = [];
+
+      if (feature.geometry.type === 'Polygon') {
+        holes = feature.geometry.coordinates;
+      } else if (feature.geometry.type === 'MultiPolygon') {
+        holes = feature.geometry.coordinates.flat();
+      }
+
+      return {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [outer, ...holes]
+        }
+      };
+    }
 function restoreLayerFromState(layer) {
   const sid = String(layer?.feature?.id ?? '');
   const st  = segmentStateMap.get(sid) || {};
@@ -1809,34 +1836,6 @@ showTownshipOutline("East Petersburg").catch(console.error);
             }
     });
     countyLayerRef = countyLayer.addTo(map);
-
-
-    function createWorldMask(feature) {
-      const bounds = map.getBounds().pad(1);
-      const outer = [
-        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
-        [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
-        [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
-        [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
-        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
-      ];
-
-      let holes = [];
-
-      if (feature.geometry.type === 'Polygon') {
-        holes = feature.geometry.coordinates;
-      } else if (feature.geometry.type === 'MultiPolygon') {
-        holes = feature.geometry.coordinates.flat();
-      }
-
-      return {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [outer, ...holes]
-        }
-      };
-    }
   });
 
 loadMap();
