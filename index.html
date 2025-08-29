@@ -1275,6 +1275,17 @@ function lockIntoTownship(activeName) {
       }
     });
   } catch {}
+  // Also handle the legacy MT outline (townshipLayerRef)
+try {
+  if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
+    if (activeName !== "Manheim Township") {
+      if (map.hasLayer(townshipLayerRef)) map.removeLayer(townshipLayerRef);
+    } else {
+      if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
+    }
+  }
+} catch {}
+
 }
 
 
