@@ -1257,21 +1257,26 @@ function lockIntoTownship(activeName) {
   try {
     Object.entries(townshipLayersByName || {}).forEach(([n, lyr]) => {
       if (!lyr) return;
+
       lyr.eachLayer(l => {
+        // disable interactions for ALL
         l.options.interactive = false;
         const el = l._path || l.getElement?.();
         if (el) el.style.pointerEvents = 'none';
-
-        if (n !== activeName) {
-          // Hide the other township completely (no fill, no border)
-          try { l.setStyle({ fillOpacity: 0.0, opacity: 0.0 }); } catch {}
-          // (optional) also set weight to 0 for good measure:
-          // try { l.setStyle({ weight: 0 }); } catch {}
-        }
       });
+
+      if (n !== activeName) {
+        // just hide the non-active township so the mask grays it out
+        if (map.hasLayer(lyr)) map.removeLayer(lyr);
+      } else {
+        // keep the active outline visible (you already fade its fill)
+        if (!map.hasLayer(lyr)) lyr.addTo(map);
+        lyr.bringToFront?.();
+      }
     });
   } catch {}
 }
+
 
 
 function unlockTownships() {
@@ -1279,15 +1284,18 @@ function unlockTownships() {
   try {
     Object.values(townshipLayersByName || {}).forEach(lyr => {
       if (!lyr) return;
+      if (!map.hasLayer(lyr)) lyr.addTo(map);     // re-show hidden ones
       lyr.eachLayer(l => {
         l.options.interactive = true;
         const el = l._path || l.getElement?.();
         if (el) el.style.pointerEvents = 'auto';
-        try { l.setStyle({ fillOpacity: 0.75, opacity: 1.0, color: 'black', weight: 1.5 }); } catch {}
+        try { l.setStyle({ fillOpacity: 0.75, opacity: 1, color: 'black', weight: 1.5 }); } catch {}
       });
+      lyr.bringToFront?.();
     });
   } catch {}
 }
+
 
 
 
