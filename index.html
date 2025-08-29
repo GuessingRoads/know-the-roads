@@ -1176,6 +1176,7 @@ try {
     interactive: false,                         // add this here
     style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
   }).addTo(map);
+console.log('[mask]', name, 'added:', !!worldMask, 'onMap:', worldMask && map.hasLayer(worldMask));
 
   worldMask.eachLayer(l => {
     const el = l.getElement?.();
