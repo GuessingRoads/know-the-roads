@@ -1187,6 +1187,21 @@ function enterTownship(name, feature, tLayer, e) {
     maxZoom: IS_COARSE ? 20 : 15,
     animate: true, duration: 1.0, easeLinearity: 0.2
   });
+activeTownship = name;
+
+// disable ALL township outlines while inside one
+try {
+  Object.values(townshipLayersByName || {}).forEach(lyr => {
+    if (!lyr) return;
+    lyr.eachLayer(l => {
+      l.options.interactive = false;
+      const el = l._path || l.getElement?.();
+      if (el) el.style.pointerEvents = 'none';
+      // optional: visually recede non-active township
+      if (l !== tLayer) { try { l.setStyle({ fillOpacity: 0.0 }); } catch {} }
+    });
+  });
+} catch {}
 
   // Your state flags (parallel to MT)
   currentLayerDepth = 3;
@@ -1647,6 +1662,11 @@ mtLayer.on('mouseout', function () {
 
 mtLayer.on('click', function (e) {
   if (insideManheim) { if (e) L.DomEvent.stop(e); return; }
+  if (activeTownship && activeTownship !== "Manheim Township") {
+  if (e) L.DomEvent.stop(e);
+  return;
+}
+
 
   console.log("📍 Manheim Township clicked");
   currentLayerDepth = 3;
