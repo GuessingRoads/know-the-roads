@@ -1189,19 +1189,8 @@ function enterTownship(name, feature, tLayer, e) {
   });
 activeTownship = name;
 
-// disable ALL township outlines while inside one
-try {
-  Object.values(townshipLayersByName || {}).forEach(lyr => {
-    if (!lyr) return;
-    lyr.eachLayer(l => {
-      l.options.interactive = false;
-      const el = l._path || l.getElement?.();
-      if (el) el.style.pointerEvents = 'none';
-      // optional: visually recede non-active township
-      if (l !== tLayer) { try { l.setStyle({ fillOpacity: 0.0 }); } catch {} }
-    });
-  });
-} catch {}
+lockIntoTownship(name);
+
 
   // Your state flags (parallel to MT)
   currentLayerDepth = 3;
@@ -1212,6 +1201,36 @@ try {
   if (e) L.DomEvent.stop(e);
 
   // (Next step we’ll attach per-township roads here.)
+}
+
+function lockIntoTownship(activeName) {
+  activeTownship = activeName;
+  try {
+    Object.entries(townshipLayersByName || {}).forEach(([n, lyr]) => {
+      if (!lyr) return;
+      lyr.eachLayer(l => {
+        l.options.interactive = false;
+        const el = l._path || l.getElement?.();
+        if (el) el.style.pointerEvents = 'none';
+        if (n !== activeName) { try { l.setStyle({ fillOpacity: 0.0 }); } catch {} }
+      });
+    });
+  } catch {}
+}
+
+function unlockTownships() {
+  activeTownship = null;
+  try {
+    Object.values(townshipLayersByName || {}).forEach(lyr => {
+      if (!lyr) return;
+      lyr.eachLayer(l => {
+        l.options.interactive = true;
+        const el = l._path || l.getElement?.();
+        if (el) el.style.pointerEvents = 'auto';
+        try { l.setStyle({ fillOpacity: 0.75, color: 'black', weight: 1.5 }); } catch {}
+      });
+    });
+  } catch {}
 }
 
 
@@ -1666,6 +1685,7 @@ mtLayer.on('click', function (e) {
   if (e) L.DomEvent.stop(e);
   return;
 }
+lockIntoTownship("Manheim Township");
 
 
   console.log("📍 Manheim Township clicked");
@@ -1909,6 +1929,7 @@ if (countyMaskFeature) {
   // fallback if user navigated before cache existed
   rebuildCountyMask();
 }
+unlockTownships();
 
 
   // 5) Fit to county bounds
@@ -1957,6 +1978,7 @@ try {
     });
   }
 } catch {}
+unlockTownships();
 
 // Clean up any lingering hover overlay / custom tooltip
 try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
