@@ -1167,22 +1167,22 @@ function enterTownship(name, feature, tLayer, e) {
 if (!map.getPane('maskPane')) map.createPane('maskPane');
 map.getPane('maskPane').style.zIndex = 350;   // tiles ≈ 200, townshipPane ≈ 400+
 
-// 2) Make the mask itself non-interactive (nice-to-have, not required to render)
-worldMask = L.geoJSON(createWorldMask(feature), {
-  pane: 'maskPane',
-  interactive: false,                         // <- avoids any chance of swallowing events
-  style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
-}).addTo(map);
+// Dim outside (single build, after clearing old one)
+if (worldMask) { try { map.removeLayer(worldMask); } catch {} worldMask = null; }
 
-  // Dim outside using your county-style mask creator (works for any polygon)
-  if (worldMask) { try { map.removeLayer(worldMask); } catch {} worldMask = null; }
-  try {
-    worldMask = L.geoJSON(createWorldMask(feature), {
-      pane: 'maskPane',
-      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
-    }).addTo(map);
-    worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
-  } catch {}
+try {
+  worldMask = L.geoJSON(createWorldMask(feature), {
+    pane: 'maskPane',
+    interactive: false,                         // add this here
+    style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
+  }).addTo(map);
+
+  worldMask.eachLayer(l => {
+    const el = l.getElement?.();
+    if (el) el.style.pointerEvents = 'none';
+  });
+} catch {}
+
 
   // Fade township fill and block further taps (match MT visuals)
   try { tLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 }); } catch {}
