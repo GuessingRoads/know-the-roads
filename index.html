@@ -1944,20 +1944,6 @@ try {
     if (epLayer.bringToFront) epLayer.bringToFront(); // above mask just in case
   }
 } catch {}
-// Re-show legacy MT outline at county/world depth
-try {
-  if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
-    if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
-    townshipLayerRef.eachLayer(mt => {
-      mt.options.interactive = true;
-      const p = mt._path || mt.getElement?.();
-      if (p) p.style.pointerEvents = 'auto';
-      try { mt.setStyle({ color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 }); } catch {}
-    });
-    townshipLayerRef.bringToFront?.();
-  }
-} catch {}
-
 // 2c) Remove any lingering hover overlay / tooltip
 try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
 { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
@@ -2043,19 +2029,6 @@ try {
   }
 } catch {}
 unlockTownships();
-// Re-show legacy MT outline at county/world depth
-try {
-  if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
-    if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
-    townshipLayerRef.eachLayer(mt => {
-      mt.options.interactive = true;
-      const p = mt._path || mt.getElement?.();
-      if (p) p.style.pointerEvents = 'auto';
-      try { mt.setStyle({ color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 }); } catch {}
-    });
-    townshipLayerRef.bringToFront?.();
-  }
-} catch {}
 
 // Clean up any lingering hover overlay / custom tooltip
 try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
