@@ -1628,6 +1628,7 @@ if (countyMaskFeature) {
                   },
                   onEachFeature: (feature, mtLayer) => {
                     mtLayer.on('mouseover', function () {
+  if (activeTownship) return;                     
   if (insideManheim) return;
 
   const tooltip = document.getElementById('custom-tooltip');
@@ -1646,6 +1647,7 @@ mtLayer.on('mouseout', function () {
   tooltip.innerText = '';
 });
 mtLayer.on('mouseover', function () {
+  if (activeTownship) return; 
   if (insideManheim) return; // already clicked
 
   // 🧹 Remove old hover overlay if any
