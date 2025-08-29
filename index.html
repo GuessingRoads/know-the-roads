@@ -1212,11 +1212,18 @@ function lockIntoTownship(activeName) {
         l.options.interactive = false;
         const el = l._path || l.getElement?.();
         if (el) el.style.pointerEvents = 'none';
-        if (n !== activeName) { try { l.setStyle({ fillOpacity: 0.0 }); } catch {} }
+
+        if (n !== activeName) {
+          // Hide the other township completely (no fill, no border)
+          try { l.setStyle({ fillOpacity: 0.0, opacity: 0.0 }); } catch {}
+          // (optional) also set weight to 0 for good measure:
+          // try { l.setStyle({ weight: 0 }); } catch {}
+        }
       });
     });
   } catch {}
 }
+
 
 function unlockTownships() {
   activeTownship = null;
@@ -1227,11 +1234,12 @@ function unlockTownships() {
         l.options.interactive = true;
         const el = l._path || l.getElement?.();
         if (el) el.style.pointerEvents = 'auto';
-        try { l.setStyle({ fillOpacity: 0.75, color: 'black', weight: 1.5 }); } catch {}
+        try { l.setStyle({ fillOpacity: 0.75, opacity: 1.0, color: 'black', weight: 1.5 }); } catch {}
       });
     });
   } catch {}
 }
+
 
 
 async function showTownshipOutline(name) {
