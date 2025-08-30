@@ -437,6 +437,14 @@
   "Manheim Township": "/Townships/Boundaries_Township_ManheimTownship_PA.geojson",
   "East Petersburg": "/Townships/Boundaries_Township_EastPetersburg_PA.geojson.geojson"
 };
+// === Roads registry & caches ===
+const ROADS_REGISTRY = {
+  "Manheim Township": "Roads\Roads_ManheimTownship_Lancaster_PA.geojson",
+  "East Petersburg": "Roads\Roads_EastPetersburg_Lancaster_PA.geojson", // ok to leave missing for now
+};
+
+const roadsLayerByTownship = new Map();   // name -> L.GeoJSON layer
+let roadsPaneCreated = false;
 
 
 
@@ -495,7 +503,16 @@ const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.pn
   maxZoom: 19
 }).addTo(map);
   const roadsRenderer = L.svg({ padding: 1.0 }); // try 0.5; bump to 0.6 if needed
-function setupTilePaneBlur(map, baseTiles) {
+function ensureRoadsPane() {
+  if (roadsPaneCreated) return;
+  // Put roads above township fills but below UI overlays.
+  // Adjust z-index if you have a custom stack; 425 is usually safe above polygon fills.
+  const pane = map.createPane('roadsPane');
+  pane.style.zIndex = 425;
+  roadsPaneCreated = true;
+}
+
+  function setupTilePaneBlur(map, baseTiles) {
   const tilePane = map.getPane('tilePane');
   if (!tilePane || !baseTiles) return;
 
@@ -1182,6 +1199,97 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
     }
   }
 }
+function ensureRoadsPane() {
+  if (roadsPaneCreated) return;
+  // Put roads above township fills but below UI overlays.
+  // Adjust z-index if you have a custom stack; 425 is usually safe above polygon fills.
+  const pane = map.createPane('roadsPane');
+  pane.style.zIndex = 425;
+  roadsPaneCreated = true;
+}
+// ============ RoadsManager ============
+const RoadsManager = {
+  async showForTownship(name) {
+    ensureRoadsPane();
+
+    // If already loaded, just add to map
+    if (roadsLayerByTownship.has(name)) {
+      const lyr = roadsLayerByTownship.get(name);
+      if (!map.hasLayer(lyr)) map.addLayer(lyr);
+      lyr.eachLayer(l => l.options.interactive = true);
+      return;
+    }
+
+    // Fetch URL
+    const url = ROADS_REGISTRY[name];
+    if (!url) {
+      console.warn(`[Roads] No URL registered for "${name}".`);
+      return;
+    }
+
+    // Fetch + build layer
+    let geo;
+    try {
+      const res = await fetch(url);
+      geo = await res.json();
+    } catch (e) {
+      console.error(`[Roads] Failed to load roads for ${name}:`, e);
+      return;
+    }
+
+    const styleFn = () => ({
+      color: '#000000',
+      weight: 2,
+      opacity: 1,
+      pane: 'roadsPane'
+    });
+
+    const onEach = (feature, layer) => {
+      // Basic hover
+      layer.on('mouseover', () => {
+        // Only hover-highlight if this township is active
+        if (activeTownship === name) {
+          layer.setStyle({ color: '#ffd700' });
+        }
+      });
+      layer.on('mouseout', () => {
+        // Revert to base style
+        layer.setStyle({ color: '#000000' });
+      });
+
+      // Click — for now just prove interactivity;
+      // next pass we’ll wire to your guess modal logic.
+      layer.on('click', (e) => {
+        if (activeTownship !== name) return; // guard
+        // TODO: replace with your openGuessModal(...) hook
+        // openGuessModal(layer);  // if you already have this available
+        console.log('[Roads] Clicked segment id:', feature.id, 'name:', feature.properties?.name);
+      });
+    };
+
+    const layer = L.geoJSON(geo, {
+      style: styleFn,
+      onEachFeature: onEach,
+      pane: 'roadsPane'
+    });
+
+    roadsLayerByTownship.set(name, layer);
+    map.addLayer(layer);
+  },
+
+  hideForTownship(name) {
+    const lyr = roadsLayerByTownship.get(name);
+    if (!lyr) return;
+    if (map.hasLayer(lyr)) map.removeLayer(lyr);
+  },
+
+  hideAll() {
+    for (const lyr of roadsLayerByTownship.values()) {
+      if (map.hasLayer(lyr)) map.removeLayer(lyr);
+    }
+  }
+};
+
 const townshipLayersByName = Object.create(null); // cache
 // simple stub so township clicks work (we’ll enhance next)
 function enterTownship(name, feature, tLayer, e) {
@@ -1248,8 +1356,9 @@ lockIntoTownship(name);
   currentTownship = name;
 
   if (e) L.DomEvent.stop(e);
+// === Attach per-township roads ===
+RoadsManager.showForTownship(name);
 
-  // (Next step we’ll attach per-township roads here.)
 }
 
 function lockIntoTownship(activeName) {
@@ -1980,6 +2089,7 @@ if (countyMaskFeature) {
   rebuildCountyMask();
 }
 unlockTownships();
+RoadsManager.hideAll(); // ensure no township roads remain visible
 
 
   // 5) Fit to county bounds
@@ -2036,6 +2146,8 @@ try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer
 clearSolvedOverlays();
 hideSolvedPane();
 clearSolvedPaneLayers();
+RoadsManager.hideAll(); // ensure no township roads remain visible
+
 
     // Restore county polygon UI (optional safeguard)
     try {
