@@ -444,7 +444,6 @@ const ROADS_REGISTRY = {
 };
 
 const roadsLayerByTownship = new Map();   // name -> L.GeoJSON layer
-let roadsPaneCreated = false;
 
 
 
@@ -1199,18 +1198,11 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
     }
   }
 }
-function ensureRoadsPane() {
-  if (roadsPaneCreated) return;
-  // Put roads above township fills but below UI overlays.
-  // Adjust z-index if you have a custom stack; 425 is usually safe above polygon fills.
-  const pane = map.createPane('roadsPane');
-  pane.style.zIndex = 425;
-  roadsPaneCreated = true;
-}
+
 // ============ RoadsManager ============
 const RoadsManager = {
   async showForTownship(name) {
-    ensureRoadsPane();
+  if (name === "Manheim Township") return; // MT already handled by legacy layer
 
     // If already loaded, just add to map
     if (roadsLayerByTownship.has(name)) {
@@ -1241,7 +1233,7 @@ const RoadsManager = {
       color: '#000000',
       weight: 2,
       opacity: 1,
-      pane: 'roadsPane'
+      pane: 'clickable-buffer'
     });
 
     const onEach = (feature, layer) => {
@@ -1270,7 +1262,7 @@ const RoadsManager = {
     const layer = L.geoJSON(geo, {
       style: styleFn,
       onEachFeature: onEach,
-      pane: 'roadsPane'
+      pane: 'clickable-buffer'
     });
 
     roadsLayerByTownship.set(name, layer);
