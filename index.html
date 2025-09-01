@@ -1258,11 +1258,23 @@ const RoadsManager = {
       opacity: 1,
       lineCap: 'round',
       lineJoin: 'round',
-      pane: 'clickable-buffer'
+      pane: 'clickable-buffer' // (you set this pane to opacity:1 earlier)
     });
 
     const onEach = (feature, layer) => {
       layer.options.interactive = true;
+
+      // ---------- Register in your existing caches ----------
+      // So your submit/give-up logic can resolve layers & ids.
+      const roadName = (feature?.properties?.name || '').trim();
+      if (roadName) {
+        if (!nameToLayers[roadName]) nameToLayers[roadName] = [];
+        nameToLayers[roadName].push(layer);
+
+        if (!roadNameToIds[roadName]) roadNameToIds[roadName] = [];
+        roadNameToIds[roadName].push(String(feature.id));
+      }
+      // ------------------------------------------------------
 
       // Hover (same thickness, gold)
       layer.on('mouseover', () => {
@@ -1275,19 +1287,30 @@ const RoadsManager = {
         layer.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
       });
 
-      // Click -> use existing modal if available
+      // Click -> set currentRoad (your handlers require this) and open the modal
       layer.on('click', () => {
-        if (activeTownship !== name) return; // guard
-        const roadName = (feature?.properties?.name || '').trim();
+        if (activeTownship !== name) return;
 
+        // Minimal object your handlers expect
+        window.currentRoad  = { name: roadName, id: String(feature.id), hintGiven: false };
+        window.currentRoad2 = window.currentRoad; // for any legacy references
+
+        // Focus the modal using your existing entrypoint
         if (typeof openGuessModal === 'function') {
           openGuessModal(layer, roadName, feature, name);
         } else if (typeof showGuessModal === 'function') {
           showGuessModal(layer, roadName, feature, name);
-        } else if (typeof window !== 'undefined' && typeof window.openGuessModal === 'function') {
+        } else if (typeof window.openGuessModal === 'function') {
           window.openGuessModal(layer, roadName, feature, name);
         } else {
-          console.log('[Roads] Clicked segment id:', feature.id, 'name:', roadName);
+          // Fallback so you can see it's wired
+          const modal = document.getElementById('guess-modal');
+          if (modal) {
+            modal.style.display = 'block';
+            const input = modal.querySelector('#guess-input, input');
+            if (input) { input.value = ''; input.focus(); }
+          }
+          console.log('[Roads] Clicked:', roadName, feature.id);
         }
       });
     };
@@ -1314,6 +1337,7 @@ const RoadsManager = {
     }
   }
 };
+
 
 
 const townshipLayersByName = Object.create(null); // cache
