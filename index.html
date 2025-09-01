@@ -1198,11 +1198,33 @@ async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
     }
   }
 }
+// Only add if you don't already have one:
+if (typeof openGuessModal !== 'function') {
+  window.openGuessModal = function openGuessModal(layer, roadName = '', feature = null, township = '') {
+    const modal = document.getElementById('guess-modal');
+    if (!modal) return;
+
+    // stash context for your submit handler to use
+    window.currentGuessContext = { layer, feature, roadName, township };
+
+    // show modal + focus input
+    modal.style.display = 'block';
+    const input = modal.querySelector('input');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  };
+}
 
 // ============ RoadsManager ============
+const BASE_ROAD_WEIGHT = 6;
+const BASE_ROAD_COLOR  = '#000000';
+const HOVER_ROAD_COLOR = '#ffd700';
+
 const RoadsManager = {
   async showForTownship(name) {
-  if (name === "Manheim Township") return; // MT already handled by legacy layer
+    if (name === "Manheim Township") return; // MT already handled by legacy layer
 
     // If already loaded, just add to map
     if (roadsLayerByTownship.has(name)) {
@@ -1222,7 +1244,8 @@ const RoadsManager = {
     // Fetch + build layer
     let geo;
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
       geo = await res.json();
     } catch (e) {
       console.error(`[Roads] Failed to load roads for ${name}:`, e);
@@ -1230,32 +1253,42 @@ const RoadsManager = {
     }
 
     const styleFn = () => ({
-      color: '#000000',
-      weight: 2,
+      color: BASE_ROAD_COLOR,
+      weight: BASE_ROAD_WEIGHT,
       opacity: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
       pane: 'clickable-buffer'
     });
 
     const onEach = (feature, layer) => {
-      // Basic hover
+      layer.options.interactive = true;
+
+      // Hover (same thickness, gold)
       layer.on('mouseover', () => {
-        // Only hover-highlight if this township is active
         if (activeTownship === name) {
-          layer.setStyle({ color: '#ffd700' });
+          layer.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
         }
       });
+
       layer.on('mouseout', () => {
-        // Revert to base style
-        layer.setStyle({ color: '#000000' });
+        layer.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
       });
 
-      // Click — for now just prove interactivity;
-      // next pass we’ll wire to your guess modal logic.
-      layer.on('click', (e) => {
+      // Click -> use existing modal if available
+      layer.on('click', () => {
         if (activeTownship !== name) return; // guard
-        // TODO: replace with your openGuessModal(...) hook
-        // openGuessModal(layer);  // if you already have this available
-        console.log('[Roads] Clicked segment id:', feature.id, 'name:', feature.properties?.name);
+        const roadName = (feature?.properties?.name || '').trim();
+
+        if (typeof openGuessModal === 'function') {
+          openGuessModal(layer, roadName, feature, name);
+        } else if (typeof showGuessModal === 'function') {
+          showGuessModal(layer, roadName, feature, name);
+        } else if (typeof window !== 'undefined' && typeof window.openGuessModal === 'function') {
+          window.openGuessModal(layer, roadName, feature, name);
+        } else {
+          console.log('[Roads] Clicked segment id:', feature.id, 'name:', roadName);
+        }
       });
     };
 
@@ -1281,6 +1314,7 @@ const RoadsManager = {
     }
   }
 };
+
 
 const townshipLayersByName = Object.create(null); // cache
 // simple stub so township clicks work (we’ll enhance next)
