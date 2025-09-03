@@ -1304,49 +1304,68 @@ const RoadsManager = {
     });
 
     const onEach = (feature, segLayer) => {
-      segLayer.options.interactive = true;
+  segLayer.options.interactive = true;
 
-      // Register in your existing caches so submit/give-up logic can resolve
-      const roadName = (feature?.properties?.name || '').trim();
-      if (roadName) {
-        (nameToLayers[roadName] ||= []).push(segLayer);
-        (roadNameToIds[roadName] ||= []).push(String(feature.id));
+  // Tag segment with its township so we don't cross-highlight into MT
+  segLayer.__township = name;
+
+  // ---------- Register in your existing caches ----------
+  const roadName = (feature?.properties?.name || '').trim();
+  if (roadName) {
+    (nameToLayers[roadName] ||= []).push(segLayer);
+    (roadNameToIds[roadName] ||= []).push(String(feature.id));
+  }
+  // ------------------------------------------------------
+
+  // Helper: all matching layers for this name *in the same township*
+  const matchingLayers = () =>
+    (nameToLayers[roadName] || []).filter(l => l.__township === name);
+
+  // Hover: gold for all matching segments (store prev style so we don't clobber reds/oranges/greens)
+  segLayer.on('mouseover', () => {
+    if (activeTownship !== name) return;
+    for (const l of matchingLayers()) {
+      if (!l.__prevHoverStyle) {
+        l.__prevHoverStyle = { color: l.options.color, weight: l.options.weight };
       }
+      l.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
+    }
+  });
 
-      // Hover (gold, same thickness)
-      segLayer.on('mouseover', () => {
-        if (activeTownship === name) {
-          segLayer.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
-        }
-      });
-      segLayer.on('mouseout', () => {
-        segLayer.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
-      });
+  // Mouseout: restore each segment’s own prior style
+  segLayer.on('mouseout', () => {
+    for (const l of matchingLayers()) {
+      const prev = l.__prevHoverStyle;
+      if (prev) {
+        l.setStyle(prev);
+        l.__prevHoverStyle = null;
+      } else {
+        // fallback to base if nothing stored
+        l.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
+      }
+    }
+  });
 
-      // Click -> set module-scoped currentRoad and open your modal
-      segLayer.on('click', () => {
-        if (activeTownship !== name) return;
+  // Click -> set module-scoped currentRoad and open modal
+  segLayer.on('click', () => {
+    if (activeTownship !== name) return;
+    currentRoad  = { name: roadName, id: String(feature.id), hintGiven: false };
+    currentRoad2 = currentRoad;
 
-        const rn = roadName;
-        currentRoad  = { name: rn, id: String(feature.id), hintGiven: false };
-        currentRoad2 = currentRoad;
+    if (typeof window.openGuessModal === 'function')      window.openGuessModal(segLayer, roadName, feature, name);
+    else if (typeof openGuessModal === 'function')        openGuessModal(segLayer, roadName, feature, name);
+    else if (typeof showGuessModal === 'function')        showGuessModal(segLayer, roadName, feature, name);
+    else {
+      const modal = document.getElementById('guess-modal');
+      if (modal) {
+        modal.style.display = 'block';
+        const input = modal.querySelector('#guess-input, input');
+        if (input) { input.value = ''; input.focus(); }
+      }
+    }
+  });
+};
 
-        if (typeof window.openGuessModal === 'function') {
-          window.openGuessModal(segLayer, rn, feature, name);
-        } else if (typeof openGuessModal === 'function') {
-          openGuessModal(segLayer, rn, feature, name);
-        } else if (typeof showGuessModal === 'function') {
-          showGuessModal(segLayer, rn, feature, name);
-        } else {
-          const modal = document.getElementById('guess-modal');
-          if (modal) {
-            modal.style.display = 'block';
-            const input = modal.querySelector('#guess-input, input');
-            if (input) { input.value = ''; input.focus(); }
-          }
-        }
-      });
-    };
 
     const roadsLayer = L.geoJSON(geo, {
       style: styleFn,
