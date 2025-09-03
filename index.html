@@ -1204,18 +1204,62 @@ if (typeof openGuessModal !== 'function') {
     const modal = document.getElementById('guess-modal');
     if (!modal) return;
 
-    // stash context for your submit handler to use
-    window.currentGuessContext = { layer, feature, roadName, township };
+    // 1) ensure your handlers won't early-return
+    const resolvedName = (roadName || feature?.properties?.name || '').trim();
+    currentRoad  = { name: resolvedName, id: feature?.id != null ? String(feature.id) : '', hintGiven: false };
+    currentRoad2 = currentRoad; // legacy alias
 
-    // show modal + focus input
+    // (optional) keep your context if other code uses it
+    window.currentGuessContext = { layer, feature, roadName: resolvedName, township };
+
+    // 2) show modal + focus input
     modal.style.display = 'block';
-    const input = modal.querySelector('input');
+    const input = modal.querySelector('#guess-input, input');
     if (input) {
       input.value = '';
       input.focus();
     }
+
+    // 3) rebind the visible buttons to your legacy handlers
+    const submitBtn = modal.querySelector('#submit-guess') || modal.querySelector('[data-role="guess-submit"]');
+    const giveUpBtn = modal.querySelector('#give-up')       || modal.querySelector('[data-role="guess-giveup"]');
+
+    if (submitBtn) {
+      submitBtn.type = 'button';
+      submitBtn.onclick = (e) => {
+        e.preventDefault();
+        if (typeof window.__legacySubmitClick === 'function') {
+          window.__legacySubmitClick.call(submitBtn, e);
+        } else {
+          console.warn('[Modal] No legacy submit handler found.');
+        }
+      };
+    }
+
+    if (giveUpBtn) {
+      giveUpBtn.type = 'button';
+      giveUpBtn.onclick = (e) => {
+        e.preventDefault();
+        if (typeof window.__legacyGiveUpClick === 'function') {
+          window.__legacyGiveUpClick.call(giveUpBtn, e);
+        } else {
+          console.warn('[Modal] No legacy give-up handler found.');
+        }
+      };
+    }
+
+    // 4) Enter key submits (bind to the current input)
+    if (input && submitBtn) {
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitBtn.click();
+        }
+      };
+    }
   };
 }
+
 
 // ============ RoadsManager ============
 const BASE_ROAD_WEIGHT = 6;
@@ -1287,33 +1331,33 @@ const RoadsManager = {
         layer.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
       });
 
-      // Click -> set currentRoad (your handlers require this) and open the modal
-      layer.on('click', () => {
-        if (activeTownship !== name) return;
+     // Click -> set currentRoad (module var) and open the modal
+layer.on('click', () => {
+  if (activeTownship !== name) return;
 
-        // Minimal object your handlers expect
-        window.currentRoad  = { name: roadName, id: String(feature.id), hintGiven: false };
-        window.currentRoad2 = window.currentRoad; // for any legacy references
+  const rn = (feature?.properties?.name || '').trim();
 
-        // Focus the modal using your existing entrypoint
-        if (typeof openGuessModal === 'function') {
-          openGuessModal(layer, roadName, feature, name);
-        } else if (typeof showGuessModal === 'function') {
-          showGuessModal(layer, roadName, feature, name);
-        } else if (typeof window.openGuessModal === 'function') {
-          window.openGuessModal(layer, roadName, feature, name);
-        } else {
-          // Fallback so you can see it's wired
-          const modal = document.getElementById('guess-modal');
-          if (modal) {
-            modal.style.display = 'block';
-            const input = modal.querySelector('#guess-input, input');
-            if (input) { input.value = ''; input.focus(); }
-          }
-          console.log('[Roads] Clicked:', roadName, feature.id);
-        }
-      });
-    };
+  // IMPORTANT: update the module-scoped vars that your handlers read
+  currentRoad  = { name: rn, id: String(feature.id), hintGiven: false };
+  currentRoad2 = currentRoad; // legacy alias
+
+  // Use the opener we just defined; fall back to a simple show+focus
+  if (typeof window.openGuessModal === 'function') {
+    window.openGuessModal(layer, rn, feature, name);
+  } else if (typeof openGuessModal === 'function') {
+    openGuessModal(layer, rn, feature, name);
+  } else if (typeof showGuessModal === 'function') {
+    showGuessModal(layer, rn, feature, name);
+  } else {
+    const modal = document.getElementById('guess-modal');
+    if (modal) {
+      modal.style.display = 'block';
+      const input = modal.querySelector('#guess-input, input');
+      if (input) { input.value = ''; input.focus(); }
+    }
+  }
+});
+
 
     const layer = L.geoJSON(geo, {
       style: styleFn,
@@ -2683,6 +2727,10 @@ for (const layer of layers) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, usedHint ? 2000 : 0);
 };
+/* ===== capture legacy modal handlers (paste after your give-up/submit handler assignments) ===== */
+window.__legacySubmitClick = document.getElementById('submit-guess')?.onclick || null;
+window.__legacyGiveUpClick = document.getElementById('give-up')?.onclick || null;
+
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
     checkLogin();                 // flush pre-login guesses + load server guesses + update UI
