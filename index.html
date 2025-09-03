@@ -1359,14 +1359,15 @@ layer.on('click', () => {
 });
 
 
-    const layer = L.geoJSON(geo, {
-      style: styleFn,
-      onEachFeature: onEach,
-      pane: 'clickable-buffer'
-    });
+   const roadsLayer = L.geoJSON(geo, {
+  style: styleFn,
+  onEachFeature: onEach,
+  pane: 'clickable-buffer'
+});
 
-    roadsLayerByTownship.set(name, layer);
-    map.addLayer(layer);
+roadsLayerByTownship.set(name, roadsLayer);
+map.addLayer(roadsLayer);
+
   },
 
   hideForTownship(name) {
