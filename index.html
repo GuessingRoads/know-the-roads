@@ -1268,31 +1268,28 @@ const HOVER_ROAD_COLOR = '#ffd700';
 
 const RoadsManager = {
   async showForTownship(name) {
-    if (name === "Manheim Township") return; // MT already handled by legacy layer
+    if (name === "Manheim Township") return; // MT handled by legacy layer
 
-    // If already loaded, just add to map
-    if (roadsLayerByTownship.has(name)) {
-      const lyr = roadsLayerByTownship.get(name);
-      if (!map.hasLayer(lyr)) map.addLayer(lyr);
-      lyr.eachLayer(l => l.options.interactive = true);
+    // If already loaded, just add back to map
+    const existing = roadsLayerByTownship.get(name);
+    if (existing) {
+      if (!map.hasLayer(existing)) map.addLayer(existing);
+      existing.eachLayer(l => l.options.interactive = true);
       return;
     }
 
-    // Fetch URL
+    // URL
     const url = ROADS_REGISTRY[name];
-    if (!url) {
-      console.warn(`[Roads] No URL registered for "${name}".`);
-      return;
-    }
+    if (!url) { console.warn(`[Roads] No URL for "${name}".`); return; }
 
-    // Fetch + build layer
+    // Load
     let geo;
     try {
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
       geo = await res.json();
-    } catch (e) {
-      console.error(`[Roads] Failed to load roads for ${name}:`, e);
+    } catch (err) {
+      console.error(`[Roads] Failed to load ${name}:`, err);
       return;
     }
 
@@ -1302,78 +1299,67 @@ const RoadsManager = {
       opacity: 1,
       lineCap: 'round',
       lineJoin: 'round',
-      pane: 'clickable-buffer' // (you set this pane to opacity:1 earlier)
+      pane: 'clickable-buffer' // you set this pane to opacity:1 earlier
     });
 
-    const onEach = (feature, layer) => {
-      layer.options.interactive = true;
+    const onEach = (feature, segLayer) => {
+      segLayer.options.interactive = true;
 
-      // ---------- Register in your existing caches ----------
-      // So your submit/give-up logic can resolve layers & ids.
+      // Register in your existing caches so submit/give-up logic can resolve
       const roadName = (feature?.properties?.name || '').trim();
       if (roadName) {
-        if (!nameToLayers[roadName]) nameToLayers[roadName] = [];
-        nameToLayers[roadName].push(layer);
-
-        if (!roadNameToIds[roadName]) roadNameToIds[roadName] = [];
-        roadNameToIds[roadName].push(String(feature.id));
+        (nameToLayers[roadName] ||= []).push(segLayer);
+        (roadNameToIds[roadName] ||= []).push(String(feature.id));
       }
-      // ------------------------------------------------------
 
-      // Hover (same thickness, gold)
-      layer.on('mouseover', () => {
+      // Hover (gold, same thickness)
+      segLayer.on('mouseover', () => {
         if (activeTownship === name) {
-          layer.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
+          segLayer.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
         }
       });
-
-      layer.on('mouseout', () => {
-        layer.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
+      segLayer.on('mouseout', () => {
+        segLayer.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
       });
 
-     // Click -> set currentRoad (module var) and open the modal
-layer.on('click', () => {
-  if (activeTownship !== name) return;
+      // Click -> set module-scoped currentRoad and open your modal
+      segLayer.on('click', () => {
+        if (activeTownship !== name) return;
 
-  const rn = (feature?.properties?.name || '').trim();
+        const rn = roadName;
+        currentRoad  = { name: rn, id: String(feature.id), hintGiven: false };
+        currentRoad2 = currentRoad;
 
-  // IMPORTANT: update the module-scoped vars that your handlers read
-  currentRoad  = { name: rn, id: String(feature.id), hintGiven: false };
-  currentRoad2 = currentRoad; // legacy alias
+        if (typeof window.openGuessModal === 'function') {
+          window.openGuessModal(segLayer, rn, feature, name);
+        } else if (typeof openGuessModal === 'function') {
+          openGuessModal(segLayer, rn, feature, name);
+        } else if (typeof showGuessModal === 'function') {
+          showGuessModal(segLayer, rn, feature, name);
+        } else {
+          const modal = document.getElementById('guess-modal');
+          if (modal) {
+            modal.style.display = 'block';
+            const input = modal.querySelector('#guess-input, input');
+            if (input) { input.value = ''; input.focus(); }
+          }
+        }
+      });
+    };
 
-  // Use the opener we just defined; fall back to a simple show+focus
-  if (typeof window.openGuessModal === 'function') {
-    window.openGuessModal(layer, rn, feature, name);
-  } else if (typeof openGuessModal === 'function') {
-    openGuessModal(layer, rn, feature, name);
-  } else if (typeof showGuessModal === 'function') {
-    showGuessModal(layer, rn, feature, name);
-  } else {
-    const modal = document.getElementById('guess-modal');
-    if (modal) {
-      modal.style.display = 'block';
-      const input = modal.querySelector('#guess-input, input');
-      if (input) { input.value = ''; input.focus(); }
-    }
-  }
-});
+    const roadsLayer = L.geoJSON(geo, {
+      style: styleFn,
+      onEachFeature: onEach,
+      pane: 'clickable-buffer'
+    });
 
-
-   const roadsLayer = L.geoJSON(geo, {
-  style: styleFn,
-  onEachFeature: onEach,
-  pane: 'clickable-buffer'
-});
-
-roadsLayerByTownship.set(name, roadsLayer);
-map.addLayer(roadsLayer);
-
+    roadsLayerByTownship.set(name, roadsLayer);
+    map.addLayer(roadsLayer);
   },
 
   hideForTownship(name) {
     const lyr = roadsLayerByTownship.get(name);
-    if (!lyr) return;
-    if (map.hasLayer(lyr)) map.removeLayer(lyr);
+    if (lyr && map.hasLayer(lyr)) map.removeLayer(lyr);
   },
 
   hideAll() {
@@ -1382,6 +1368,7 @@ map.addLayer(roadsLayer);
     }
   }
 };
+
 
 
 
