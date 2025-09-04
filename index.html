@@ -2565,12 +2565,16 @@ if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
     color = 'red';
   }
 
-  // Color the correct road segments
-  const normalizedKey = Object.keys(roadNameToIds).find(
-    k => normalizeName(k) === normalizedCorrect
-  );
-  const segmentIds = roadNameToIds[normalizedKey];
-  const layers = nameToLayers[normalizedKey] || [];
+  const normalizedKey = Object.keys(roadNameToIds).find(k => normalizeName(k) === normalizedCorrect);
+
+// Filter layers to the active township only.
+// Legacy MT layers may not have __township; treat missing as "Manheim Township".
+let layers = nameToLayers[normalizedKey] || [];
+layers = layers.filter(l => (l.__township || "Manheim Township") === activeTownship);
+
+// Derive ids from the filtered layers so you don't write MT ids when in EP (or vice-versa)
+const segmentIds = layers.map(l => String(l.feature.id));
+
 
 if (isCorrect) {
   // was a hint used for this road (either now or earlier)?
@@ -2662,11 +2666,16 @@ document.getElementById('give-up').onclick = async function () {
 
   const correctName = currentRoad.name.trim();
   const normalizedCorrect = normalizeName(correctName);
-  const normalizedKey = Object.keys(roadNameToIds).find(
-    k => normalizeName(k) === normalizedCorrect
-  );
-  const segmentIds = roadNameToIds[normalizedKey];
-  const layers = nameToLayers[normalizedKey] || [];
+  const normalizedKey = Object.keys(roadNameToIds).find(k => normalizeName(k) === normalizedCorrect);
+
+// Filter layers to the active township only.
+// Legacy MT layers may not have __township; treat missing as "Manheim Township".
+let layers = nameToLayers[normalizedKey] || [];
+layers = layers.filter(l => (l.__township || "Manheim Township") === activeTownship);
+
+// Derive ids from the filtered layers so you don't write MT ids when in EP (or vice-versa)
+const segmentIds = layers.map(l => String(l.feature.id));
+
 
   // Track attempts
   if (!attemptCounts[normalizedCorrect]) {
