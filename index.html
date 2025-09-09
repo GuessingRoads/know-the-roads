@@ -632,6 +632,58 @@ supabase.auth.onAuthStateChange((event, session) => {
     loginNote.style.display = 'block';
   }
 });
+// ===== Normalized registry helpers =====
+const scopeKeyFor = (type, township, county='Lancaster County', state='PA') =>
+  `${state}:${county}:${township}`;
+
+async function ensureScope({ type, township, county='Lancaster County', state='PA', geoid=null, parentId=null }) {
+  const key = scopeKeyFor(type, township, county, state);
+  const { data, error } = await supabase
+    .from('scopes')
+    .upsert([{ type, key, name: township, geoid, parent_id: parentId }], { onConflict: 'type,key' })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+async function ensureRoad(scopeId, normalizedName, displayName) {
+  const { data, error } = await supabase
+    .from('roads')
+    .upsert([{ scope_id: scopeId, normalized_name: normalizedName, display_name: displayName }],
+            { onConflict: 'scope_id,normalized_name' })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id;
+}
+
+async function upsertWaysAndJoin(roadId, ids, displayName) {
+  if (!ids || !ids.length) return;
+  const wayRows = ids.map(osm_id => ({ osm_id, name: displayName }));
+  let r = await supabase.from('ways').upsert(wayRows, { onConflict: 'osm_id' });
+  if (r.error) console.error('[ways] upsert error', r.error);
+  r = await supabase.from('road_ways').upsert(
+    ids.map(osm_id => ({ road_id: roadId, osm_id })),
+    { onConflict: 'road_id,osm_id' }
+  );
+  if (r.error) console.error('[road_ways] upsert error', r.error);
+}
+
+// Single call used by Submit/Give Up
+async function recordGuessNormalized({ township, normalizedName, displayName, status, layers }) {
+  try {
+    const scopeId = await ensureScope({ type: 'township', township });
+    const roadId  = await ensureRoad(scopeId, normalizedName, displayName);
+    const ids = Array.from(new Set(layers.map(l => String(l.feature.id)).filter(Boolean)));
+    await upsertWaysAndJoin(roadId, ids, displayName);
+    const { error } = await supabase.from('guesses').insert([{ road_id: roadId, status }]);
+    if (error) console.error('[guesses] insert error', error);
+  } catch (e) {
+    console.error('[normalized guess] failed', e);
+  }
+}
+
 function animateIncorrectSegments(segments, delay = 60) {
   segments.forEach((layer, index) => {
     const sid = String(layer.feature.id);
@@ -1289,6 +1341,27 @@ const RoadsManager = {
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
       geo = await res.json();
+      // --- Registry sync for this township (non-blocking) ---
+(async () => {
+  try {
+    const scopeId = await ensureScope({ type: 'township', township: name });
+    // Build {displayName -> Set(osm_ids)}
+    const byName = new Map();
+    for (const f of geo.features) {
+      const nm = (f.properties?.name || '').trim(); if (!nm) continue;
+      const id = String(f.id ?? f.properties?.['@id'] ?? ''); if (!id) continue;
+      (byName.get(nm) || byName.set(nm, new Set()).get(nm)).add(id);
+    }
+    for (const [displayName, setIds] of byName) {
+      const normalized = normalizeName(displayName);
+      const roadId = await ensureRoad(scopeId, normalized, displayName);
+      await upsertWaysAndJoin(roadId, Array.from(setIds), displayName);
+    }
+  } catch (e) {
+    console.error('[registry sync]', e);
+  }
+})();
+
     } catch (err) {
       console.error(`[Roads] Failed to load ${name}:`, err);
       return;
