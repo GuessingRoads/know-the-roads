@@ -2655,6 +2655,14 @@ if (isCorrect) {
     const sid = String(l.feature.id);
     return (segmentStateMap.get(sid) || {}).used_hint;
   });
+// ✅ persist normalized "correct" guess (non-blocking)
+recordGuessNormalized({
+  township: activeTownship,
+  normalizedName: normalizedCorrect,
+  displayName: correctName,
+  status: 'correct',
+  layers
+});
 
   // A) state: mark correct and preserve/OR used_hint
   for (const l of layers) {
@@ -2748,6 +2756,15 @@ layers = layers.filter(l => (l.__township || "Manheim Township") === activeTowns
 
 // Derive ids from the filtered layers so you don't write MT ids when in EP (or vice-versa)
 const segmentIds = layers.map(l => String(l.feature.id));
+// ✅ NEW: persist normalized "giveup" event
+await recordGuessNormalized({
+  township: activeTownship,
+  normalizedName: normalizedCorrect,
+  displayName: correctName,
+  status: 'giveup',
+  layers
+});
+
 
 
   // Track attempts
