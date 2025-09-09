@@ -607,11 +607,14 @@ const logoutBtn = document.getElementById('logout-btn');
 const authMessage = document.getElementById('auth-message');
 
 loginBtn.onclick = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
+  const redirect = window.location.href; // return to THIS exact URL (branch stays the same)
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
+    options: { redirectTo: redirect }
   });
   if (error) alert('Login error: ' + error.message);
 };
+
 
 logoutBtn.onclick = async () => {
   const { error } = await supabase.auth.signOut();
