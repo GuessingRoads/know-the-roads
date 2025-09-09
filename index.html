@@ -673,16 +673,74 @@ async function upsertWaysAndJoin(roadId, ids, displayName) {
 // Single call used by Submit/Give Up
 async function recordGuessNormalized({ township, normalizedName, displayName, status, layers }) {
   try {
+    const { data: { user } = { user: null } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn('[save skipped] not signed in');
+      return;
+    }
+
     const scopeId = await ensureScope({ type: 'township', township });
     const roadId  = await ensureRoad(scopeId, normalizedName, displayName);
+
     const ids = Array.from(new Set(layers.map(l => String(l.feature.id)).filter(Boolean)));
     await upsertWaysAndJoin(roadId, ids, displayName);
-    const { error } = await supabase.from('guesses').insert([{ road_id: roadId, status }]);
-    if (error) console.error('[guesses] insert error', error);
+
+    await supabase.from('guesses').insert([{
+      road_id: roadId,
+      status,
+      user_id: user.id
+    }]);
   } catch (e) {
     console.error('[normalized guess] failed', e);
   }
 }
+// Re-color solved roads for the signed-in user when a township is loaded
+async function applySolvedFromDBForTownship(township) {
+  try {
+    const { data: { user } = { user: null } } = await supabase.auth.getUser();
+    if (!user) return; // only persist/restore for signed-in users
+
+    const scopeId = await ensureScope({ type: 'township', township });
+
+    // all CORRECT guesses for this user in this scope
+    const { data: g, error } = await supabase
+      .from('guesses')
+      .select('road_id')
+      .eq('status', 'correct')
+      .eq('user_id', user.id);
+    if (error || !g?.length) return;
+
+    const roadIds = [...new Set(g.map(r => r.road_id))];
+
+    // get normalized names for those roads in this scope
+    const { data: roads } = await supabase
+      .from('roads')
+      .select('id, normalized_name')
+      .in('id', roadIds)
+      .eq('scope_id', scopeId);
+
+    for (const r of (roads || [])) {
+      const nm = r.normalized_name;
+
+      // nameToLayers is keyed by display names; resolve by normalized match
+      const key = Object.keys(nameToLayers).find(k => normalizeName(k) === nm);
+      if (!key) continue;
+
+      let layers = nameToLayers[key] || [];
+      // keep it township-local (MT legacy layers may not have __township)
+      layers = layers.filter(l => (l.__township || 'Manheim Township') === township);
+
+      for (const lyr of layers) {
+        // your solved look (tweak to match your constants)
+        lyr.setStyle({ color: '#009944', weight: 6, opacity: 0.7 });
+        lyr.__originalColor = 'greenish';
+      }
+    }
+  } catch (e) {
+    console.warn('[applySolvedFromDBForTownship]', e);
+  }
+}
+
 
 function animateIncorrectSegments(segments, delay = 60) {
   segments.forEach((layer, index) => {
@@ -1448,6 +1506,8 @@ const RoadsManager = {
 
     roadsLayerByTownship.set(name, roadsLayer);
     map.addLayer(roadsLayer);
+    // restore solved styling for this signed-in user in this township
+applySolvedFromDBForTownship(name); // no await
   },
 
   hideForTownship(name) {
