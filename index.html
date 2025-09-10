@@ -2913,97 +2913,81 @@ if (currentUserId) {
 document.getElementById('give-up').onclick = async function () {
   if (!currentRoad) return;
 
-  const correctName = currentRoad.name.trim();
+  const correctName       = currentRoad.name.trim();
   const normalizedCorrect = normalizeName(correctName);
-  const normalizedKey = Object.keys(roadNameToIds).find(k => normalizeName(k) === normalizedCorrect);
 
-// Filter layers to the active township only.
-// Legacy MT layers may not have __township; treat missing as "Manheim Township".
-let layers = nameToLayers[normalizedKey] || [];
-layers = layers.filter(l => (l.__township || "Manheim Township") === activeTownship);
+  // --- Build segments for this road, filtered to current township ---
+  const normalizedKey = Object.keys(roadNameToIds).find(
+    k => normalizeName(k) === normalizedCorrect
+  );
+  let layers = nameToLayers[normalizedKey] || [];
+  layers = layers.filter(l => (l.__township || 'Manheim Township') === activeTownship);
 
-// Derive ids from the filtered layers so you don't write MT ids when in EP (or vice-versa)
-const segmentIds = layers.map(l => String(l.feature.id));
-// ✅ NEW: persist normalized "giveup" event
-await recordGuessNormalized({
-  township: activeTownship,
-  normalizedName: normalizedCorrect,
-  displayName: correctName,
-  status: 'giveup',
-  layers
-});
+  if (!layers.length) {
+    console.warn('[give-up] no layers for', normalizedCorrect, 'in', activeTownship);
+    return;
+  }
 
+  const segmentIds = layers.map(l => String(l.feature.id));
 
-
-  // Track attempts
+  // --- Track attempts for this road name ---
   if (!attemptCounts[normalizedCorrect]) {
     attemptCounts[normalizedCorrect] = 1;
   } else {
     attemptCounts[normalizedCorrect] += 1;
   }
 
-  let usedHint = false;
-  let isCorrect = false;
-
-  // Show hint on 4th give-up if not already shown
+  // --- 4th give-up: show first-letter hint, keep modal interactive ---
   if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
     currentRoad.hintGiven = true;
 
     const firstLetter = correctName.charAt(0).toUpperCase();
-    document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+    const msg = document.getElementById('feedback-message');
+    if (msg) msg.innerText = `Hint: Road begins with '${firstLetter}'`;
 
-    document.getElementById('guess-input').value = '';
-    document.getElementById('guess-input').focus();
+    const input = document.getElementById('guess-input');
+    if (input) { input.value = ''; input.focus(); }
 
-    // make sure buttons are enabled (in case the DOM replaced or disabled them)
     document.getElementById('submit-guess')?.removeAttribute('disabled');
     document.getElementById('give-up')?.removeAttribute('disabled');
-    return; // ✅ Wait for next user input
+    return; // wait for next user input
   }
-// 5th give-up (final reveal): show answer, color ORANGE, and lock the road
-if (attemptCounts[normalizedCorrect] >= 5) {
-  // `layers` should already be in scope here. If it isn’t, rebuild it:
-  // const key = Object.keys(roadNameToIds).find(k => normalizeName(k) === normalizedCorrect);
-  // let layers = nameToLayers[key] || [];
-  // layers = layers.filter(l => (l.__township || "Manheim Township") === activeTownship);
 
-  revealOrangeAndLock(layers, normalizedCorrect, correctName);
-  return; // IMPORTANT: exit handler here
-}
+  // --- 5th give-up (final reveal): orange + lock + persist 'giveup' ---
+  if (attemptCounts[normalizedCorrect] >= 5) {
+    revealOrangeAndLock(layers, normalizedCorrect, correctName);
+    return; // important: stop here
+  }
 
+  // --- Regular give-up BEFORE hint: paint RED (still interactive) ---
+  const usedHint = false;
 
-  usedHint = currentRoad.hintGiven;
-
-for (const layer of layers) {
-  if (usedHint) {
-    // unified orange overlay; never paint the base path
-    drawHintOverlay(layer);          // uses HINT_COLOR / HINT_WEIGHT / HINT_OPACITY
-    layer._originalColor = 'orange';
-  } else {
-    // red stays as-is
+  for (const layer of layers) {
+    // red style
     layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
     layer._originalColor = 'red';
+
+    // let the rest of the UI know this segment is wrong so far
     setSegmentsState([layer.feature.id], { incorrect: true });
   }
-  // Save as an incorrect attempt (give-up without hint)
-recordGuessNormalized({
-  township: activeTownship,
-  normalizedName: normalizedCorrect,
-  displayName: correctName,
-  status: 'incorrect',
-  layers
-});
 
-}
+  // Persist a single "incorrect" attempt for this road (normalized schema)
+  recordGuessNormalized({
+    township: activeTownship,
+    normalizedName: normalizedCorrect,
+    displayName: correctName,
+    status: 'incorrect',
+    layers
+  });
 
-
-
+  // keep your legacy storage if desired
   if (currentUserId) {
     await saveGuessSegmentIds(segmentIds, false, usedHint);
   } else {
     savePreLoginGuess({ segmentIds, isCorrect: false, usedHint });
   }
 
+  // cache state locally per segment
   for (const id of segmentIds) {
     segmentStateMap.set(String(id), {
       correct: false,
@@ -3012,19 +2996,23 @@ recordGuessNormalized({
     });
   }
 
-  document.getElementById('feedback-message').innerText =
-    usedHint ? `Correct answer: ${correctName}` : 'Incorrect';
-  document.getElementById('feedback-message').style.color = 'orange';
+  const msg = document.getElementById('feedback-message');
+  if (msg) {
+    msg.innerText = 'Incorrect';
+    msg.style.color = 'orange';
+  }
 
-
-  // ✅ Close modal after short delay (2s for hint, 0s for red)
+  // close modal immediately on red (no hint)
   setTimeout(() => {
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
+    const modal = document.getElementById('guess-modal');
+    if (modal) modal.style.display = 'none';
+    const m = document.getElementById('feedback-message');
+    if (m) m.innerText = '';
     currentRoad = null;
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, usedHint ? 2000 : 0);
+  }, 0);
 };
+
 /* ===== capture legacy modal handlers (paste after your give-up/submit handler assignments) ===== */
 window.__legacySubmitClick = document.getElementById('submit-guess')?.onclick || null;
 window.__legacyGiveUpClick = document.getElementById('give-up')?.onclick || null;
