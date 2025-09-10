@@ -2787,6 +2787,15 @@ layer._originalColor = 'orange';
 
   // now style/animate red
   animateIncorrectSegments(layers);
+  // Save as an incorrect attempt (normalized schema; works for EP & MT)
+recordGuessNormalized({
+  township: activeTownship,
+  normalizedName: normalizedCorrect,
+  displayName: correctName,
+  status: 'incorrect',
+  layers
+});
+
 }
 
 
@@ -2924,6 +2933,15 @@ for (const layer of layers) {
     layer._originalColor = 'red';
     setSegmentsState([layer.feature.id], { incorrect: true });
   }
+  // Save as an incorrect attempt (give-up without hint)
+recordGuessNormalized({
+  township: activeTownship,
+  normalizedName: normalizedCorrect,
+  displayName: correctName,
+  status: 'incorrect',
+  layers
+});
+
 }
 
 
