@@ -709,55 +709,94 @@ async function recordGuessNormalized({ township, normalizedName, displayName, st
     console.error('[normalized guess] failed', e);
   }
 }
-// Re-color solved roads for the signed-in user when a township is loaded
+// Restore latest state for this user in the township: red / orange / green
 async function applySolvedFromDBForTownship(township) {
   try {
     const { data: { user } = { user: null } } = await supabase.auth.getUser();
-    if (!user) return; // only persist/restore for signed-in users
+    if (!user) return;
 
     const scopeId = await ensureScope({ type: 'township', township });
 
-    // all CORRECT guesses for this user in this scope
-    const { data: g, error } = await supabase
-      .from('guesses')
-      .select('road_id')
-      .eq('status', 'correct')
-      .eq('user_id', user.id);
-    if (error || !g?.length) return;
-
-    const roadIds = [...new Set(g.map(r => r.road_id))];
-
-    // get normalized names for those roads in this scope
+    // All roads for this scope (id -> normalized_name)
     const { data: roads } = await supabase
       .from('roads')
       .select('id, normalized_name')
-      .in('id', roadIds)
       .eq('scope_id', scopeId);
 
-    for (const r of (roads || [])) {
-      const nm = r.normalized_name;
+    if (!roads?.length) return;
 
-      // nameToLayers is keyed by display names; resolve by normalized match
+    const idToName = Object.fromEntries(roads.map(r => [r.id, r.normalized_name]));
+    const roadIds  = roads.map(r => r.id);
+
+    // All guesses for this user on these roads, newest first
+    const { data: guesses } = await supabase
+      .from('guesses')
+      .select('road_id, status, created_at')
+      .eq('user_id', user.id)
+      .in('road_id', roadIds)
+      .order('created_at', { ascending: false });
+
+    if (!guesses?.length) return;
+
+    // Keep only the latest guess per road
+    const latest = new Map();
+    for (const g of guesses) {
+      if (!latest.has(g.road_id)) latest.set(g.road_id, g); // first seen = newest
+    }
+
+    for (const [roadId, g] of latest) {
+      const nm = idToName[roadId];
+      if (!nm) continue;
+
+      // Find layers for this name in this township
       const key = Object.keys(nameToLayers).find(k => normalizeName(k) === nm);
       if (!key) continue;
 
       let layers = nameToLayers[key] || [];
-      // keep it township-local (MT legacy layers may not have __township)
       layers = layers.filter(l => (l.__township || 'Manheim Township') === township);
+      if (!layers.length) continue;
 
-      for (const lyr of layers) {
-        // solved look
-        lyr.setStyle({ color: '#009944', weight: 6, opacity: 0.7 });
-        lyr.__originalColor = 'greenish';
+      const segmentIds = layers.map(l => String(l.feature.id));
 
-        // 🚫 make solved segments non-interactive
-        disableSegmentInteractivity(lyr);
+      switch (g.status) {
+        case 'correct': {
+          for (const lyr of layers) {
+            lyr.setStyle({ color: '#009944', weight: 6, opacity: 0.7 });
+            lyr.__originalColor = 'greenish';
+            disableSegmentInteractivity(lyr);
+          }
+          // remove any old hit buffers for these segments
+          if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
+          break;
+        }
+        case 'giveup': { // final reveal → orange & locked
+          for (const lyr of layers) {
+            if (typeof drawHintOverlay === 'function') {
+              drawHintOverlay(lyr);
+            } else {
+              lyr.setStyle({ color: '#ff8800', weight: 6, opacity: 0.9 });
+            }
+            lyr.__originalColor = 'orange';
+            disableSegmentInteractivity(lyr);
+          }
+          if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
+          break;
+        }
+        case 'incorrect': { // stays red but still interactive
+          for (const lyr of layers) {
+            lyr.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+            lyr.__originalColor = 'red';
+            // keep interactive so the user can try again
+          }
+          break;
+        }
       }
     }
   } catch (e) {
     console.warn('[applySolvedFromDBForTownship]', e);
   }
 }
+
 
 
 
