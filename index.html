@@ -2916,10 +2916,10 @@ document.getElementById('give-up').onclick = async function () {
   const correctName       = currentRoad.name.trim();
   const normalizedCorrect = normalizeName(correctName);
 
-  // --- Build segments for this road, filtered to current township ---
-  const normalizedKey = Object.keys(roadNameToIds).find(
-    k => normalizeName(k) === normalizedCorrect
-  );
+  // -- Build segments for this road, filtered to active township --
+  const normalizedKey = Object.keys(roadNameToIds)
+    .find(k => normalizeName(k) === normalizedCorrect);
+
   let layers = nameToLayers[normalizedKey] || [];
   layers = layers.filter(l => (l.__township || 'Manheim Township') === activeTownship);
 
@@ -2930,15 +2930,11 @@ document.getElementById('give-up').onclick = async function () {
 
   const segmentIds = layers.map(l => String(l.feature.id));
 
-  // --- Track attempts for this road name ---
-  if (!attemptCounts[normalizedCorrect]) {
-    attemptCounts[normalizedCorrect] = 1;
-  } else {
-    attemptCounts[normalizedCorrect] += 1;
-  }
+  // -- Count attempts for this road name --
+  attemptCounts[normalizedCorrect] = (attemptCounts[normalizedCorrect] || 0) + 1;
 
-  // --- 4th give-up: show first-letter hint, keep modal interactive ---
-  if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
+  // -- 4th give-up: show hint (first letter), keep modal alive --
+  if (attemptCounts[normalizedCorrect] === 4 && !currentRoad.hintGiven) {
     currentRoad.hintGiven = true;
 
     const firstLetter = correctName.charAt(0).toUpperCase();
@@ -2950,28 +2946,23 @@ document.getElementById('give-up').onclick = async function () {
 
     document.getElementById('submit-guess')?.removeAttribute('disabled');
     document.getElementById('give-up')?.removeAttribute('disabled');
-    return; // wait for next user input
+    return; // wait for next click
   }
 
-  // --- 5th give-up (final reveal): orange + lock + persist 'giveup' ---
+  // -- 5th+ give-up: final reveal (orange + lock + persist) --
   if (attemptCounts[normalizedCorrect] >= 5) {
     revealOrangeAndLock(layers, normalizedCorrect, correctName);
-    return; // important: stop here
+    return; // stop
   }
 
-  // --- Regular give-up BEFORE hint: paint RED (still interactive) ---
-  const usedHint = false;
-
+  // -- Pre-hint give-up (1st..3rd): paint RED, leave interactive, persist "incorrect" --
   for (const layer of layers) {
-    // red style
     layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
-    layer._originalColor = 'red';
-
-    // let the rest of the UI know this segment is wrong so far
+    layer.__originalColor = 'red';
     setSegmentsState([layer.feature.id], { incorrect: true });
   }
 
-  // Persist a single "incorrect" attempt for this road (normalized schema)
+  // single normalized row (not per-segment)
   recordGuessNormalized({
     township: activeTownship,
     normalizedName: normalizedCorrect,
@@ -2980,29 +2971,22 @@ document.getElementById('give-up').onclick = async function () {
     layers
   });
 
-  // keep your legacy storage if desired
+  // keep your legacy storage if you still want it
   if (currentUserId) {
-    await saveGuessSegmentIds(segmentIds, false, usedHint);
+    await saveGuessSegmentIds(segmentIds, false, /* usedHint */ false);
   } else {
-    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint });
+    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: false });
   }
 
-  // cache state locally per segment
+  // local per-segment cache
   for (const id of segmentIds) {
-    segmentStateMap.set(String(id), {
-      correct: false,
-      used_hint: usedHint,
-      incorrect: !usedHint
-    });
+    segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
   }
 
   const msg = document.getElementById('feedback-message');
-  if (msg) {
-    msg.innerText = 'Incorrect';
-    msg.style.color = 'orange';
-  }
+  if (msg) { msg.innerText = 'Incorrect'; msg.style.color = 'orange'; }
 
-  // close modal immediately on red (no hint)
+  // close immediately on red
   setTimeout(() => {
     const modal = document.getElementById('guess-modal');
     if (modal) modal.style.display = 'none';
