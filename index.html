@@ -2875,6 +2875,41 @@ await recordGuessNormalized({
 
     return; // ✅ Wait for next user input
   }
+// 5th give-up (final reveal): show answer, color ORANGE, and lock the road
+if (attemptCounts[normalizedCorrect] >= 5) {
+  // layers should already be defined above; if not, rebuild:
+  // const key = Object.keys(roadNameToIds).find(k => normalizeName(k) === normalizedCorrect);
+  // let layers = nameToLayers[key] || [];
+  // layers = layers.filter(l => (l.__township || "Manheim Township") === activeTownship);
+
+  const segmentIds = layers.map(l => String(l.feature.id));
+
+  for (const layer of layers) {
+    drawHintOverlay(layer);              // your existing orange overlay
+    layer.__originalColor = 'orange';
+
+    // remember in local state
+    const sid  = String(layer.feature.id);
+    const prev = segmentStateMap.get(sid) || {};
+    segmentStateMap.set(sid, { ...prev, used_hint: true, correct: true });
+
+    // stop further hover/click on this road
+    disableSegmentInteractivity(layer);
+  }
+
+  removeMatchingBuffers(segmentIds);
+
+  // optional: log “giveup” to DB
+  recordGuessNormalized({
+    township: activeTownship,
+    normalizedName: normalizedCorrect,
+    displayName: correctName,
+    status: 'giveup',
+    layers
+  });
+
+  return; // done with this road
+}
 
   usedHint = currentRoad.hintGiven;
 
