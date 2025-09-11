@@ -1623,32 +1623,52 @@ const RoadsManager = {
       });
 
       // CLICK
-      segLayer.on('click', () => {
+segLayer.on('click', () => {
+  // 1) log that this segment's handler actually fired
+  console.log('SEG CLICK start', {
+    id: String(segLayer.feature.id),
+    color: segLayer.options.color,
+    interactive: segLayer.options.interactive,
+    solved: !!segLayer.__solved,
+    state: segmentStateMap.get(String(segLayer.feature.id)),
+    activeTownshipNow: activeTownship,
+    handlerTownship: name
+  });
+
+  // 2) guard + reason
   if (segLayer.__solved || activeTownship !== name) {
-    console.log('Click blocked', {
-      id: String(segLayer.feature.id),
-      color: segLayer.options.color,
-      interactive: segLayer.options.interactive,
-      solved: segLayer.__solved,
-      state: segmentStateMap.get(String(segLayer.feature.id))
+    console.log('SEG CLICK blocked by guard', {
+      reasonSolved: !!segLayer.__solved,
+      reasonTownshipMismatch: activeTownship !== name
     });
     return;
   }
-        currentRoad  = { name: roadName, id: String(feature.id), hintGiven: false };
-        currentRoad2 = currentRoad;
 
-        if (typeof window.openGuessModal === 'function')      window.openGuessModal(segLayer, roadName, feature, name);
-        else if (typeof openGuessModal === 'function')        openGuessModal(segLayer, roadName, feature, name);
-        else if (typeof showGuessModal === 'function')        showGuessModal(segLayer, roadName, feature, name);
-        else {
-          const modal = document.getElementById('guess-modal');
-          if (modal) {
-            modal.style.display = 'block';
-            const input = modal.querySelector('#guess-input, input');
-            if (input) { input.value = ''; input.focus(); }
-          }
-        }
-      });
+  // 3) proceed to open modal
+  console.log('SEG CLICK allowed → opening modal', {
+    id: String(segLayer.feature.id),
+    roadName
+  });
+
+  currentRoad  = { name: roadName, id: String(feature.id), hintGiven: false };
+  currentRoad2 = currentRoad;
+
+  if (typeof window.openGuessModal === 'function') {
+    window.openGuessModal(segLayer, roadName, feature, name);
+  } else if (typeof openGuessModal === 'function') {
+    openGuessModal(segLayer, roadName, feature, name);
+  } else if (typeof showGuessModal === 'function') {
+    showGuessModal(segLayer, roadName, feature, name);
+  } else {
+    const modal = document.getElementById('guess-modal');
+    if (modal) {
+      modal.style.display = 'block';
+      const input = modal.querySelector('#guess-input, input');
+      if (input) { input.value = ''; input.focus(); }
+    }
+  }
+});
+
     };
 
     const roadsLayer = L.geoJSON(geo, {
