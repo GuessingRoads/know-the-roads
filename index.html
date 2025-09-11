@@ -791,11 +791,11 @@ async function applySolvedFromDBForTownship(township) {
       switch (g.status) {
         case 'correct': {
           for (const lyr of layers) {
-            lyr.setStyle({ color: '#009944', weight: 6, opacity: 0.7 });
-            lyr.__originalColor = 'greenish';
+            lyr.setStyle({ color: '#009944', weight: 4, opacity: 0.7 });
+            lyr.__originalColor = 'green';
             disableSegmentInteractivity(lyr);
+            segmentStateMap.set(String(lyr.feature.id), { correct: true });
           }
-          // remove any old hit buffers for these segments
           if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
           break;
         }
@@ -804,19 +804,21 @@ async function applySolvedFromDBForTownship(township) {
             if (typeof drawHintOverlay === 'function') {
               drawHintOverlay(lyr);
             } else {
-              lyr.setStyle({ color: '#ff8800', weight: 6, opacity: 0.9 });
+              lyr.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
             }
             lyr.__originalColor = 'orange';
             disableSegmentInteractivity(lyr);
+            segmentStateMap.set(String(lyr.feature.id), { giveup: true, locked: true, used_hint: true });
           }
           if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
           break;
         }
         case 'incorrect': { // stays red but still interactive
           for (const lyr of layers) {
-            lyr.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+            lyr.setStyle({ color: 'red', weight: 4, opacity: 1, pane: 'clickable-buffer' });
             lyr.__originalColor = 'red';
-            // keep interactive so the user can try again
+            lyr.options.interactive = true;
+            segmentStateMap.set(String(lyr.feature.id), { incorrect: true });
           }
           break;
         }
@@ -826,24 +828,27 @@ async function applySolvedFromDBForTownship(township) {
     console.warn('[applySolvedFromDBForTownship]', e);
   }
 }
-function revealOrangeAndLock(layers, normalizedCorrect, correctName) {
+
+function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) {
   const segmentIds = layers.map(l => String(l.feature.id));
 
   for (const layer of layers) {
-    // your existing orange overlay; fallback to style if overlay not available
     if (typeof drawHintOverlay === 'function') {
       drawHintOverlay(layer);
     } else {
-      layer.setStyle({ color: '#ff8800', weight: 6, opacity: 0.9 });
+      layer.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
     }
     layer.__originalColor = 'orange';
+    layer.__solved = true;
 
-    // remember UI state locally
-    const sid  = String(layer.feature.id);
-    const prev = segmentStateMap.get(sid) || {};
-    segmentStateMap.set(sid, { ...prev, used_hint: true, correct: true });
+    // mark as locked in local state
+    segmentStateMap.set(String(layer.feature.id), {
+      correct: false,
+      used_hint: true,
+      locked: true,
+      giveup: true
+    });
 
-    // stop further hover/click
     disableSegmentInteractivity(layer);
   }
 
@@ -851,15 +856,29 @@ function revealOrangeAndLock(layers, normalizedCorrect, correctName) {
     removeMatchingBuffers(segmentIds);
   }
 
-  // persist a single “giveup” at final reveal (signed-in users only)
+  // 🔹 persist with a distinct status
   recordGuessNormalized({
-    township: activeTownship,
+    township: opts.township || activeTownship,
     normalizedName: normalizedCorrect,
     displayName: correctName,
     status: 'giveup',
     layers
   });
+
+  if (currentUserId) {
+    saveGuessSegmentIds(segmentIds, false, /* usedHint */ true);
+  } else {
+    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: true });
+  }
+
+  // 🔹 close the modal now
+  const modal = document.getElementById('guess-modal');
+  if (modal) modal.style.display = 'none';
+  const msg = document.getElementById('feedback-message');
+  if (msg) msg.innerText = '';
+  currentRoad = null;
 }
+
 
 
 
