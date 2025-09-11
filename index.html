@@ -2915,13 +2915,16 @@ document.getElementById('give-up').onclick = async function () {
 
   const correctName       = currentRoad.name.trim();
   const normalizedCorrect = normalizeName(correctName);
+  const attemptKey        = `${activeTownship}::${normalizedCorrect}`; // ❶ scope attempts by township
 
-  // -- Build segments for this road, filtered to active township --
+  // -- Find layers for this road name --
   const normalizedKey = Object.keys(roadNameToIds)
-    .find(k => normalizeName(k) === normalizedCorrect);
+    .find(k => normalizeName(k) === normalizedCorrect) ?? correctName; // fallback
 
   let layers = nameToLayers[normalizedKey] || [];
-  layers = layers.filter(l => (l.__township || 'Manheim Township') === activeTownship);
+
+  // ❷ township filter: if a layer lacks __township, treat it as belonging to the active one
+  layers = layers.filter(l => (l.__township ?? activeTownship) === activeTownship);
 
   if (!layers.length) {
     console.warn('[give-up] no layers for', normalizedCorrect, 'in', activeTownship);
@@ -2930,11 +2933,11 @@ document.getElementById('give-up').onclick = async function () {
 
   const segmentIds = layers.map(l => String(l.feature.id));
 
-  // -- Count attempts for this road name --
-  attemptCounts[normalizedCorrect] = (attemptCounts[normalizedCorrect] || 0) + 1;
+  // -- Count attempts for THIS township+name --
+  attemptCounts[attemptKey] = (attemptCounts[attemptKey] || 0) + 1;
 
   // -- 4th give-up: show hint (first letter), keep modal alive --
-  if (attemptCounts[normalizedCorrect] === 4 && !currentRoad.hintGiven) {
+  if (attemptCounts[attemptKey] === 4 && !currentRoad.hintGiven) {
     currentRoad.hintGiven = true;
 
     const firstLetter = correctName.charAt(0).toUpperCase();
@@ -2946,21 +2949,28 @@ document.getElementById('give-up').onclick = async function () {
 
     document.getElementById('submit-guess')?.removeAttribute('disabled');
     document.getElementById('give-up')?.removeAttribute('disabled');
-    return; // wait for next click
+    return; // wait for next action
   }
 
   // -- 5th+ give-up: final reveal (orange + lock + persist) --
-  if (attemptCounts[normalizedCorrect] >= 5) {
-    revealOrangeAndLock(layers, normalizedCorrect, correctName);
-    return; // stop
+  if (attemptCounts[attemptKey] >= 5) {
+    // pass exactly what orange reveal needs; avoid relying on globals implicitly
+    revealOrangeAndLock(layers, normalizedCorrect, correctName, {
+      township: activeTownship,
+      segmentIds
+    });
+    return;
   }
 
   // -- Pre-hint give-up (1st..3rd): paint RED, leave interactive, persist "incorrect" --
+  // ❸ keep style consistent; do NOT try to move panes here
   for (const layer of layers) {
-    layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+    layer.setStyle({ color: 'red', weight: 4, opacity: 1 }); // was weight: 6
     layer.__originalColor = 'red';
-    setSegmentsState([layer.feature.id], { incorrect: true });
   }
+
+  // batch-set local state once (lighter than per-segment in a loop)
+  setSegmentsState(segmentIds, { incorrect: true });
 
   // single normalized row (not per-segment)
   recordGuessNormalized({
@@ -2971,14 +2981,13 @@ document.getElementById('give-up').onclick = async function () {
     layers
   });
 
-  // keep your legacy storage if you still want it
   if (currentUserId) {
     await saveGuessSegmentIds(segmentIds, false, /* usedHint */ false);
   } else {
     savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: false });
   }
 
-  // local per-segment cache
+  // local cache for quick lookups
   for (const id of segmentIds) {
     segmentStateMap.set(String(id), { correct: false, used_hint: false, incorrect: true });
   }
@@ -2986,7 +2995,7 @@ document.getElementById('give-up').onclick = async function () {
   const msg = document.getElementById('feedback-message');
   if (msg) { msg.innerText = 'Incorrect'; msg.style.color = 'orange'; }
 
-  // close immediately on red
+  // Close immediately on red (your current UX)
   setTimeout(() => {
     const modal = document.getElementById('guess-modal');
     if (modal) modal.style.display = 'none';
