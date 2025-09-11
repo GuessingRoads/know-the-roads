@@ -674,34 +674,38 @@ async function ensureRoad(scopeId, normalizedName, displayName) {
 }
 // === Rehydrate any segments stuck as black but logically "incorrect" ===
 function rehydrateStuckSegments() {
-  const allLayers = Object.values(nameToLayers || {}).flat();
-  for (const layer of allLayers) {
+  const all = Object.values(nameToLayers || {}).flat();
+  for (const layer of all) {
     const id = String(layer?.feature?.id ?? '');
     if (!id) continue;
 
     const st = segmentStateMap.get(id);
 
-    // If legacy code locked the layer but it's not correct/hint, unlock it.
-    if (layer.options && layer.options.interactive === false && !(st?.correct || st?.used_hint)) {
-      layer.options.interactive = true;
-    }
-    if (layer.__locked && !(st?.correct || st?.used_hint)) {
-      layer.__locked = false;
+    // 🔧 If it’s NOT correct/giveup, it must not be "solved"
+    if (!(st?.correct || st?.giveup || st?.locked)) {
+      layer.__solved = false;                // ← force clear
+      layer.options.interactive = true;      // ← re-enable click
     }
 
-    // If state says incorrect, make it visibly red & clickable.
-    if (st?.incorrect && !st.correct && !st.used_hint) {
+    // Paint by state
+    if (st?.incorrect && !st.correct && !st.giveup) {
       layer.setStyle({ color: 'red', weight: 4, opacity: 1 });
       layer.__originalColor = 'red';
       layer.options.interactive = true;
-    }
-
-    // Baseline: if no state tracked, ensure it’s clickable.
-    if (!st) {
-      layer.options.interactive = true;
+    } else if (st?.giveup) {
+      layer.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
+      layer.__originalColor = 'orange';
+      layer.options.interactive = false;
+      layer.__solved = true;
+    } else if (st?.correct) {
+      layer.setStyle({ color: '#009944', weight: 4, opacity: 0.7 });
+      layer.__originalColor = 'green';
+      layer.options.interactive = false;
+      layer.__solved = true;
     }
   }
 }
+
 
 async function upsertWaysAndJoin(roadId, ids, displayName) {
   if (!ids || !ids.length) return;
