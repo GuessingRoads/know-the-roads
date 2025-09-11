@@ -1679,6 +1679,13 @@ segLayer.on('click', () => {
 
     roadsLayerByTownship.set(name, roadsLayer);
     map.addLayer(roadsLayer);
+    // TEMP: log any click that reaches the GeoJSON group
+roadsLayer.on('click', (e) => {
+  console.log('ROADSLAYER click bubbled', {
+    id: String(e.layer?.feature?.id ?? ''),
+    targetClass: e.originalEvent?.target?.className?.baseVal || e.originalEvent?.target?.className
+  });
+});
     roadsLayer.eachLayer(l => {
   console.log('Road debug:', {
     id: String(l.feature.id),
