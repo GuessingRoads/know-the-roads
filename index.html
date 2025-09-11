@@ -1658,6 +1658,16 @@ const RoadsManager = {
 
     roadsLayerByTownship.set(name, roadsLayer);
     map.addLayer(roadsLayer);
+    roadsLayer.eachLayer(l => {
+  console.log('Road debug:', {
+    id: String(l.feature.id),
+    color: l.options.color,
+    interactive: l.options.interactive,
+    pane: l.options.pane,
+    solved: l.__solved
+  });
+});
+
     rehydrateStuckSegments();
 
     // restore solved styling for this signed-in user in this township
