@@ -1680,6 +1680,43 @@ const RoadsManager = {
       onEachFeature: onEach,
       pane: 'clickable-buffer'
     });
+// Fallback: handle clicks at the GeoJSON group level for any child path
+roadsLayer.on('click', (e) => {
+  const l = e.layer || e.propagatedFrom || e.target; // clicked child layer
+  const feature = l?.feature || e.layer?.feature || e.target?.feature;
+  const fid = String(feature?.id ?? '');
+  const roadName = (feature?.properties?.name || '').trim();
+
+  // guard if something is missing
+  if (!fid || !roadName) return;
+
+  // make sure we respect current township and solved state
+  const solved = !!l.__solved;
+  if (solved || activeTownship !== name) {
+    console.log('GROUP CLICK blocked', { fid, solved, activeTownship, handlerTownship: name });
+    return;
+  }
+
+  console.log('GROUP CLICK opening modal', { fid, roadName });
+
+  currentRoad  = { name: roadName, id: fid, hintGiven: false };
+  currentRoad2 = currentRoad;
+
+  if (typeof window.openGuessModal === 'function') {
+    window.openGuessModal(l, roadName, feature, name);
+  } else if (typeof openGuessModal === 'function') {
+    openGuessModal(l, roadName, feature, name);
+  } else if (typeof showGuessModal === 'function') {
+    showGuessModal(l, roadName, feature, name);
+  } else {
+    const modal = document.getElementById('guess-modal');
+    if (modal) {
+      modal.style.display = 'block';
+      const input = modal.querySelector('#guess-input, input');
+      if (input) { input.value = ''; input.focus(); }
+    }
+  }
+});
 
     roadsLayerByTownship.set(name, roadsLayer);
     map.addLayer(roadsLayer);
