@@ -1623,7 +1623,16 @@ const RoadsManager = {
 
       // CLICK
       segLayer.on('click', () => {
-        if (segLayer.__solved || activeTownship !== name) return;
+  if (segLayer.__solved || activeTownship !== name) {
+    console.log('Click blocked', {
+      id: String(segLayer.feature.id),
+      color: segLayer.options.color,
+      interactive: segLayer.options.interactive,
+      solved: segLayer.__solved,
+      state: segmentStateMap.get(String(segLayer.feature.id))
+    });
+    return;
+  }
         currentRoad  = { name: roadName, id: String(feature.id), hintGiven: false };
         currentRoad2 = currentRoad;
 
