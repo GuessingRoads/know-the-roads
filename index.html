@@ -1647,13 +1647,23 @@ const RoadsManager = {
         handlerTownship: name
       });
 
-      if (l.__solved || activeTownship !== name) {
-        console.log('SEG CLICK blocked by guard', {
-          reasonSolved: !!l.__solved,
-          reasonTownshipMismatch: activeTownship !== name
-        });
-        return;
-      }
+      const sid = String(segLayer.feature.id);
+      const st  = segmentStateMap.get(sid);
+      const locked =
+  !!segLayer.__solved || !!st?.correct || !!st?.giveup || !!st?.locked;
+
+if (locked || activeTownship !== name) {
+  console.log('SEG CLICK blocked by guard', {
+    id: sid,
+    reasonSolvedFlag: !!segLayer.__solved,
+    reasonCorrect: !!st?.correct,
+    reasonGiveup: !!st?.giveup,
+    reasonLocked: !!st?.locked,
+    reasonTownshipMismatch: activeTownship !== name
+  });
+  return;
+}
+
 
       console.log('SEG CLICK allowed → opening modal', {
         id: String(l.feature.id),
@@ -1694,12 +1704,24 @@ roadsLayer.on('click', (e) => {
   // guard if something is missing
   if (!fid || !roadName) return;
 
-  // make sure we respect current township and solved state
-  const solved = !!l.__solved;
-  if (solved || activeTownship !== name) {
-    console.log('GROUP CLICK blocked', { fid, solved, activeTownship, handlerTownship: name });
-    return;
-  }
+  // make sure we respect current township and lock state
+const sid = String(l?.feature?.id ?? feature?.id ?? fid);
+const st  = segmentStateMap.get(sid);
+const locked =
+  !!l?.__solved || !!st?.correct || !!st?.giveup || !!st?.locked;
+
+if (locked || activeTownship !== name) {
+  console.log('GROUP CLICK blocked', {
+    fid: sid,
+    reasonSolvedFlag: !!l?.__solved,
+    reasonCorrect: !!st?.correct,
+    reasonGiveup: !!st?.giveup,
+    reasonLocked: !!st?.locked,
+    reasonTownshipMismatch: activeTownship !== name
+  });
+  return;
+}
+
 
   console.log('GROUP CLICK opening modal', { fid, roadName });
 
