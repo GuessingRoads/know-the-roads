@@ -975,6 +975,16 @@ function removeHintOverlay(layer) {
     if (layer.__hintOverlay) { map.removeLayer(layer.__hintOverlay); layer.__hintOverlay = null; }
   } catch {}
 }
+async function waitForAuthUser(timeoutMs = 3000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const { data: { user } = { user: null } } = await supabase.auth.getUser();
+    if (user) return user;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return null;
+}
+
 function armSolvedSegmentsForReentry() {
   try {
     if (!roadsLayerGroup) return;
@@ -1532,6 +1542,14 @@ const RoadsManager = {
       // ⛔ don't re-enable solved segments
       existing.eachLayer(l => { if (!l.__solved) l.options.interactive = true; });
       rehydrateStuckSegments();
+      const u = await waitForAuthUser();
+if (u) {
+  await applySolvedFromDBForTownship(name);
+} else {
+  // No user yet; try again shortly so orange/green don’t get overwritten by local red.
+  setTimeout(() => applySolvedFromDBForTownship(name), 600);
+}
+
       // in case auth state changed, re-apply solved styling
       applySolvedFromDBForTownship(name);
       return;
@@ -1764,6 +1782,14 @@ roadsLayer.on('click', (e) => {
 });
 
     rehydrateStuckSegments();
+    const u = await waitForAuthUser();
+if (u) {
+  await applySolvedFromDBForTownship(name);
+} else {
+  // No user yet; try again shortly so orange/green don’t get overwritten by local red.
+  setTimeout(() => applySolvedFromDBForTownship(name), 600);
+}
+
 
     // restore solved styling for this signed-in user in this township
     applySolvedFromDBForTownship(name); // no await
