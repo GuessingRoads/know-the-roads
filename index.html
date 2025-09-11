@@ -1686,6 +1686,15 @@ const RoadsManager = {
     }
   }
 };
+map.on('click', (e) => {
+  const ev = e.originalEvent;
+  // who did the browser think was under the cursor?
+  const el = document.elementFromPoint(ev.clientX, ev.clientY);
+  const path = (ev.composedPath && ev.composedPath()) || [];
+  console.log('[MAP CLICK] target:', el?.className,
+              '\nfirst-in-path:', path[0]?.className,
+              '\npathHead:', path.slice(0,6).map(n => n.className || n.id));
+});
 
 
 
