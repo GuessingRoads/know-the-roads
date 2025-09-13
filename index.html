@@ -1544,6 +1544,7 @@ const RoadsManager = {
     const existing = roadsLayerByTownship.get(name);
     if (existing) {
       if (!map.hasLayer(existing)) map.addLayer(existing);
+      clearForTownship(existing);   // ← add this line
       // ⛔ don't re-enable solved segments
       existing.eachLayer(l => { if (!l.__solved) l.options.interactive = true; });
       const u = await waitForAuthUser();
@@ -1768,6 +1769,22 @@ if (locked || activeTownship !== name) {
 
     roadsLayerByTownship.set(name, roadsLayer);
     map.addLayer(roadsLayer);
+    // 🔧 baseline reset so roads start clickable (no styling changes)
+const clearForTownship = (lyrOrGroup) => {
+  (typeof lyrOrGroup.eachLayer === 'function' ? lyrOrGroup.getLayers() : [lyrOrGroup])
+    .forEach(l => {
+      // only touch layers for this township
+      if ((l.__township || 'Manheim Township') !== name) return;
+
+      l.__solved = false;                // clear stale locks
+      l.options.interactive = true;      // allow clicks
+      const sid = String(l?.feature?.id ?? '');
+      if (sid) segmentStateMap.delete(sid); // clear any leftover state that could block
+    });
+};
+
+clearForTownship(roadsLayer);
+
     // TEMP: log any click that reaches the GeoJSON group
 roadsLayer.on('click', (e) => {
   console.log('ROADSLAYER click bubbled', {
