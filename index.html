@@ -745,6 +745,18 @@ async function recordGuessNormalized({ township, normalizedName, displayName, st
 }
 // Restore latest state for this user in the township: red / orange / green
 async function applySolvedFromDBForTownship(township) {
+  console.log('[rehydrate] start', { township });
+
+const sbUrl =
+  (supabase?.rest && supabase.rest.url) ||
+  (supabase?.auth && supabase.auth.url && supabase.auth.url.href) ||
+  '(unknown)';
+console.log('[rehydrate] supabase URL', sbUrl);
+
+const { data: { user } = { user: null } } = await supabase.auth.getUser();
+console.log('[rehydrate] user', user?.id || null);
+if (!user) console.log('[rehydrate] NOTE: no user yet, DB branch will be a no-op');
+
   try {
     const { data: { user } = { user: null } } = await supabase.auth.getUser();
     if (!user) return;
