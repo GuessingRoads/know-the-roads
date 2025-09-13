@@ -762,12 +762,16 @@ if (!user) console.log('[rehydrate] NOTE: no user yet, DB branch will be a no-op
     if (!user) return;
 
     const scopeId = await ensureScope({ type: 'township', township });
+    console.log('[rehydrate] scopeId', scopeId, 'township=', JSON.stringify(township));
+
 
     // All roads for this scope (id -> normalized_name)
     const { data: roads } = await supabase
       .from('roads')
       .select('id, normalized_name')
       .eq('scope_id', scopeId);
+      console.log('[rehydrate] roads count', roads?.length ?? 0);
+
 
     if (!roads?.length) return;
 
@@ -781,6 +785,9 @@ if (!user) console.log('[rehydrate] NOTE: no user yet, DB branch will be a no-op
       .eq('user_id', user.id)
       .in('road_id', roadIds)
       .order('created_at', { ascending: false });
+      console.log('[rehydrate] guesses count', guesses?.length ?? 0);
+if (guesses?.length) console.table(guesses.slice(0, 8));
+
 
     if (!guesses?.length) return;
 
