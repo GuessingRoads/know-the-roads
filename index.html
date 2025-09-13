@@ -672,39 +672,7 @@ async function ensureRoad(scopeId, normalizedName, displayName) {
   if (error) throw error;
   return data.id;
 }
-// === Rehydrate any segments stuck as black but logically "incorrect" ===
-function rehydrateStuckSegments() {
-  const all = Object.values(nameToLayers || {}).flat();
-  for (const layer of all) {
-    const id = String(layer?.feature?.id ?? '');
-    if (!id) continue;
 
-    const st = segmentStateMap.get(id);
-
-    // 🔧 If it’s NOT correct/giveup, it must not be "solved"
-    if (!(st?.correct || st?.giveup || st?.locked)) {
-      layer.__solved = false;                // ← force clear
-      layer.options.interactive = true;      // ← re-enable click
-    }
-
-    // Paint by state
-    if (st?.incorrect && !st.correct && !st.giveup) {
-      layer.setStyle({ color: 'red', weight: 4, opacity: 1 });
-      layer.__originalColor = 'red';
-      layer.options.interactive = true;
-    } else if (st?.giveup) {
-      layer.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
-      layer.__originalColor = 'orange';
-      layer.options.interactive = false;
-      layer.__solved = true;
-    } else if (st?.correct) {
-      layer.setStyle({ color: '#009944', weight: 4, opacity: 0.7 });
-      layer.__originalColor = 'green';
-      layer.options.interactive = false;
-      layer.__solved = true;
-    }
-  }
-}
 function resetTownshipVisualState(township) {
   // flatten all layers for this township
   const all = Object.values(nameToLayers || {}).flat().filter(l => (l.__township || 'Manheim Township') === township);
@@ -1578,7 +1546,6 @@ const RoadsManager = {
       if (!map.hasLayer(existing)) map.addLayer(existing);
       // ⛔ don't re-enable solved segments
       existing.eachLayer(l => { if (!l.__solved) l.options.interactive = true; });
-      rehydrateStuckSegments();
       const u = await waitForAuthUser();
 if (u) {
   await applySolvedFromDBForTownship(name);
@@ -1818,7 +1785,6 @@ roadsLayer.on('click', (e) => {
   });
 });
 
-    rehydrateStuckSegments();
     const u = await waitForAuthUser();
 if (u) {
   await applySolvedFromDBForTownship(name);
