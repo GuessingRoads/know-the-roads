@@ -705,6 +705,22 @@ function rehydrateStuckSegments() {
     }
   }
 }
+function resetTownshipVisualState(township) {
+  // flatten all layers for this township
+  const all = Object.values(nameToLayers || {}).flat().filter(l => (l.__township || 'Manheim Township') === township);
+
+  for (const layer of all) {
+    // baseline visuals
+    layer.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 });
+    layer.__originalColor = BASE_ROAD_COLOR;
+    layer.options.interactive = true;
+    layer.__solved = false;
+
+    // clear local per-segment state
+    const sid = String(layer?.feature?.id ?? '');
+    if (sid) segmentStateMap.delete(sid);
+  }
+}
 
 
 async function upsertWaysAndJoin(roadId, ids, displayName) {
@@ -760,6 +776,8 @@ if (!user) console.log('[rehydrate] NOTE: no user yet, DB branch will be a no-op
   try {
     const { data: { user } = { user: null } } = await supabase.auth.getUser();
     if (!user) return;
+      // DB is the source of truth: wipe any stale local/pre-login paint first
+      resetTownshipVisualState(township);
 
     const scopeId = await ensureScope({ type: 'township', township });
     console.log('[rehydrate] scopeId', scopeId, 'township=', JSON.stringify(township));
