@@ -809,19 +809,25 @@ if (guesses?.length) console.table(guesses.slice(0, 8));
           break;
         }
         case 'giveup': { // final reveal → orange & locked
-          for (const lyr of layers) {
-            if (typeof drawHintOverlay === 'function') {
-              drawHintOverlay(lyr);
-            } else {
-              lyr.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
-            }
-            lyr.__originalColor = 'orange';
-            disableSegmentInteractivity(lyr);
-            segmentStateMap.set(String(lyr.feature.id), { giveup: true, locked: true, used_hint: true });
+  for (const lyr of layers) {
+    // Always paint the base path orange first (visible at any zoom)
+    lyr.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
+    lyr.__originalColor = 'orange';
+
+    // Optional: add overlay on top, but don't rely on it for color
+    if (typeof drawHintOverlay === 'function') {
+      try { drawHintOverlay(lyr); } catch (e) { console.warn('drawHintOverlay failed', e); }
+    }
+
+     // Lock interaction
+     disableSegmentInteractivity(lyr);
+     lyr.__solved = true;
+         segmentStateMap.set(String(lyr.feature.id), { giveup: true, locked: true, used_hint: true });
           }
           if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
-          break;
+         break;
         }
+
         case 'incorrect': { // stays red but still interactive
           for (const lyr of layers) {
             lyr.setStyle({ color: 'red', weight: 4, opacity: 1, pane: 'clickable-buffer' });
@@ -842,32 +848,25 @@ function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) 
   const segmentIds = layers.map(l => String(l.feature.id));
 
   for (const layer of layers) {
-    if (typeof drawHintOverlay === 'function') {
-      drawHintOverlay(layer);
-    } else {
-      layer.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
-    }
+    // Always color the base path
+    layer.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
     layer.__originalColor = 'orange';
-    layer.__solved = true;
 
-    // mark as locked in local state
-    segmentStateMap.set(String(layer.feature.id), {
-      correct: false,
-      used_hint: true,
-      locked: true,
-      giveup: true
-    });
+    // Optional overlay
+    if (typeof drawHintOverlay === 'function') {
+      try { drawHintOverlay(layer); } catch (e) { console.warn('drawHintOverlay failed', e); }
+    }
 
+    // Lock it
     disableSegmentInteractivity(layer);
+    layer.__solved = true;
+    segmentStateMap.set(String(layer.feature.id), { giveup: true, locked: true, used_hint: true });
   }
 
-  if (typeof removeMatchingBuffers === 'function') {
-    removeMatchingBuffers(segmentIds);
-  }
+  if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
 
-  // 🔹 persist with a distinct status
   recordGuessNormalized({
-    township: opts.township || activeTownship,
+    township: opts?.township || activeTownship,
     normalizedName: normalizedCorrect,
     displayName: correctName,
     status: 'giveup',
@@ -880,13 +879,14 @@ function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) 
     savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: true });
   }
 
-  // 🔹 close the modal now
+  // Close modal
   const modal = document.getElementById('guess-modal');
   if (modal) modal.style.display = 'none';
   const msg = document.getElementById('feedback-message');
   if (msg) msg.innerText = '';
   currentRoad = null;
 }
+
 
 
 
