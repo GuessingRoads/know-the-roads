@@ -1615,7 +1615,15 @@ if (u) {
   }
 
   const roadName = (feature?.properties?.name || '').trim();
-
+// 👇 add this helper once per onEach
+  function styleFromOriginal(layer) {
+    switch (layer.__originalColor) {
+      case 'red':     return { color: 'red',      weight: BASE_ROAD_WEIGHT, opacity: 1 };
+      case 'orange':  return { color: '#ff8800',  weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+      case 'green':   return { color: '#009944',  weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+      default:        return { color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 };
+    }
+  }
   for (const l of children) {
     // Ensure each child is interactive and carries the feature ref
     l.options.interactive = true;
@@ -1634,35 +1642,44 @@ if (u) {
       (nameToLayers[roadName] || []).filter(x => x.__township === name);
 
     // HOVER
-    l.on('mouseover', () => {
-      const sid = String(l.feature.id);
-      const st  = segmentStateMap.get(sid);
-      const locked = !!l.__solved || st?.correct || st?.giveup || st?.locked;
-      if (locked || activeTownship !== name) return;
+l.on('mouseover', () => {
+  const sid = String(l.feature.id);
+  const st  = segmentStateMap.get(sid);
+  const locked = !!l.__solved || st?.correct || st?.giveup || st?.locked;
+  if (locked || activeTownship !== name) return;
 
-      for (const m of matchingLayers()) {
-        if (m.__solved) continue;
-        if (!m.__prevHoverStyle) {
-          m.__prevHoverStyle = { color: m.options.color, weight: m.options.weight };
-        }
-        m.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
-      }
-    });
+  for (const m of matchingLayers()) {
+    if (m.__solved) continue;
+
+    // save once per hover cycle
+    if (!m.__hoverSaved) {
+      m.__hoverSaved = true;
+      m.__savedHoverStyle = { color: m.options.color, weight: m.options.weight, opacity: m.options.opacity };
+    }
+
+    m.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 });
+  }
+});
 
     // MOUSEOUT
-    l.on('mouseout', () => {
-      if (l.__solved) return;
-      for (const m of matchingLayers()) {
-        if (m.__solved) continue;
-        const prev = m.__prevHoverStyle;
-        if (prev) {
-          m.setStyle(prev);
-          m.__prevHoverStyle = null;
-        } else {
-          m.setStyle({ color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT });
-        }
-      }
-    });
+l.on('mouseout', () => {
+  // Restore each segment deterministically
+  for (const m of matchingLayers()) {
+    if (m.__solved) continue;
+
+    if (m.__hoverSaved && m.__savedHoverStyle) {
+      // Prefer the exact saved style if present
+      m.setStyle(m.__savedHoverStyle);
+    } else {
+      // Fallback to the semantic original color (prevents black flicker)
+      m.setStyle(styleFromOriginal(m));
+    }
+
+    // clear hover save
+    m.__hoverSaved = false;
+    m.__savedHoverStyle = null;
+  }
+});
 
     // CLICK
     l.on('click', () => {
