@@ -1606,23 +1606,25 @@ if (u) {
     });
 
     const onEach = (feature, segLayer) => {
-  // Normalize: some features are MultiLineString/GeometryCollection → Leaflet wraps children
-  const leafLayers = [];
+  // Normalize: collect the actual clickable leaf layers
+  const children = [];
   if (typeof segLayer.eachLayer === 'function') {
-    segLayer.eachLayer((child) => leafLayers.push(child));
+    segLayer.eachLayer(c => children.push(c));        // MultiLineString / GeometryCollection
   } else {
-    leafLayers.push(segLayer);
+    children.push(segLayer);                          // LineString
   }
 
   const roadName = (feature?.properties?.name || '').trim();
 
-  for (const l of leafLayers) {
-    // ensure each child is interactive and tagged
+  for (const l of children) {
+    // Ensure each child is interactive and carries the feature ref
     l.options.interactive = true;
-    l.__township = name;
-    if (!l.feature) l.feature = feature; // child may not carry feature ref
+    if (!l.feature) l.feature = feature;
 
-    // register in caches per child layer
+    // Tag township so filters work later
+    l.__township = name;
+
+    // Register each child in your lookup caches
     if (roadName) {
       (nameToLayers[roadName] ||= []).push(l);
       (roadNameToIds[roadName] ||= []).push(String(feature.id));
@@ -1633,7 +1635,11 @@ if (u) {
 
     // HOVER
     l.on('mouseover', () => {
-      if (l.__solved || activeTownship !== name) return;
+      const sid = String(l.feature.id);
+      const st  = segmentStateMap.get(sid);
+      const locked = !!l.__solved || st?.correct || st?.giveup || st?.locked;
+      if (locked || activeTownship !== name) return;
+
       for (const m of matchingLayers()) {
         if (m.__solved) continue;
         if (!m.__prevHoverStyle) {
@@ -1658,42 +1664,16 @@ if (u) {
       }
     });
 
-    // CLICK (instrumented)
+    // CLICK
     l.on('click', () => {
-      console.log('SEG CLICK start', {
-        id: String(l.feature.id),
-        color: l.options.color,
-        interactive: l.options.interactive,
-        solved: !!l.__solved,
-        state: segmentStateMap.get(String(l.feature.id)),
-        activeTownshipNow: activeTownship,
-        handlerTownship: name
-      });
-
-      const sid = String(segLayer.feature.id);
+      const sid = String(l.feature.id);
       const st  = segmentStateMap.get(sid);
       const locked =
-  !!segLayer.__solved || !!st?.correct || !!st?.giveup || !!st?.locked;
+        !!l.__solved || !!st?.correct || !!st?.giveup || !!st?.locked;
 
-if (locked || activeTownship !== name) {
-  console.log('SEG CLICK blocked by guard', {
-    id: sid,
-    reasonSolvedFlag: !!segLayer.__solved,
-    reasonCorrect: !!st?.correct,
-    reasonGiveup: !!st?.giveup,
-    reasonLocked: !!st?.locked,
-    reasonTownshipMismatch: activeTownship !== name
-  });
-  return;
-}
+      if (locked || activeTownship !== name) return;
 
-
-      console.log('SEG CLICK allowed → opening modal', {
-        id: String(l.feature.id),
-        roadName
-      });
-
-      currentRoad  = { name: roadName, id: String(feature.id), hintGiven: false };
+      currentRoad  = { name: roadName, id: sid, hintGiven: false };
       currentRoad2 = currentRoad;
 
       if (typeof window.openGuessModal === 'function')      window.openGuessModal(l, roadName, feature, name);
@@ -1710,6 +1690,7 @@ if (locked || activeTownship !== name) {
     });
   }
 };
+
 
 
     const roadsLayer = L.geoJSON(geo, {
