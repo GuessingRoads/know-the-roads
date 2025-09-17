@@ -1663,23 +1663,34 @@ l.on('mouseover', () => {
 
     // MOUSEOUT
 l.on('mouseout', () => {
-  // Restore each segment deterministically
   for (const m of matchingLayers()) {
-    if (m.__solved) continue;
-
-    if (m.__hoverSaved && m.__savedHoverStyle) {
-      // Prefer the exact saved style if present
-      m.setStyle(m.__savedHoverStyle);
-    } else {
-      // Fallback to the semantic original color (prevents black flicker)
-      m.setStyle(styleFromOriginal(m));
+    if (m.__solved) {
+      // keep restoring style, but we'll re-evaluate lock below
+      // (some children may have stale __solved)
     }
 
-    // clear hover save
+    // restore style
+    if (m.__hoverSaved && m.__savedHoverStyle) {
+      m.setStyle(m.__savedHoverStyle);
+    } else {
+      m.setStyle(styleFromOriginal(m));
+    }
     m.__hoverSaved = false;
     m.__savedHoverStyle = null;
+
+    // 🔧 NEW: if this segment is NOT truly locked (green/orange),
+    // force it to be clickable after focus changes.
+    const sid = String(m.feature.id);
+    const st  = segmentStateMap.get(sid);
+    const hardLocked = !!st?.correct || !!st?.giveup || !!st?.locked;
+
+    if (!hardLocked) {
+      m.__solved = false;          // clear any stray solve flag
+      m.options.interactive = true; // ensure clicks work for red
+    }
   }
 });
+
 
     // CLICK
     l.on('click', () => {
