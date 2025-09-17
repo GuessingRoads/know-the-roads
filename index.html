@@ -1640,6 +1640,14 @@ if (u) {
 
     const matchingLayers = () =>
       (nameToLayers[roadName] || []).filter(x => x.__township === name);
+function styleFromState(layer) {
+  const sid = String(layer.feature.id);
+  const st  = segmentStateMap.get(sid) || {};
+  if (st.correct)  return { color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+  if (st.giveup)   return { color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+  if (st.incorrect)return { color: 'red',      weight: BASE_ROAD_WEIGHT, opacity: 1 };
+  return { color: BASE_ROAD_COLOR,            weight: BASE_ROAD_WEIGHT, opacity: 1 };
+}
 
     // HOVER
 l.on('mouseover', () => {
@@ -1664,32 +1672,25 @@ l.on('mouseover', () => {
     // MOUSEOUT
 l.on('mouseout', () => {
   for (const m of matchingLayers()) {
-    if (m.__solved) {
-      // keep restoring style, but we'll re-evaluate lock below
-      // (some children may have stale __solved)
-    }
+    // restore the exact style from STATE first; if no state yet, fall back to savedHover → then base
+    const sid = String(m.feature.id);
+    const st  = segmentStateMap.get(sid) || {};
 
-    // restore style
     if (m.__hoverSaved && m.__savedHoverStyle) {
       m.setStyle(m.__savedHoverStyle);
     } else {
-      m.setStyle(styleFromOriginal(m));
+      m.setStyle(styleFromState(m));
     }
     m.__hoverSaved = false;
     m.__savedHoverStyle = null;
 
-    // 🔧 NEW: if this segment is NOT truly locked (green/orange),
-    // force it to be clickable after focus changes.
-    const sid = String(m.feature.id);
-    const st  = segmentStateMap.get(sid);
-    const hardLocked = !!st?.correct || !!st?.giveup || !!st?.locked;
-
-    if (!hardLocked) {
-      m.__solved = false;          // clear any stray solve flag
-      m.options.interactive = true; // ensure clicks work for red
-    }
+    // sync lock + interactivity with STATE (not with stale __solved/originalColor)
+    const hardLocked = !!st.correct || !!st.giveup || !!st.locked;
+    m.__solved = hardLocked;
+    m.options.interactive = !hardLocked;   // red stays clickable, green/orange stay locked
   }
 });
+
 
 
     // CLICK
