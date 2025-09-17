@@ -3185,7 +3185,7 @@ document.getElementById('give-up').onclick = async function () {
   // -- Pre-hint give-up (1st..3rd): paint RED, leave interactive, persist "incorrect" --
   // ❸ keep style consistent; do NOT try to move panes here
   for (const layer of layers) {
-    layer.setStyle({ color: 'red', weight: 4, opacity: 1 }); // was weight: 6
+    layer.setStyle({ color: 'red', weight: 6, opacity: 1 }); // was weight: 6
     layer.__originalColor = 'red';
   }
 
