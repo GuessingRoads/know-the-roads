@@ -800,7 +800,7 @@ if (guesses?.length) console.table(guesses.slice(0, 8));
       switch (g.status) {
         case 'correct': {
           for (const lyr of layers) {
-            lyr.setStyle({ color: '#009944', weight: 4, opacity: 0.7 });
+            lyr.setStyle({ color: '#009944', weight: 6, opacity: 0.7 });
             lyr.__originalColor = 'green';
             disableSegmentInteractivity(lyr);
             segmentStateMap.set(String(lyr.feature.id), { correct: true });
@@ -811,7 +811,7 @@ if (guesses?.length) console.table(guesses.slice(0, 8));
         case 'giveup': { // final reveal → orange & locked
   for (const lyr of layers) {
     // Always paint the base path orange first (visible at any zoom)
-    lyr.setStyle({ color: '#ff8800', weight: 4, opacity: 1 });
+    lyr.setStyle({ color: '#ff8800', weight: 6, opacity: .7 });
     lyr.__originalColor = 'orange';
 
     // Optional: add overlay on top, but don't rely on it for color
@@ -830,7 +830,7 @@ if (guesses?.length) console.table(guesses.slice(0, 8));
 
         case 'incorrect': { // stays red but still interactive
           for (const lyr of layers) {
-            lyr.setStyle({ color: 'red', weight: 4, opacity: 1, pane: 'clickable-buffer' });
+            lyr.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
             lyr.__originalColor = 'red';
             lyr.options.interactive = true;
             segmentStateMap.set(String(lyr.feature.id), { incorrect: true });
@@ -849,7 +849,7 @@ function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) 
 
   for (const layer of layers) {
     // Always color the base path
-    layer.setStyle({ color: '#ff8800', weight: 4, opacity: .7 });
+    layer.setStyle({ color: '#ff8800', weight: 6, opacity: .7 });
     layer.__originalColor = 'orange';
 
     // Optional overlay
