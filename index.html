@@ -1694,12 +1694,9 @@ l.on('mouseout', () => {
 
     // CLICK
     l.on('click', () => {
-      const sid = String(l.feature.id);
-      const st  = segmentStateMap.get(sid);
-      const locked =
-        !!l.__solved || !!st?.correct || !!st?.giveup || !!st?.locked;
-
+      const locked = !!l.__solved;
       if (locked || activeTownship !== name) return;
+
 
       currentRoad  = { name: roadName, id: sid, hintGiven: false };
       currentRoad2 = currentRoad;
@@ -1737,22 +1734,12 @@ roadsLayer.on('click', (e) => {
   if (!fid || !roadName) return;
 
   // make sure we respect current township and lock state
-const sid = String(l?.feature?.id ?? feature?.id ?? fid);
-const st  = segmentStateMap.get(sid);
-const locked =
-  !!l?.__solved || !!st?.correct || !!st?.giveup || !!st?.locked;
-
+const locked = !!l?.__solved;
 if (locked || activeTownship !== name) {
-  console.log('GROUP CLICK blocked', {
-    fid: sid,
-    reasonSolvedFlag: !!l?.__solved,
-    reasonCorrect: !!st?.correct,
-    reasonGiveup: !!st?.giveup,
-    reasonLocked: !!st?.locked,
-    reasonTownshipMismatch: activeTownship !== name
-  });
+  console.log('GROUP CLICK blocked', { fid, reasonSolvedFlag: !!l?.__solved, reasonTownshipMismatch: activeTownship !== name });
   return;
 }
+
 
 
   console.log('GROUP CLICK opening modal', { fid, roadName });
