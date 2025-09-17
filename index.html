@@ -1672,24 +1672,23 @@ l.on('mouseover', () => {
     // MOUSEOUT
 l.on('mouseout', () => {
   for (const m of matchingLayers()) {
-    // restore the exact style from STATE first; if no state yet, fall back to savedHover → then base
-    const sid = String(m.feature.id);
-    const st  = segmentStateMap.get(sid) || {};
-
+    // restore style exactly as it was before hover
     if (m.__hoverSaved && m.__savedHoverStyle) {
       m.setStyle(m.__savedHoverStyle);
     } else {
-      m.setStyle(styleFromState(m));
+      // fall back to the semantic original color (set when you painted red/orange/green)
+      m.setStyle(styleFromOriginal(m));
     }
+
+    // clear hover bookkeeping
     m.__hoverSaved = false;
     m.__savedHoverStyle = null;
 
-    // sync lock + interactivity with STATE (not with stale __solved/originalColor)
-    const hardLocked = !!st.correct || !!st.giveup || !!st.locked;
-    m.__solved = hardLocked;
-    m.options.interactive = !hardLocked;   // red stays clickable, green/orange stay locked
+    // IMPORTANT: do NOT touch locks or interactivity here.
+    // No m.__solved changes, no m.options.interactive changes.
   }
 });
+
 
 
 
