@@ -848,23 +848,21 @@ function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) 
   const segmentIds = layers.map(l => String(l.feature.id));
 
   for (const layer of layers) {
-    // Always color the base path
-    layer.setStyle({ color: '#ff8800', weight: 6, opacity: .7 });
+    // paint base path orange (visible even if overlays fail)
+    layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: .7 });
     layer.__originalColor = 'orange';
+    layer.__solved = true;
+    layer.options.interactive = false;
 
-    // Optional overlay
+    // optional overlay; never rely on it for color
     if (typeof drawHintOverlay === 'function') {
       try { drawHintOverlay(layer); } catch (e) { console.warn('drawHintOverlay failed', e); }
     }
-
-    // Lock it
-    disableSegmentInteractivity(layer);
-    layer.__solved = true;
-    segmentStateMap.set(String(layer.feature.id), { giveup: true, locked: true, used_hint: true });
   }
 
   if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
 
+  // persist a single “giveup”
   recordGuessNormalized({
     township: opts?.township || activeTownship,
     normalizedName: normalizedCorrect,
@@ -873,19 +871,14 @@ function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) 
     layers
   });
 
-  if (currentUserId) {
-    saveGuessSegmentIds(segmentIds, false, /* usedHint */ true);
-  } else {
-    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: true });
-  }
-
-  // Close modal
+  // close the modal
   const modal = document.getElementById('guess-modal');
   if (modal) modal.style.display = 'none';
   const msg = document.getElementById('feedback-message');
   if (msg) msg.innerText = '';
   currentRoad = null;
 }
+
 
 
 
