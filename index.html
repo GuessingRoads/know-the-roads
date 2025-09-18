@@ -704,29 +704,30 @@ async function upsertWaysAndJoin(roadId, ids, displayName) {
 }
 
 // Single call used by Submit/Give Up
-async function recordGuessNormalized({ township, normalizedName, displayName, status, layers }) {
+async function recordGuessNormalized({ township, normalizedName, displayName, status, used_hint = false }) {
   try {
     const { data: { user } = { user: null } } = await supabase.auth.getUser();
-    if (!user) {
-      console.warn('[save skipped] not signed in');
-      return;
-    }
+    if (!user) return;
 
     const scopeId = await ensureScope({ type: 'township', township });
-    const roadId  = await ensureRoad(scopeId, normalizedName, displayName);
+    const { data: roadRow } = await supabase
+      .from('roads').select('id')
+      .eq('scope_id', scopeId)
+      .eq('normalized_name', normalizedName)
+      .limit(1).single();
+    if (!roadRow) return;
 
-    const ids = Array.from(new Set(layers.map(l => String(l.feature.id)).filter(Boolean)));
-    await upsertWaysAndJoin(roadId, ids, displayName);
-
-    await supabase.from('guesses').insert([{
-      road_id: roadId,
+    await supabase.from('guesses').insert({
+      user_id: user.id,
+      road_id: roadRow.id,
       status,
-      user_id: user.id
-    }]);
+      used_hint
+    });
   } catch (e) {
-    console.error('[normalized guess] failed', e);
+    console.error('[recordGuessNormalized] failed', e);
   }
 }
+
 // Restore latest state for this user in the township: red / orange / green
 async function applySolvedFromDBForTownship(township) {
   console.log('[rehydrate] start', { township });
@@ -2966,23 +2967,31 @@ console.log("🧠 attemptCounts =", attemptCounts);
 console.log("📌 currentRoad.id =", currentRoad.id);
 console.log("📊 attempts so far =", attemptCounts[normalizedCorrect]);
 
-if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
-  for (const l of nameToLayers[currentRoad.name] || []) {
-  const sid = String(l.feature.id);
-  segmentStateMap.set(sid, { correct: false, used_hint: true });
-}
-  currentRoad.hintGiven = true;
-  const firstLetter = correctName.charAt(0).toUpperCase();
-  console.log("🔥 HINT TRIGGERED");
-  document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
-  document.getElementById('feedback-message').style.color = 'orange';
+// -- 4th give-up: mark hint used, reveal orange, lock, persist --
+if (attemptCounts[normalizedCorrect] === 4) {
+  // make the road orange + locked now (old behavior)
+  revealOrangeAndLock(layers, normalizedCorrect, correctName, { township: activeTownship });
 
-  // Keep modal open
-  document.getElementById('guess-input').value = '';
-  document.getElementById('guess-input').focus();
+  // persist a row with used_hint = true
+  recordGuessNormalized({
+    township: activeTownship,
+    normalizedName: normalizedCorrect,
+    displayName: correctName,
+    status: 'incorrect',      // 4th was still an incorrect attempt
+    used_hint: true,          // 🔴 important
+    layers
+  });
 
-  return;
+  // (optional) pre-login path
+  if (currentUserId) {
+    await saveGuessSegmentIds(segmentIds, false, /* usedHint */ true);
+  } else {
+    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: true });
+  }
+
+  return; // stop; modal was closed by revealOrangeAndLock
 }
+
 
   // If hint was given, flag it
   if (currentRoad.hintGiven) {
@@ -3015,6 +3024,7 @@ recordGuessNormalized({
   normalizedName: normalizedCorrect,
   displayName: correctName,
   status: 'correct',
+  used_hint: wasHint,   // 🔴 add this
   layers
 });
 
@@ -3152,39 +3162,46 @@ document.getElementById('give-up').onclick = async function () {
   }
 
   // -- 5th+ give-up: final reveal (orange + lock + persist) --
-  if (attemptCounts[attemptKey] >= 5) {
-    // pass exactly what orange reveal needs; avoid relying on globals implicitly
-    revealOrangeAndLock(layers, normalizedCorrect, correctName, {
-      township: activeTownship,
-      segmentIds
-    });
-    return;
-  }
+if (attemptCounts[normalizedCorrect] >= 5) {
+  revealOrangeAndLock(layers, normalizedCorrect, correctName, { township: activeTownship });
 
-  // -- Pre-hint give-up (1st..3rd): paint RED, leave interactive, persist "incorrect" --
-  // ❸ keep style consistent; do NOT try to move panes here
-  for (const layer of layers) {
-    layer.setStyle({ color: 'red', weight: 6, opacity: 1 }); // was weight: 6
-    layer.__originalColor = 'red';
-  }
-
-  // batch-set local state once (lighter than per-segment in a loop)
-  setSegmentsState(segmentIds, { incorrect: true });
-
-  // single normalized row (not per-segment)
   recordGuessNormalized({
     township: activeTownship,
     normalizedName: normalizedCorrect,
     displayName: correctName,
-    status: 'incorrect',
+    status: 'giveup',
+    used_hint: true,          // 🔴 important
     layers
   });
 
   if (currentUserId) {
-    await saveGuessSegmentIds(segmentIds, false, /* usedHint */ false);
+    await saveGuessSegmentIds(segmentIds, false, /* usedHint */ true);
   } else {
-    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: false });
+    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: true });
   }
+  return;
+}
+
+
+// -- Pre-hint give-up (1st..3rd): paint RED, leave interactive, persist "incorrect" --
+for (const layer of layers) {
+  layer.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+  layer.__originalColor = 'red';
+}
+recordGuessNormalized({
+  township: activeTownship,
+  normalizedName: normalizedCorrect,
+  displayName: correctName,
+  status: 'incorrect',
+  used_hint: false,           // 🟢 explicit
+  layers
+});
+if (currentUserId) {
+  await saveGuessSegmentIds(segmentIds, false, /* usedHint */ false);
+} else {
+  savePreLoginGuess({ segmentIds, isCorrect: false, usedHint: false });
+}
+
 
   // local cache for quick lookups
   for (const id of segmentIds) {
