@@ -1693,26 +1693,33 @@ l.on('mouseout', () => {
 
 
     // CLICK
-    l.on('click', () => {
-      const locked = !!l.__solved;
-      if (locked || activeTownship !== name) return;
+l.on('click', () => {
+  // lock check uses only the layer flag
+  const locked = !!l.__solved;            // <-- ensure this is lowercase L, not the digit 1
+  if (locked || activeTownship !== name) return;
 
+  // use sid for currentRoad id
+  const sid = String(l.feature.id);
 
-      currentRoad  = { name: roadName, id: sid, hintGiven: false };
-      currentRoad2 = currentRoad;
+  currentRoad  = { name: roadName, id: sid, hintGiven: false };
+  currentRoad2 = currentRoad;
 
-      if (typeof window.openGuessModal === 'function')      window.openGuessModal(l, roadName, feature, name);
-      else if (typeof openGuessModal === 'function')        openGuessModal(l, roadName, feature, name);
-      else if (typeof showGuessModal === 'function')        showGuessModal(l, roadName, feature, name);
-      else {
-        const modal = document.getElementById('guess-modal');
-        if (modal) {
-          modal.style.display = 'block';
-          const input = modal.querySelector('#guess-input, input');
-          if (input) { input.value = ''; input.focus(); }
-        }
-      }
-    });
+  if (typeof window.openGuessModal === 'function') {
+    window.openGuessModal(l, roadName, feature, name);
+  } else if (typeof openGuessModal === 'function') {
+    openGuessModal(l, roadName, feature, name);
+  } else if (typeof showGuessModal === 'function') {
+    showGuessModal(l, roadName, feature, name);
+  } else {
+    const modal = document.getElementById('guess-modal');
+    if (modal) {
+      modal.style.display = 'block';
+      const input = modal.querySelector('#guess-input, input');
+      if (input) { input.value = ''; input.focus(); }
+    }
+  }
+});
+
   }
 };
 
