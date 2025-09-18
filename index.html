@@ -731,59 +731,48 @@ async function recordGuessNormalized({ township, normalizedName, displayName, st
 async function applySolvedFromDBForTownship(township) {
   console.log('[rehydrate] start', { township });
 
-const sbUrl =
-  (supabase?.rest && supabase.rest.url) ||
-  (supabase?.auth && supabase.auth.url && supabase.auth.url.href) ||
-  '(unknown)';
-console.log('[rehydrate] supabase URL', sbUrl);
+  const sbUrl =
+    (supabase?.rest && supabase.rest.url) ||
+    (supabase?.auth && supabase.auth.url && supabase.auth.url.href) ||
+    '(unknown)';
+  console.log('[rehydrate] supabase URL', sbUrl);
 
-const { data: { user } = { user: null } } = await supabase.auth.getUser();
-console.log('[rehydrate] user', user?.id || null);
-if (!user) console.log('[rehydrate] NOTE: no user yet, DB branch will be a no-op');
+  const { data: { user } = { user: null } } = await supabase.auth.getUser();
+  console.log('[rehydrate] user', user?.id || null);
+  if (!user) { console.log('[rehydrate] NOTE: no user yet, DB branch will be a no-op'); return; }
 
   try {
-    const { data: { user } = { user: null } } = await supabase.auth.getUser();
-    if (!user) return;
-      // DB is the source of truth: wipe any stale local/pre-login paint first
-      resetTownshipVisualState(township);
+    // DB is the source of truth: wipe any stale local/pre-login paint first
+    resetTownshipVisualState(township);
 
     const scopeId = await ensureScope({ type: 'township', township });
     console.log('[rehydrate] scopeId', scopeId, 'township=', JSON.stringify(township));
 
-
-    // All roads for this scope (id -> normalized_name)
+    // All roads in this scope (id -> normalized_name)
     const { data: roads } = await supabase
       .from('roads')
       .select('id, normalized_name')
       .eq('scope_id', scopeId);
-      console.log('[rehydrate] roads count', roads?.length ?? 0);
-
-
+    console.log('[rehydrate] roads count', roads?.length ?? 0);
     if (!roads?.length) return;
 
     const idToName = Object.fromEntries(roads.map(r => [r.id, r.normalized_name]));
     const roadIds  = roads.map(r => r.id);
 
-    // All guesses for this user on these roads, newest first
-    const { data: guesses } = await supabase
-      .from('guesses')
-      .select('road_id, status, created_at')
+    // ✅ Read collapsed per-road state (orange if hint EVER used)
+    const { data: states, error: stateErr } = await supabase
+      .from('user_road_state')
+      .select('road_id, effective_status, used_hint_any')
       .eq('user_id', user.id)
-      .in('road_id', roadIds)
-      .order('created_at', { ascending: false });
-      console.log('[rehydrate] guesses count', guesses?.length ?? 0);
-if (guesses?.length) console.table(guesses.slice(0, 8));
+      .in('road_id', roadIds);
 
+    if (stateErr) { console.warn('[rehydrate] view error', stateErr); return; }
+    console.log('[rehydrate] states count', states?.length ?? 0);
+    if (!states?.length) return;
 
-    if (!guesses?.length) return;
+    const latest = new Map(states.map(s => [s.road_id, s])); // road_id -> state
 
-    // Keep only the latest guess per road
-    const latest = new Map();
-    for (const g of guesses) {
-      if (!latest.has(g.road_id)) latest.set(g.road_id, g); // first seen = newest
-    }
-
-    for (const [roadId, g] of latest) {
+    for (const [roadId, s] of latest) {
       const nm = idToName[roadId];
       if (!nm) continue;
 
@@ -791,49 +780,42 @@ if (guesses?.length) console.table(guesses.slice(0, 8));
       const key = Object.keys(nameToLayers).find(k => normalizeName(k) === nm);
       if (!key) continue;
 
-      let layers = nameToLayers[key] || [];
-      layers = layers.filter(l => (l.__township || 'Manheim Township') === township);
+      let layers = (nameToLayers[key] || []).filter(l => (l.__township || 'Manheim Township') === township);
       if (!layers.length) continue;
 
       const segmentIds = layers.map(l => String(l.feature.id));
 
-      switch (g.status) {
+      switch (s.effective_status) {
         case 'correct': {
           for (const lyr of layers) {
-            lyr.setStyle({ color: '#009944', weight: 6, opacity: 0.7 });
+            lyr.setStyle({ color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 });
             lyr.__originalColor = 'green';
-            disableSegmentInteractivity(lyr);
-            segmentStateMap.set(String(lyr.feature.id), { correct: true });
+            disableSegmentInteractivity(lyr);  // sets __solved / disables clicks
           }
           if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
           break;
         }
-        case 'giveup': { // final reveal → orange & locked
-  for (const lyr of layers) {
-    // Always paint the base path orange first (visible at any zoom)
-    lyr.setStyle({ color: '#ff8800', weight: 6, opacity: .7 });
-    lyr.__originalColor = 'orange';
 
-    // Optional: add overlay on top, but don't rely on it for color
-    if (typeof drawHintOverlay === 'function') {
-      try { drawHintOverlay(lyr); } catch (e) { console.warn('drawHintOverlay failed', e); }
-    }
-
-     // Lock interaction
-     disableSegmentInteractivity(lyr);
-     lyr.__solved = true;
-         segmentStateMap.set(String(lyr.feature.id), { giveup: true, locked: true, used_hint: true });
+        case 'giveup': { // hint was used at least once → orange & locked
+          for (const lyr of layers) {
+            // Always paint the base path orange (overlay optional)
+            lyr.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+            lyr.__originalColor = 'orange';
+            if (typeof drawHintOverlay === 'function') {
+              try { drawHintOverlay(lyr); } catch (e) { console.warn('drawHintOverlay failed', e); }
+            }
+            disableSegmentInteractivity(lyr);
           }
           if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
-         break;
+          break;
         }
 
-        case 'incorrect': { // stays red but still interactive
+        default: { // 'incorrect' (no hint ever used)
           for (const lyr of layers) {
-            lyr.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+            lyr.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
             lyr.__originalColor = 'red';
-            lyr.options.interactive = true;
-            segmentStateMap.set(String(lyr.feature.id), { incorrect: true });
+            lyr.__solved = false;
+            lyr.options.interactive = true; // remain clickable
           }
           break;
         }
@@ -843,6 +825,7 @@ if (guesses?.length) console.table(guesses.slice(0, 8));
     console.warn('[applySolvedFromDBForTownship]', e);
   }
 }
+
 
 function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) {
   const segmentIds = layers.map(l => String(l.feature.id));
