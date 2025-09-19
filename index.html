@@ -3070,6 +3070,15 @@ document.getElementById('submit-guess').onclick = async function () {
     used_hint: true,
     layers
   });
+  // close modal shortly after reveal
+setTimeout(() => {
+  const modal = document.getElementById('guess-modal');
+  if (modal) modal.style.display = 'none';
+  if (msg) msg.innerText = '';
+  currentRoad = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}, 1500);
+
 };
 
 document.getElementById('give-up').onclick = async function () {
@@ -3161,6 +3170,14 @@ document.getElementById('give-up').onclick = async function () {
     used_hint: true,
     layers
   });
+  setTimeout(() => {
+  const modal = document.getElementById('guess-modal');
+  if (modal) modal.style.display = 'none';
+  if (msg) msg.innerText = '';
+  currentRoad = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}, 1500);
+
 };
 
 
