@@ -2865,49 +2865,49 @@ let encouragementShown = false;
 function triggerCorrectDissolveAnimation(layer) {
   const sid = String(layer?.feature?.id ?? '');
   const st  = segmentStateMap.get(sid);
-  if (st?.used_hint) {        // never run green dissolve if hint was used
-    drawHintOverlay(layer);
-    return;
-  }
-  const el = layer.getElement?.();
+  if (st?.used_hint) { drawHintOverlay(layer); return; }
+
+  const el = (typeof layer.getElement === 'function' ? layer.getElement() : layer._path);
   if (!el) return;
 
-  // Ensure it starts from the active stroke (blue) and can animate
-  el.classList.remove('correct-final'); // reset if previously set
-  // compute length so the wipe fits the segment precisely
-const len = (typeof el.getTotalLength === 'function') ? Math.ceil(el.getTotalLength()) : 600;
-el.style.setProperty('--kt-dash', String(len));
+  // 👇 NEW: ensure active-blue doesn’t override the animation styles
+  el.classList.remove('active-blue');
 
-  void el.offsetWidth;                  // reflow to restart animation
+  // compute wipe length (if you added this earlier, keep it)
+  const len = (typeof el.getTotalLength === 'function') ? Math.ceil(el.getTotalLength()) : 600;
+  el.style.setProperty('--kt-dash', String(len));
+
+  el.classList.remove('correct-final');
+  void el.offsetWidth;
   el.classList.add('correct-final');
 
-  // When dissolve finishes: hide base stroke, disable it, and draw overlay once
-  const onDone = () => {
-    el.removeEventListener('animationend', onDone);
+  let done = false;
+  const finish = () => {
+    if (done) return; done = true;
+    el.removeEventListener('animationend', finish);
 
-    // Hide/scrub the base path (so it won’t re-hover or re-click)
     layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
     layer.options.interactive = false;
     el.style.display = 'none';
     el.style.stroke = 'none';
-    el.removeAttribute('stroke');
-    el.removeAttribute('stroke-opacity');
-    el.removeAttribute('stroke-width');
+    el.removeAttribute('stroke'); el.removeAttribute('stroke-opacity'); el.removeAttribute('stroke-width');
 
-    // Add permanent green overlay (idempotent)
     if (!layer.__hasSolvedOverlay) {
       L.geoJSON(layer.feature, {
-  pane: 'solvedPane',
-  renderer: roadsRenderer,
-  interactive: false,
-  style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
-}).addTo(map);
-
+        pane: 'solvedPane',
+        renderer: roadsRenderer,
+        interactive: false,
+        className: 'correct-overlay', // if you’re using that CSS rule
+        style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
+      }).addTo(map);
       layer.__hasSolvedOverlay = true;
     }
   };
-  el.addEventListener('animationend', onDone, { once: true });
+
+  el.addEventListener('animationend', finish, { once: true });
+  setTimeout(finish, 1800); // fallback
 }
+
 
 
 
@@ -2960,23 +2960,35 @@ document.getElementById('submit-guess').onclick = async function () {
   // -----------------------------
   if (n <= 3) {
     if (isCorrect) {
-      // GREEN + lock
-      for (const layer of layers) {
-        layer.setStyle({ color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 });
-        layer.__originalColor = 'green';
-        layer.__solved = true;
-        layer.options.interactive = false;
-      }
-      if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
+      // GREEN + lock (animate dissolve)
+RoadsManager.clearActive?.();  // drop active-blue before animating
 
-      recordGuessNormalized({
-        township: activeTownship,
-        normalizedName: normalizedCorrect,
-        displayName: correctName,
-        status: 'correct',
-        used_hint: false,
-        layers
-      });
+  for (const layer of layers) {
+  const sid = String(layer?.feature?.id ?? '');
+  // ensure state is set before animating
+  if (sid) segmentStateMap.set(sid, { correct: true, used_hint: false });
+
+  layer.__originalColor = 'green';
+  layer.__solved = true;               // stop clicks immediately
+  layer.options.interactive = false;
+
+  // 👇 animate the base path and draw the permanent green overlay on end
+  triggerCorrectDissolveAnimation(layer);
+    }
+
+  if (typeof removeMatchingBuffers === 'function') {
+  removeMatchingBuffers(segmentIds);
+  }
+
+  recordGuessNormalized({
+  township: activeTownship,
+  normalizedName: normalizedCorrect,
+  displayName: correctName,
+  status: 'correct',
+  used_hint: false,
+  layers,
+});
+
 
       const msg = document.getElementById('feedback-message');
       if (msg) msg.innerText = 'Correct!';
