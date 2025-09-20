@@ -740,43 +740,54 @@ async function upsertWaysAndJoin(roadId, ids, displayName) {
 // Single call used by Submit/Give Up  (returns true/false)
 async function recordGuessNormalized({ township, normalizedName, displayName, status, used_hint = false, layers = [] }) {
   try {
-    // Guards so silent early-returns stop happening
-    if (!township) {
-      console.warn('[guesses] skip insert: missing township', { township, normalizedName, status });
-      return false;
-    }
+    if (!township) { console.warn('[guesses] skip insert: missing township'); return false; }
 
     const { data: { user }, error: authErr } = await supabase.auth.getUser();
     if (authErr) { console.error('[guesses] auth error:', authErr); return false; }
-    if (!user) { console.warn('[guesses] skip insert: no authed user'); return false; }
+    if (!user)    { console.warn('[guesses] skip insert: no authed user'); return false; }
 
     const scopeId = await ensureScope({ type: 'township', township });
     if (!scopeId) { console.error('[guesses] ensureScope returned null for', township); return false; }
 
+    // 1) Try to find the road
     const { data: roadRow, error: roadErr } = await supabase
       .from('roads').select('id')
       .eq('scope_id', scopeId)
       .eq('normalized_name', normalizedName)
-      .limit(1).single();
+      .limit(1).maybeSingle();   // <-- avoids 406 when 0 rows
 
-    if (roadErr || !roadRow) {
-      console.warn('[guesses] road lookup failed', { scopeId, normalizedName, roadErr });
-      return false;
+    let roadId = roadRow?.id;
+
+    // 2) If missing, create it on the fly (MT legacy path never ran the registry sync)
+    if (!roadId) {
+      // ensureRoad is already used elsewhere in your codebase
+      roadId = await ensureRoad(scopeId, normalizedName, displayName);
+      if (!roadId) {
+        console.warn('[guesses] road missing and ensureRoad failed', { scopeId, normalizedName, displayName });
+        return false;
+      }
+
+      // Optionally attach way IDs we know from the clicked layers
+      const segmentIds = (layers || [])
+        .map(l => String(l?.feature?.id ?? ''))
+        .filter(Boolean);
+      if (segmentIds.length && typeof upsertWaysAndJoin === 'function') {
+        try { await upsertWaysAndJoin(roadId, segmentIds, displayName); } catch (e) { console.warn('[guesses] upsertWaysAndJoin warn', e); }
+      }
     }
 
-    const row = {
+    // 3) Insert the guess
+    const { error: insertErr } = await supabase.from('guesses').insert({
       user_id: user.id,
-      road_id: roadRow.id,
+      road_id: roadId,
       status,
       used_hint: !!used_hint,
-      // If your table has these columns, you can include them:
+      // If your schema includes these, you can store them as well:
       // display_name: displayName,
-      // segment_ids: layers.map(l => String(l?.feature?.id ?? '')).filter(Boolean),
+      // segment_ids: (layers || []).map(l => String(l?.feature?.id ?? '')).filter(Boolean),
       // created_at: new Date().toISOString(),
-    };
-
-    const { error: insertErr } = await supabase.from('guesses').insert(row);
-    if (insertErr) { console.error('[guesses] insert error:', insertErr, row); return false; }
+    });
+    if (insertErr) { console.error('[guesses] insert error:', insertErr); return false; }
 
     return true;
   } catch (e) {
@@ -784,6 +795,7 @@ async function recordGuessNormalized({ township, normalizedName, displayName, st
     return false;
   }
 }
+
 
 
 // Restore latest state for this user in the township: red / orange / green
@@ -886,40 +898,63 @@ async function applySolvedFromDBForTownship(township) {
 }
 
 
-function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) {
-  const segmentIds = layers.map(l => String(l.feature.id));
+// ===== revealOrangeAndLock (BEGIN) =====
+async function revealOrangeAndLock(layers, normalizedCorrect, correctName, opts = {}) {
+  try {
+    const segIds = (layers || [])
+      .map(l => String(l?.feature?.id ?? ''))
+      .filter(Boolean);
 
-  for (const layer of layers) {
-    // paint base path orange (visible even if overlays fail)
-    layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: .7 });
-    layer.__originalColor = 'orange';
-    layer.__solved = true;
-    layer.options.interactive = false;
+    // Visual: paint base path orange & lock
+    for (const layer of layers) {
+      try {
+        layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 });
+      } catch (_) {}
+      layer.__originalColor = 'orange';
+      layer.__solved = true;
+      layer.options.interactive = false;
 
-    // optional overlay; never rely on it for color
-    if (typeof drawHintOverlay === 'function') {
-      try { drawHintOverlay(layer); } catch (e) { console.warn('drawHintOverlay failed', e); }
+      // Track state so other code (e.g., styleFromState) reads it correctly
+      const sid = String(layer?.feature?.id ?? '');
+      if (sid) segmentStateMap.set(sid, { giveup: true, correct: false, used_hint: !!opts?.used_hint });
+
+      // Optional: orange overlay/dissolve, if you have it
+      if (typeof drawHintOverlay === 'function') {
+        try { drawHintOverlay(layer); } catch (e) { console.warn('drawHintOverlay failed', e); }
+      }
     }
+
+    // Clear any active-blue selection so nothing stays highlighted
+    if (typeof RoadsManager?.clearActive === 'function') RoadsManager.clearActive();
+
+    // Remove fat click-buffers for these segments (prevents stray clicks)
+    if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segIds);
+
+    // Persist a single "giveup" row
+    const payload = {
+      township: opts?.township || activeTownship,
+      normalizedName: normalizedCorrect,
+      displayName: correctName,
+      status: 'giveup',
+      used_hint: !!opts?.used_hint,
+      layers
+    };
+    const ok = await recordGuessNormalized(payload);
+    if (!ok) console.warn('[guesses] giveup insert failed', payload);
+
+  } catch (e) {
+    console.error('[revealOrangeAndLock] failed', e);
   }
 
-  if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
-
-  // persist a single “giveup”
-  recordGuessNormalized({
-    township: opts?.township || activeTownship,
-    normalizedName: normalizedCorrect,
-    displayName: correctName,
-    status: 'giveup',
-    layers
-  });
-
-  // close the modal
+  // Close the modal & reset inline feedback
   const modal = document.getElementById('guess-modal');
   if (modal) modal.style.display = 'none';
   const msg = document.getElementById('feedback-message');
   if (msg) msg.innerText = '';
   currentRoad = null;
 }
+// ===== revealOrangeAndLock (END) =====
+
 
 
 
@@ -2993,27 +3028,30 @@ document.getElementById('submit-guess').onclick = async function () {
   // -----------------------------
   if (n <= 3) {
     if (isCorrect) {
-      // GREEN + lock (animate dissolve)
+// GREEN + lock (animate dissolve)
 RoadsManager.clearActive?.();  // drop active-blue before animating
 
-  for (const layer of layers) {
+// collect ids once (used for buffer removal + DB)
+const segmentIds = layers.map(l => String(l?.feature?.id ?? '')).filter(Boolean);
+
+for (const layer of layers) {
   const sid = String(layer?.feature?.id ?? '');
-  // ensure state is set before animating
   if (sid) segmentStateMap.set(sid, { correct: true, used_hint: false });
 
   layer.__originalColor = 'green';
   layer.__solved = true;               // stop clicks immediately
   layer.options.interactive = false;
 
-  // 👇 animate the base path and draw the permanent green overlay on end
+  // animate base path → green overlay
   triggerCorrectDissolveAnimation(layer);
-    }
+}
 
-  if (typeof removeMatchingBuffers === 'function') {
+if (typeof removeMatchingBuffers === 'function') {
   removeMatchingBuffers(segmentIds);
-  }
+}
 
-  recordGuessNormalized({
+// ⬇️ persist the guess (await it so errors surface in console)
+const ok = await recordGuessNormalized({
   township: activeTownship,
   normalizedName: normalizedCorrect,
   displayName: correctName,
@@ -3021,6 +3059,10 @@ RoadsManager.clearActive?.();  // drop active-blue before animating
   used_hint: false,
   layers,
 });
+if (!ok) console.warn('[guesses] correct insert failed', {
+  township: activeTownship, normalizedName: normalizedCorrect
+});
+
 
 
       const msg = document.getElementById('feedback-message');
@@ -3033,30 +3075,44 @@ RoadsManager.clearActive?.();  // drop active-blue before animating
       }, 300);
       return;
     } else {
-      // RED + close
-      for (const layer of layers) {
-        layer.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-        layer.__originalColor = 'red';
-        layer.__solved = false;
-        layer.options.interactive = true;
-      }
-      recordGuessNormalized({
-        township: activeTownship,
-        normalizedName: normalizedCorrect,
-        displayName: correctName,
-        status: 'incorrect',
-        used_hint: false,
-        layers
-      });
-      setTimeout(() => {
-        const modal = document.getElementById('guess-modal');
-        if (modal) modal.style.display = 'none';
-        const msg = document.getElementById('feedback-message'); if (msg) msg.innerText = '';
-        currentRoad = null;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 0);
-      return;
-    }
+  // RED + close
+  RoadsManager.clearActive?.(); // drop active-blue so red shows
+
+  for (const layer of layers) {
+    const sid = String(layer?.feature?.id ?? '');
+    if (sid) segmentStateMap.set(sid, { incorrect: true, correct: false, used_hint: false });
+
+    layer.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+    layer.__originalColor = 'red';
+    layer.__solved = false;           // keep road guessable
+    layer.options.interactive = true; // unlimited retries
+  }
+
+  // save the attempt
+  const ok = await recordGuessNormalized({
+    township: activeTownship,
+    normalizedName: normalizedCorrect, // target road
+    displayName: correctName,
+    status: 'incorrect',
+    used_hint: false,
+    layers,
+  });
+  if (!ok) console.warn('[guesses] incorrect insert failed', {
+    township: activeTownship, normalizedName: normalizedCorrect
+  });
+
+  // close modal (keep your existing UI timing)
+  setTimeout(() => {
+    const modal = document.getElementById('guess-modal');
+    if (modal) modal.style.display = 'none';
+    const msg = document.getElementById('feedback-message');
+    if (msg) msg.innerText = '';
+    currentRoad = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 0);
+  return;
+}
+
   }
 
   // -----------------------------
