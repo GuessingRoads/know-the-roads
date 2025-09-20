@@ -737,30 +737,54 @@ async function upsertWaysAndJoin(roadId, ids, displayName) {
   if (r.error) console.error('[road_ways] upsert error', r.error);
 }
 
-// Single call used by Submit/Give Up
-async function recordGuessNormalized({ township, normalizedName, displayName, status, used_hint = false }) {
+// Single call used by Submit/Give Up  (returns true/false)
+async function recordGuessNormalized({ township, normalizedName, displayName, status, used_hint = false, layers = [] }) {
   try {
-    const { data: { user } = { user: null } } = await supabase.auth.getUser();
-    if (!user) return;
+    // Guards so silent early-returns stop happening
+    if (!township) {
+      console.warn('[guesses] skip insert: missing township', { township, normalizedName, status });
+      return false;
+    }
+
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (authErr) { console.error('[guesses] auth error:', authErr); return false; }
+    if (!user) { console.warn('[guesses] skip insert: no authed user'); return false; }
 
     const scopeId = await ensureScope({ type: 'township', township });
-    const { data: roadRow } = await supabase
+    if (!scopeId) { console.error('[guesses] ensureScope returned null for', township); return false; }
+
+    const { data: roadRow, error: roadErr } = await supabase
       .from('roads').select('id')
       .eq('scope_id', scopeId)
       .eq('normalized_name', normalizedName)
       .limit(1).single();
-    if (!roadRow) return;
 
-    await supabase.from('guesses').insert({
+    if (roadErr || !roadRow) {
+      console.warn('[guesses] road lookup failed', { scopeId, normalizedName, roadErr });
+      return false;
+    }
+
+    const row = {
       user_id: user.id,
       road_id: roadRow.id,
       status,
-      used_hint
-    });
+      used_hint: !!used_hint,
+      // If your table has these columns, you can include them:
+      // display_name: displayName,
+      // segment_ids: layers.map(l => String(l?.feature?.id ?? '')).filter(Boolean),
+      // created_at: new Date().toISOString(),
+    };
+
+    const { error: insertErr } = await supabase.from('guesses').insert(row);
+    if (insertErr) { console.error('[guesses] insert error:', insertErr, row); return false; }
+
+    return true;
   } catch (e) {
     console.error('[recordGuessNormalized] failed', e);
+    return false;
   }
 }
+
 
 // Restore latest state for this user in the township: red / orange / green
 async function applySolvedFromDBForTownship(township) {
@@ -1881,39 +1905,49 @@ RoadsManager.showForTownship(name);
 
 function lockIntoTownship(activeName) {
   activeTownship = activeName;
+
   try {
     Object.entries(townshipLayersByName || {}).forEach(([n, lyr]) => {
       if (!lyr) return;
 
       lyr.eachLayer(l => {
-        // disable interactions for ALL
+        // disable interactions for ALL township polygons (not roads)
         l.options.interactive = false;
         const el = l._path || l.getElement?.();
         if (el) el.style.pointerEvents = 'none';
       });
 
       if (n !== activeName) {
-        // just hide the non-active township so the mask grays it out
         if (map.hasLayer(lyr)) map.removeLayer(lyr);
       } else {
-        // keep the active outline visible (you already fade its fill)
         if (!map.hasLayer(lyr)) lyr.addTo(map);
         lyr.bringToFront?.();
       }
     });
   } catch {}
-  // Also handle the legacy MT outline (townshipLayerRef)
-try {
-  if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
-    if (activeName !== "Manheim Township") {
-      if (map.hasLayer(townshipLayerRef)) map.removeLayer(townshipLayerRef);
-    } else {
-      if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
-    }
-  }
-} catch {}
 
+  // legacy MT outline support
+  try {
+    if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
+      if (activeName !== "Manheim Township") {
+        if (map.hasLayer(townshipLayerRef)) map.removeLayer(townshipLayerRef);
+      } else {
+        if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
+      }
+    }
+  } catch {}
+
+  // 🔽 NEW: keep flags in sync so saves work in MT too
+  currentTownship = activeName;
+  insideManheim   = (activeName === "Manheim Township");
+  insideLancaster = true;
+
+  // optional: debug so you can verify in console
+  console.log('[lockIntoTownship] activeTownship =', activeTownship, {
+    insideManheim, insideLancaster
+  });
 }
+
 
 
 
@@ -2396,7 +2430,6 @@ lockIntoTownship("Manheim Township");
   console.log("📍 Manheim Township clicked");
   currentLayerDepth = 3;
   updateBackButtonVisibility();
-  insideManheim = true;
   showSolvedPane();
   normalizeAfterRoadsReady();
   // kill tooltip/hover so nothing lingers
