@@ -2984,7 +2984,9 @@ function triggerCorrectDissolveAnimation(layer) {
 // ✅ Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
   if (!currentRoad) return;
-
+const segmentIds = Array.from(new Set(
+    (layers || []).map(l => String(l?.feature?.id ?? '')).filter(Boolean)
+  ));
   const inputEl = document.getElementById('guess-input');
   const userGuessRaw = (inputEl?.value || '').trim();
   if (!userGuessRaw) return;
@@ -3005,7 +3007,6 @@ document.getElementById('submit-guess').onclick = async function () {
   let layers = nameToLayers[normalizedKey] || [];
   layers = layers.filter(l => (l.__township || 'Manheim Township') === activeTownship);
   if (!layers.length) return;
-  const segmentIds = layers.map(l => String(l.feature.id));
 
   // --- suffix helper (doesn't count as an attempt, but you've decided to count already above;
   // if you truly don't want it to count, decrement attemptCounts[attemptKey] here) ---
@@ -3115,55 +3116,103 @@ if (!ok) console.warn('[guesses] correct insert failed', {
 
   }
 
-  // -----------------------------
-  // 4th attempt = HINT ONLY
-  // -----------------------------
-  if (n === 4) {
-    currentRoad.hintGiven = true;
+  // -------------------------------
+// 4th attempt = HINT ONLY
+// -------------------------------
+if (n === 4) {
+  currentRoad.hintGiven = true;
 
-    const firstLetter = correctName.charAt(0).toUpperCase();
-    const msg = document.getElementById('feedback-message');
-    if (msg) msg.innerText = `Hint: Road begins with '${firstLetter}'`;
-    if (inputEl) { inputEl.value = ''; inputEl.focus(); }
-    document.getElementById('submit-guess')?.removeAttribute('disabled');
-    document.getElementById('give-up')?.removeAttribute('disabled');
-
-    recordGuessNormalized({
-      township: activeTownship,
-      normalizedName: normalizedCorrect,
-      displayName: correctName,
-      status: 'incorrect',   // still incorrect
-      used_hint: true,       // mark hint used
-      layers
-    });
-    return; // keep modal open
-  }
-
-  // -----------------------------
-  // 5th+ attempts = ORANGE + lock regardless of correctness
-  // -----------------------------
+  // mark "used hint" in local state for all segments of this road
+  const segIds = layers.map(l => String(l?.feature?.id ?? '')).filter(Boolean);
   for (const layer of layers) {
-    layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-    layer.__originalColor = 'orange';
-    layer.__solved = true;
-    layer.options.interactive = false;
-    if (typeof drawHintOverlay === 'function') { try { drawHintOverlay(layer); } catch {} }
+    const sid = String(layer?.feature?.id ?? '');
+    if (!sid) continue;
+    const prev = segmentStateMap.get(sid) || {};
+    segmentStateMap.set(sid, { ...prev, used_hint: true });
   }
-  if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
 
+  // (optional) draw a visual hint overlay on each segment
+  if (typeof drawHintOverlay === 'function') {
+    for (const layer of layers) {
+      try { drawHintOverlay(layer); } catch (e) { console.warn('drawHintOverlay failed', e); }
+    }
+  }
+
+  // UI: show first-letter hint & keep modal open
+  const firstLetter = correctName.charAt(0).toUpperCase();
   const msg = document.getElementById('feedback-message');
-  if (msg) msg.innerText = isCorrect ? 'Correct!' : `Answer: ${correctName}`;
+  if (msg) msg.innerText = `Hint: Road begins with “${firstLetter}”`;
+  const inputEl = document.getElementById('guess-input') || document.querySelector('#guess-modal input');
+  if (inputEl) { inputEl.value = ''; inputEl.focus(); }
+  document.getElementById('submit-guess')?.removeAttribute('disabled');
+  document.getElementById('give-up')?.removeAttribute('disabled');
 
-  // persist status: correct vs giveup, but always with used_hint=true after 4th+
-  recordGuessNormalized({
+  // persist an attempt marked as "incorrect" + used_hint=true (schema-friendly)
+  const ok = await recordGuessNormalized({
     township: activeTownship,
     normalizedName: normalizedCorrect,
     displayName: correctName,
-    status: isCorrect ? 'correct' : 'giveup',
-    used_hint: true,
-    layers
+    status: 'incorrect',   // hint attempt is still an incorrect try
+    used_hint: true,       // <- this is the key bit
+    layers,
   });
-  // close modal shortly after reveal
+  if (!ok) console.warn('[guesses] hint insert failed', {
+    township: activeTownship, normalizedName: normalizedCorrect
+  });
+
+  return; // keep modal open for next attempt
+}
+
+
+  // -------------------------------
+// 5th+ attempts = ORANGE + lock regardless of correctness
+// -------------------------------
+RoadsManager.clearActive?.(); // ensure no blue remains
+
+// paint base path orange & lock, track state
+for (const layer of layers) {
+  layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+  layer.__originalColor = 'orange';
+  layer.__solved = true;
+  layer.options.interactive = false;
+
+  const sid = String(layer?.feature?.id ?? '');
+  if (sid) {
+    const st = segmentStateMap.get(sid) || {};
+    segmentStateMap.set(sid, {
+      ...st,
+      used_hint: true,
+      correct: !!isCorrect,
+      giveup: !isCorrect
+    });
+  }
+
+  if (typeof drawHintOverlay === 'function') {
+    try { drawHintOverlay(layer); } catch (e) { /* no-op */ }
+  }
+}
+
+// remove fat click buffers so these segments stop catching clicks
+if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
+
+// user message
+const msg = document.getElementById('feedback-message');
+if (msg) msg.innerText = isCorrect ? 'Correct!' : `Answer: ${correctName}`;
+
+// persist status ('correct' vs 'giveup'), but always with used_hint=true after 4th+
+const ok = await recordGuessNormalized({
+  township: activeTownship,
+  normalizedName: normalizedCorrect,
+  displayName: correctName,
+  status: isCorrect ? 'correct' : 'giveup',
+  used_hint: true,
+  layers
+});
+if (!ok) console.warn('[guesses] 5th+ insert failed', {
+  township: activeTownship, normalizedName: normalizedCorrect, isCorrect
+});
+
+// close modal shortly after reveal
 setTimeout(() => {
   const modal = document.getElementById('guess-modal');
   if (modal) modal.style.display = 'none';
@@ -3171,6 +3220,7 @@ setTimeout(() => {
   currentRoad = null;
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }, 1500);
+
 
 };
 
