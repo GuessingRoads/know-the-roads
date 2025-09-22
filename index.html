@@ -706,6 +706,29 @@ async function ensureRoad(scopeId, normalizedName, displayName) {
   if (error) throw error;
   return data.id;
 }
+// Wait until MT's legacy roads are actually on the map (SVG paths exist)
+async function waitForMTRoadsReady(timeoutMs = 2500) {
+  const start = performance.now();
+  return new Promise(resolve => {
+    const tick = () => {
+      let count = 0;
+      try {
+        if (typeof roadsLayerGroup?.eachLayer === 'function') {
+          roadsLayerGroup.eachLayer(l => {
+            if (l?.feature && typeof l.setStyle === 'function') count++;
+          });
+        }
+      } catch {}
+      if (count > 0) return resolve(true);
+      if (performance.now() - start > timeoutMs) return resolve(false);
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
+}
+
+// awaits a value only if it's a Promise
+const maybeAwait = p => (p && typeof p.then === 'function') ? p : Promise.resolve();
 
 function resetTownshipVisualState(township) {
   // flatten all layers for this township
@@ -841,44 +864,37 @@ async function applySolvedFromDBForTownship(township) {
       }
     }
 
-    // 3) Build id -> layer map for this township
-    const grp = roadsLayerByTownship.get(township);
-    if (!grp) return;
-    const byId = new Map();
-    grp.eachLayer(l => {
-      const id = String(l?.feature?.id ?? '');
-      if (id) byId.set(id, l);
-    });
+    // 3) Build id -> base-layer map for this township (works for MT legacy too)
+  const byId = new Map();
 
-    // Helpers to draw overlays
-    const drawSolved = (layer) => {
-      if (!layer) return;
-      // hide/scrub base
-      try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
-      layer.options.interactive = false;
-      // idempotent overlay
-      if (!layer.__hasSolvedOverlay) {
-        L.geoJSON(layer.feature, {
-          pane: 'solvedPane',
-          renderer: roadsRenderer,
-          interactive: false,
-          className: 'correct-overlay',
-          style: { weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
-        }).addTo(map);
-        layer.__hasSolvedOverlay = true;
-      }
-      layer.__originalColor = 'green';
-      layer.__solved = true;
-    };
+  function collectGroup(group) {
+   if (!group) return;
+    const items = (typeof group.eachLayer === 'function') ? group.getLayers() : [group];
+    for (const l of items) {
+    // recurse into nested groups
+    if (typeof l.eachLayer === 'function') collectGroup(l);
 
-    const drawGiveUp = (layer) => {
-      if (!layer) return;
-      try { layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 }); } catch {}
-      layer.__originalColor = 'orange';
-      layer.__solved = true;
-      layer.options.interactive = false;
-      try { if (typeof drawHintOverlay === 'function') drawHintOverlay(layer); } catch {}
-    };
+    // only index base road paths (skip solved overlays)
+    const fid = String(l?.feature?.id ?? '');
+    const isOverlay = l?.options?.pane === 'solvedPane';
+    if (!fid || isOverlay || typeof l.setStyle !== 'function') continue;
+
+    byId.set(fid, l);
+    }
+  }
+
+  // EP roads (manager-managed)
+  collectGroup(roadsLayerByTownship.get(township));
+
+  // MT legacy roads fallback (global group you already have)
+  if (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) {
+  collectGroup(roadsLayerGroup);
+  }
+
+  if (byId.size === 0) {
+  console.warn('[applySolved] no base road layers indexed for', township);
+  }
+
 
     // 4) If we have normalized guesses, expand to OSM ids via road_ways and paint
     if (latestByRoad.size) {
@@ -926,6 +942,13 @@ async function applySolvedFromDBForTownship(township) {
   } catch (e) {
     console.error('[applySolvedFromDBForTownship] failed', e);
   }
+  console.log('[applySolved]', {
+  township,
+  indexed: byId.size,
+  paintedSolved,
+  paintedGiveup
+  });
+
 }
 
 
@@ -2564,6 +2587,22 @@ if (IS_COARSE) {
     try { if (typeof armSolvedSegmentsForReentry === 'function') armSolvedSegmentsForReentry(); } catch (err) {}
     try { if (typeof scrubHiddenRoadsBlue === 'function') scrubHiddenRoadsBlue(); } catch (err) {}
     try { if (typeof normalizeCorrectOverlays === 'function') normalizeCorrectOverlays(); } catch (err) {}
+    // === APPLY SOLVED OVERLAYS FOR MT (START) ===
+    (async () => {
+      try {
+        // wait until the legacy MT SVG paths are actually present
+        await waitForMTRoadsReady(2500);               // helper you added in Step 1
+
+        const u = await (waitForAuthUser?.() || Promise.resolve(null));
+        if (u) {
+          await applySolvedFromDBForTownship("Manheim Township"); // Step 3 version (indexes both groups)
+        } else {
+          setTimeout(() => applySolvedFromDBForTownship("Manheim Township"), 600);
+        }
+      } catch (err) {
+        console.error('[MT moveend] applySolved error', err);
+      }
+    })();
   });
 
   if (e) L.DomEvent.stop(e);
