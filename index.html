@@ -706,26 +706,6 @@ async function ensureRoad(scopeId, normalizedName, displayName) {
   if (error) throw error;
   return data.id;
 }
-// Wait until MT's legacy roads are actually on the map (SVG paths exist)
-async function waitForMTRoadsReady(timeoutMs = 2500) {
-  const start = performance.now();
-  return new Promise(resolve => {
-    const tick = () => {
-      let count = 0;
-      try {
-        if (typeof roadsLayerGroup?.eachLayer === 'function') {
-          roadsLayerGroup.eachLayer(l => {
-            if (l?.feature && typeof l.setStyle === 'function') count++;
-          });
-        }
-      } catch {}
-      if (count > 0) return resolve(true);
-      if (performance.now() - start > timeoutMs) return resolve(false);
-      requestAnimationFrame(tick);
-    };
-    tick();
-  });
-}
 
 // awaits a value only if it's a Promise
 const maybeAwait = p => (p && typeof p.then === 'function') ? p : Promise.resolve();
@@ -856,8 +836,19 @@ async function applySolvedFromDBForTownship(township) {
     // ---- painters (local helpers) ----
     const drawSolved = (layer) => {
       if (!layer) return;
-      try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
-      layer.options.interactive = false;
+       // 1) scrub base path and detach events so hover logic can’t touch it
+  try { layer.off(); } catch {}
+  try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
+  layer.options.interactive = false;
+  const el = layer._path || layer.getElement?.();
+  if (el) {
+    el.style.pointerEvents = 'none';
+    el.style.display = 'none';
+    el.style.stroke = 'none';
+    el.removeAttribute?.('stroke');
+    el.removeAttribute?.('stroke-opacity');
+    el.removeAttribute?.('stroke-width');
+  }
 
       if (!layer.__hasSolvedOverlay) {
         L.geoJSON(layer.feature, {
@@ -876,10 +867,21 @@ async function applySolvedFromDBForTownship(township) {
 
     const drawGiveUp = (layer) => {
       if (!layer) return;
-      try { layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 }); } catch {}
-      layer.__originalColor = 'orange';
-      layer.__solved = true;
-      layer.options.interactive = false;
+       // lock the base path and detach events, then (optionally) draw hint overlay
+ try { layer.off(); } catch {}
+ try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
+ layer.options.interactive = false;
+ const el = layer._path || layer.getElement?.();
+ if (el) {
+   el.style.pointerEvents = 'none';
+   el.style.display = 'none';
+   el.style.stroke = 'none';
+   el.removeAttribute?.('stroke');
+   el.removeAttribute?.('stroke-opacity');
+   el.removeAttribute?.('stroke-width');
+ }
+ layer.__originalColor = 'orange';
+ layer.__solved = true;
       try { if (typeof drawHintOverlay === 'function') drawHintOverlay(layer); } catch {}
       paintedGiveup++;
     };
@@ -2588,21 +2590,16 @@ if (IS_COARSE) {
     try { if (typeof scrubHiddenRoadsBlue === 'function') scrubHiddenRoadsBlue(); } catch (err) {}
     try { if (typeof normalizeCorrectOverlays === 'function') normalizeCorrectOverlays(); } catch (err) {}
     // === APPLY SOLVED OVERLAYS FOR MT (START) ===
-    (async () => {
-      try {
-        // wait until the legacy MT SVG paths are actually present
-        await waitForMTRoadsReady(2500);               // helper you added in Step 1
-
-        const u = await (waitForAuthUser?.() || Promise.resolve(null));
-        if (u) {
-          await applySolvedFromDBForTownship("Manheim Township"); // Step 3 version (indexes both groups)
-        } else {
-          setTimeout(() => applySolvedFromDBForTownship("Manheim Township"), 600);
+   // paint as soon as the legacy SVG paths exist (usually ~1–2 frames)
+  requestAnimationFrame(() => {
+      requestAnimationFrame(async () => {
+        try {
+          await applySolvedFromDBForTownship("Manheim Township");
+        } catch (err) {
+          console.error('[MT moveend] applySolved error', err);
         }
-      } catch (err) {
-        console.error('[MT moveend] applySolved error', err);
-      }
-    })();
+      });
+    });
   });
 
   if (e) L.DomEvent.stop(e);
