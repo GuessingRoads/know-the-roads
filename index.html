@@ -800,102 +800,134 @@ async function recordGuessNormalized({ township, normalizedName, displayName, st
 
 // Restore latest state for this user in the township: red / orange / green
 async function applySolvedFromDBForTownship(township) {
-  console.log('[rehydrate] start', { township });
-
-  const sbUrl =
-    (supabase?.rest && supabase.rest.url) ||
-    (supabase?.auth && supabase.auth.url && supabase.auth.url.href) ||
-    '(unknown)';
-  console.log('[rehydrate] supabase URL', sbUrl);
-
-  const { data: { user } = { user: null } } = await supabase.auth.getUser();
-  console.log('[rehydrate] user', user?.id || null);
-  if (!user) { console.log('[rehydrate] NOTE: no user yet, DB branch will be a no-op'); return; }
-
   try {
-    // DB is the source of truth: wipe any stale local/pre-login paint first
-    resetTownshipVisualState(township);
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth?.user?.id;
+    if (!uid) return;
 
     const scopeId = await ensureScope({ type: 'township', township });
-    console.log('[rehydrate] scopeId', scopeId, 'township=', JSON.stringify(township));
+    if (!scopeId) return;
 
-    // All roads in this scope (id -> normalized_name)
-    const { data: roads } = await supabase
-      .from('roads')
-      .select('id, normalized_name')
-      .eq('scope_id', scopeId);
-    console.log('[rehydrate] roads count', roads?.length ?? 0);
-    if (!roads?.length) return;
+    // 1) NEW: read latest guesses via normalized table, joined to roads in this scope
+    const { data: guessRows, error: gErr } = await supabase
+      .from('guesses')
+      .select('road_id, status, used_hint, created_at, roads!inner(id,scope_id)')
+      .eq('user_id', uid)
+      .eq('roads.scope_id', scopeId)
+      .order('created_at', { ascending: false });
 
-    const idToName = Object.fromEntries(roads.map(r => [r.id, r.normalized_name]));
-    const roadIds  = roads.map(r => r.id);
+    // Keep latest row per road
+    const latestByRoad = new Map();
+    if (!gErr && guessRows?.length) {
+      for (const r of guessRows) {
+        if (!latestByRoad.has(r.road_id)) latestByRoad.set(r.road_id, r);
+      }
+    }
 
-    // ✅ Read collapsed per-road state (orange if hint EVER used)
-    const { data: states, error: stateErr } = await supabase
-      .from('user_road_state')
-      .select('road_id, effective_status, used_hint_any')
-      .eq('user_id', user.id)
-      .in('road_id', roadIds);
-
-    if (stateErr) { console.warn('[rehydrate] view error', stateErr); return; }
-    console.log('[rehydrate] states count', states?.length ?? 0);
-    if (!states?.length) return;
-
-    const latest = new Map(states.map(s => [s.road_id, s])); // road_id -> state
-
-    for (const [roadId, s] of latest) {
-      const nm = idToName[roadId];
-      if (!nm) continue;
-
-      // Find layers for this name in this township
-      const key = Object.keys(nameToLayers).find(k => normalizeName(k) === nm);
-      if (!key) continue;
-
-      let layers = (nameToLayers[key] || []).filter(l => (l.__township || 'Manheim Township') === township);
-      if (!layers.length) continue;
-
-      const segmentIds = layers.map(l => String(l.feature.id));
-
-      switch (s.effective_status) {
-        case 'correct': {
-          for (const lyr of layers) {
-            lyr.setStyle({ color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 });
-            lyr.__originalColor = 'green';
-            disableSegmentInteractivity(lyr);  // sets __solved / disables clicks
-          }
-          if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
-          break;
+    // 2) If nothing found (legacy MT path), fall back to road_guesses (osm_id based)
+    let legacyByOsm = null;
+    if (latestByRoad.size === 0) {
+      const { data: legacy, error: lErr } = await supabase
+        .from('road_guesses')
+        .select('osm_id, status, used_hint, created_at')
+        .eq('user_id', uid)
+        .order('created_at', { ascending: false });
+      if (!lErr && legacy?.length) {
+        legacyByOsm = new Map();
+        for (const r of legacy) {
+          const k = String(r.osm_id);
+          if (!legacyByOsm.has(k)) legacyByOsm.set(k, r);
         }
+      }
+    }
 
-        case 'giveup': { // hint was used at least once → orange & locked
-          for (const lyr of layers) {
-            // Always paint the base path orange (overlay optional)
-            lyr.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-            lyr.__originalColor = 'orange';
-            if (typeof drawHintOverlay === 'function') {
-              try { drawHintOverlay(lyr); } catch (e) { console.warn('drawHintOverlay failed', e); }
-            }
-            disableSegmentInteractivity(lyr);
+    // 3) Build id -> layer map for this township
+    const grp = roadsLayerByTownship.get(township);
+    if (!grp) return;
+    const byId = new Map();
+    grp.eachLayer(l => {
+      const id = String(l?.feature?.id ?? '');
+      if (id) byId.set(id, l);
+    });
+
+    // Helpers to draw overlays
+    const drawSolved = (layer) => {
+      if (!layer) return;
+      // hide/scrub base
+      try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
+      layer.options.interactive = false;
+      // idempotent overlay
+      if (!layer.__hasSolvedOverlay) {
+        L.geoJSON(layer.feature, {
+          pane: 'solvedPane',
+          renderer: roadsRenderer,
+          interactive: false,
+          className: 'correct-overlay',
+          style: { weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
+        }).addTo(map);
+        layer.__hasSolvedOverlay = true;
+      }
+      layer.__originalColor = 'green';
+      layer.__solved = true;
+    };
+
+    const drawGiveUp = (layer) => {
+      if (!layer) return;
+      try { layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 }); } catch {}
+      layer.__originalColor = 'orange';
+      layer.__solved = true;
+      layer.options.interactive = false;
+      try { if (typeof drawHintOverlay === 'function') drawHintOverlay(layer); } catch {}
+    };
+
+    // 4) If we have normalized guesses, expand to OSM ids via road_ways and paint
+    if (latestByRoad.size) {
+      const roadIds = Array.from(latestByRoad.keys());
+      const { data: ways, error: wErr } = await supabase
+        .from('road_ways')
+        .select('road_id, osm_id')
+        .in('road_id', roadIds);
+      if (wErr) console.warn('[applySolved] road_ways error', wErr);
+
+      const osmByRoad = new Map();
+      (ways || []).forEach(w => {
+        const arr = osmByRoad.get(w.road_id) || [];
+        arr.push(String(w.osm_id));
+        osmByRoad.set(w.road_id, arr);
+      });
+
+      for (const [roadId, row] of latestByRoad) {
+        const osms = osmByRoad.get(roadId) || [];
+        for (const sid of osms) {
+          const layer = byId.get(sid);
+          if (!layer) continue;
+          if (row.status === 'correct' && !row.used_hint) {
+            drawSolved(layer);
+          } else {
+            drawGiveUp(layer);
           }
-          if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
-          break;
         }
+      }
+      return;
+    }
 
-        default: { // 'incorrect' (no hint ever used)
-          for (const lyr of layers) {
-            lyr.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-            lyr.__originalColor = 'red';
-            lyr.__solved = false;
-            lyr.options.interactive = true; // remain clickable
-          }
-          break;
+    // 5) Legacy fallback: paint from road_guesses directly (osm_id keyed)
+    if (legacyByOsm) {
+      for (const [sid, row] of legacyByOsm) {
+        const layer = byId.get(sid);
+        if (!layer) continue;
+        if (row.status === 'correct' && !row.used_hint) {
+          drawSolved(layer);
+        } else {
+          drawGiveUp(layer);
         }
       }
     }
   } catch (e) {
-    console.warn('[applySolvedFromDBForTownship]', e);
+    console.error('[applySolvedFromDBForTownship] failed', e);
   }
 }
+
 
 
 // ===== revealOrangeAndLock (BEGIN) =====
