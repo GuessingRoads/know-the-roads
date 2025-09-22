@@ -2981,12 +2981,11 @@ function triggerCorrectDissolveAnimation(layer) {
 
 
 
-// ✅ Submit handler defined OUTSIDE of loadMap
+// Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
   if (!currentRoad) return;
-const segmentIds = Array.from(new Set(
-    (layers || []).map(l => String(l?.feature?.id ?? '')).filter(Boolean)
-  ));
+
+  // 1) read input
   const inputEl = document.getElementById('guess-input');
   const userGuessRaw = (inputEl?.value || '').trim();
   if (!userGuessRaw) return;
@@ -2994,22 +2993,33 @@ const segmentIds = Array.from(new Set(
   interactionCount++;
   maybeShowEncouragement();
 
+  // 2) normalize names
   const correctName       = currentRoad.name.trim();
   const normalizedCorrect = normalizeName(correctName);
   const normalizedGuess   = normalizeName(userGuessRaw);
 
-  // attempt counter scoped by township+road
+  // 3) locate the layers for THIS road in the ACTIVE township (define BEFORE using)
+  const normalizedKey = Object.keys(roadNameToIds)
+    .find(k => normalizeName(k) === normalizedCorrect);
+
+  const layers = (nameToLayers[normalizedKey] || []).filter(
+    l => (l.__township || 'Manheim Township') === activeTownship
+  );
+  if (!layers.length) {
+    console.warn('[submit] no layers for', normalizedKey, 'in', activeTownship);
+    return;
+  }
+
+  // 4) compute ids ONCE (reuse below; do not redeclare elsewhere)
+  const segmentIds = Array.from(new Set(
+    layers.map(l => String(l?.feature?.id ?? '')).filter(Boolean)
+  ));
+
+  // 5) attempt counter (township+road scoped)
   const attemptKey = `${activeTownship}::${normalizedCorrect}`;
   const n = (attemptCounts[attemptKey] = (attemptCounts[attemptKey] || 0) + 1);
 
-  // locate layers for this road in the active township
-  const normalizedKey = Object.keys(roadNameToIds).find(k => normalizeName(k) === normalizedCorrect);
-  let layers = nameToLayers[normalizedKey] || [];
-  layers = layers.filter(l => (l.__township || 'Manheim Township') === activeTownship);
-  if (!layers.length) return;
-
-  // --- suffix helper (doesn't count as an attempt, but you've decided to count already above;
-  // if you truly don't want it to count, decrement attemptCounts[attemptKey] here) ---
+  // --- suffix helper (keep your logic) ---
   if (normalizedGuess !== normalizedCorrect &&
       normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
     const msg = document.getElementById('feedback-message');
@@ -3021,6 +3031,8 @@ const segmentIds = Array.from(new Set(
     }
     return;
   }
+
+  // ... keep the rest of your existing branches (correct / incorrect / hint / 5th+) ...
 
   const isCorrect = normalizedGuess === normalizedCorrect;
 
