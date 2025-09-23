@@ -726,15 +726,27 @@ function resetTownshipVisualState(township) {
     if (sid) segmentStateMap.delete(sid);
   }
 }
-async function repaintFromDB(name) {
-  try {
-    const u = await (waitForAuthUser?.() || Promise.resolve(null));
-    if (u) await applySolvedFromDBForTownship(name);
-    else setTimeout(() => applySolvedFromDBForTownship(name), 400);
-  } catch (e) {
-    console.warn('[EP] repaint failed', e);
-  }
+async function repaintFromDB(township) {
+  // Wait 2 frames so Leaflet's SVGs exist (works for both EP & MT)
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  // Retry until auth is ready (first entry can be racy)
+  let tries = 0;
+  const maxTries = 12;     // ~3s worst case (12 * 250ms)
+  const tick = async () => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      const uid = data?.user?.id;
+      if (uid) {
+        await applySolvedFromDBForTownship(township);
+        return;
+      }
+    } catch {}
+    if (tries++ < maxTries) setTimeout(tick, 250);
+  };
+  tick();
 }
+
 
 
 async function upsertWaysAndJoin(roadId, ids, displayName) {
@@ -1727,7 +1739,7 @@ const RoadsManager = {
     if (existing) {
       if (!map.hasLayer(existing)) map.addLayer(existing);
       clearForTownship(existing);
-      await repaintFromDB(name);            // repaint after layer is present
+      repaintFromDB(name);
       return;
     }
     // -------- load fresh ----------
@@ -1881,15 +1893,45 @@ const RoadsManager = {
 
     // baseline reset so roads start clickable (no styling changes)
     this.clearForTownship(roadsLayer, name);
-    await repaintFromDB(name);
+    repaintFromDB(name);
 
     // (optional) debug logs you had
-    roadsLayer.on('click', (e) => {
-      console.log('ROADSLAYER click bubbled', {
-        id: String(e.layer?.feature?.id ?? ''),
-        targetClass: e.originalEvent?.target?.className?.baseVal || e.originalEvent?.target?.className
-      });
-    });
+   // Fallback: handle clicks at the GeoJSON group level for any child path
+  roadsLayer.on('click', (e) => {
+  // prefer the actual child path; sometimes Leaflet gives you the group
+  const child   = e.propagatedFrom || e.layer || e.target;
+  const feature = child?.feature || e.layer?.feature || e.target?.feature;
+
+  const fid      = String(feature?.id ?? '');
+  const roadName = (feature?.properties?.name || '').trim();
+  if (!fid || !roadName) return;
+
+  // hard lock: respect solved state even if the event bubbled from the group
+  const locked = !!(child?.__solved || e.layer?.__solved || e.target?.__solved);
+  if (locked || activeTownship !== name) {
+    // console.log('GROUP CLICK blocked', { fid, locked, township: activeTownship });
+    return;
+  }
+
+  currentRoad  = { name: roadName, id: fid, hintGiven: false };
+  currentRoad2 = currentRoad;
+
+  if (typeof window.openGuessModal === 'function') {
+    window.openGuessModal(child, roadName, feature, name);
+  } else if (typeof openGuessModal === 'function') {
+    openGuessModal(child, roadName, feature, name);
+  } else if (typeof showGuessModal === 'function') {
+    showGuessModal(child, roadName, feature, name);
+  } else {
+    const modal = document.getElementById('guess-modal');
+    if (modal) {
+      modal.style.display = 'block';
+      const input = modal.querySelector('#guess-input, input');
+      if (input) { input.value = ''; input.focus(); }
+    }
+  }
+  });
+
 
     roadsLayer.eachLayer(l => {
       console.log('Road debug:', {
@@ -1908,7 +1950,6 @@ const RoadsManager = {
     } else {
       setTimeout(() => applySolvedFromDBForTownship(name), 600);
     }
-    applySolvedFromDBForTownship(name);
   },
 
   hideForTownship(name) {
