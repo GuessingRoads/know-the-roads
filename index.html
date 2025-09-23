@@ -726,6 +726,15 @@ function resetTownshipVisualState(township) {
     if (sid) segmentStateMap.delete(sid);
   }
 }
+async function repaintFromDB(name) {
+  try {
+    const u = await (waitForAuthUser?.() || Promise.resolve(null));
+    if (u) await applySolvedFromDBForTownship(name);
+    else setTimeout(() => applySolvedFromDBForTownship(name), 400);
+  } catch (e) {
+    console.warn('[EP] repaint failed', e);
+  }
+}
 
 
 async function upsertWaysAndJoin(roadId, ids, displayName) {
@@ -1692,40 +1701,35 @@ const RoadsManager = {
     this.activeLayers.length = 0;
   },
 
-  clearForTownship(group, townshipName) {
-    const each = (typeof group.eachLayer === 'function') ? group.getLayers() : [group];
-    each.forEach(l => {
-      if ((l.__township || 'Manheim Township') !== townshipName) return;
-      l.__solved = false;               // clear stale locks
-      l.options.interactive = true;     // clickable again
-      const sid = String(l?.feature?.id ?? '');
-      if (sid) segmentStateMap.delete(sid); // drop stale state
-      const el = this.getEl(l);
-      if (el) el.classList.remove('active-blue'); // visual cleanup
-    });
-  },
-
+  // ================= showForTownship =================
   async showForTownship(name) {
+    // overlays must be visible whenever we enter a township
+    try { showSolvedPane?.(); } catch {}
+
+    // local helper: reset only hover bookkeeping (do NOT clear solved state)
+    const clearForTownship = (lyrOrGroup) => {
+      const list = (typeof lyrOrGroup?.eachLayer === 'function')
+        ? lyrOrGroup.getLayers()
+        : [lyrOrGroup];
+      for (const l of list) {
+        if ((l.__township || 'Manheim Township') !== name) continue;
+        l.__hoverSaved = false;
+        l.__savedHoverStyle = null;
+        if (!l.__solved) l.options.interactive = true;
+        // DO NOT touch __solved or segmentStateMap here.
+      }
+    };
+
     if (name === "Manheim Township") return; // MT handled by legacy layer
 
-    // -------- if already loaded, just restore ----------
+    // ---------- existing layer path ----------
     const existing = roadsLayerByTownship.get(name);
     if (existing) {
       if (!map.hasLayer(existing)) map.addLayer(existing);
-      this.clearForTownship(existing, name);
-      // don't re-enable solved segments
-      existing.eachLayer(l => { if (!l.__solved) l.options.interactive = true; });
-
-      const u = await waitForAuthUser();
-      if (u) {
-        await applySolvedFromDBForTownship(name);
-      } else {
-        setTimeout(() => applySolvedFromDBForTownship(name), 600);
-      }
-      applySolvedFromDBForTownship(name);
+      clearForTownship(existing);
+      await repaintFromDB(name);            // repaint after layer is present
       return;
     }
-
     // -------- load fresh ----------
     const url = ROADS_REGISTRY[name];
     if (!url) { console.warn(`[Roads] No URL for "${name}".`); return; }
@@ -1877,6 +1881,7 @@ const RoadsManager = {
 
     // baseline reset so roads start clickable (no styling changes)
     this.clearForTownship(roadsLayer, name);
+    await repaintFromDB(name);
 
     // (optional) debug logs you had
     roadsLayer.on('click', (e) => {
