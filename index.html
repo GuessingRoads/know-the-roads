@@ -852,6 +852,8 @@ async function recordGuessNormalized({ township, normalizedName, displayName, st
 
 // Restore latest state for this user in the township: red / orange / green
 async function applySolvedFromDBForTownship(township) {
+  let paintedSolved = 0, paintedGiveup = 0;  // keep counters visible for final log
+
   try {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth?.user?.id;
@@ -880,35 +882,44 @@ async function applySolvedFromDBForTownship(township) {
     // MT legacy roads (global)
     try { if (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) collectGroup(roadsLayerGroup); } catch {}
 
-    let paintedSolved = 0, paintedGiveup = 0;
+    // ---- helpers ----
+    const scrubBase = (layer) => {
+      try { layer.off(); } catch {}
+      try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
+      layer.options.interactive = false;
+      const el = layer._path || layer.getElement?.();
+      if (el) {
+        el.style.pointerEvents = 'none';
+        el.style.display = 'none';
+        el.style.stroke = 'none';
+        el.removeAttribute?.('stroke');
+        el.removeAttribute?.('stroke-opacity');
+        el.removeAttribute?.('stroke-width');
+      }
+    };
 
-    // ---- painters (local helpers) ----
-    const drawSolved = (layer) => {
-      if (!layer) return;
-       // 1) scrub base path and detach events so hover logic can’t touch it
-  try { layer.off(); } catch {}
-  try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
-  layer.options.interactive = false;
-  const el = layer._path || layer.getElement?.();
-  if (el) {
-    el.style.pointerEvents = 'none';
-    el.style.display = 'none';
-    el.style.stroke = 'none';
-    el.removeAttribute?.('stroke');
-    el.removeAttribute?.('stroke-opacity');
-    el.removeAttribute?.('stroke-width');
-  }
-
+    const addOverlay = (layer, color, className) => {
       if (!layer.__hasSolvedOverlay) {
         L.geoJSON(layer.feature, {
           pane: 'solvedPane',
           renderer: roadsRenderer,
           interactive: false,
-          className: 'correct-overlay',
-          style: { weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
+          className,
+          style: {
+            color: color,                      // set explicit color so we don't rely on CSS only
+            weight: SOLVED_WEIGHT,
+            opacity: SOLVED_OPACITY,
+            lineCap: 'round'
+          }
         }).addTo(map);
         layer.__hasSolvedOverlay = true;
       }
+    };
+
+    const drawSolved = (layer) => {
+      if (!layer) return;
+      scrubBase(layer);
+      addOverlay(layer, (typeof SOLVED_COLOR !== 'undefined' ? SOLVED_COLOR : '#009944'), 'correct-overlay');
       layer.__originalColor = 'green';
       layer.__solved = true;
       paintedSolved++;
@@ -916,22 +927,13 @@ async function applySolvedFromDBForTownship(township) {
 
     const drawGiveUp = (layer) => {
       if (!layer) return;
-       // lock the base path and detach events, then (optionally) draw hint overlay
- try { layer.off(); } catch {}
- try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
- layer.options.interactive = false;
- const el = layer._path || layer.getElement?.();
- if (el) {
-   el.style.pointerEvents = 'none';
-   el.style.display = 'none';
-   el.style.stroke = 'none';
-   el.removeAttribute?.('stroke');
-   el.removeAttribute?.('stroke-opacity');
-   el.removeAttribute?.('stroke-width');
- }
- layer.__originalColor = 'orange';
- layer.__solved = true;
+      scrubBase(layer);
+      // paint an ORANGE overlay into solvedPane (this was missing)
+      addOverlay(layer, '#ff8800', 'giveup-overlay');
+      // optional: also draw your patterned hint overlay if you like
       try { if (typeof drawHintOverlay === 'function') drawHintOverlay(layer); } catch {}
+      layer.__originalColor = 'orange';
+      layer.__solved = true;
       paintedGiveup++;
     };
 
@@ -998,11 +1000,12 @@ async function applySolvedFromDBForTownship(township) {
     console.log('[applySolved]', { township, indexed: byId.size, paintedSolved, paintedGiveup });
   } catch (e) {
     console.error('[applySolvedFromDBForTownship] failed', e);
+  } finally {
+    try { logPaneState?.('after applySolved'); } catch {}
+    console.log('[applySolved]', { township, paintedSolved, paintedGiveup });
   }
-  console.log('[applySolved]', { township, paintedSolved, paintedGiveup });
-  logPaneState('after applySolved');
-
 }
+
 
 
 
@@ -1995,76 +1998,81 @@ const RoadsManager = {
 
 
 
+// ===== enterTownship BEGIN =====
 const townshipLayersByName = Object.create(null); // cache
-// simple stub so township clicks work (we’ll enhance next)
+
 function enterTownship(name, feature, tLayer, e) {
-  // Clear hover/tooltip like MT
+  if (!name || !tLayer) return;
+
+  // cache the layer for convenience
+  townshipLayersByName[name] = tLayer;
+
+  // 0) clear any transient UI (hover/tooltip)
   try { tLayer.unbindTooltip?.(); } catch {}
   try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
   { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
 
-  // 1) Guarantee pane exists and sits above tiles but below outlines
-if (!map.getPane('maskPane')) map.createPane('maskPane');
-map.getPane('maskPane').style.zIndex = 350;   // tiles ≈ 200, townshipPane ≈ 400+
+  // 1) panes: mask pane below township; ensure solved overlays pane is visible
+  try {
+    if (!map.getPane('maskPane')) map.createPane('maskPane');
+    map.getPane('maskPane').style.zIndex = 210;  // keep consistent with Back handler
+    ensureSolvedPaneVisible?.();                 // just shows solvedPane; doesn't clear it
+  } catch {}
 
-// clear any previous mask
-if (worldMask) { try { map.removeLayer(worldMask); } catch {} worldMask = null; }
+  // 2) (re)build outside mask for this township
+  try {
+    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
 
-// Build a new gray mask that leaves only THIS township visible
-try {
-  // 👍 robust: prefer the layer's GeoJSON; fall back to the feature we were given
-  const f = (tLayer && typeof tLayer.toGeoJSON === 'function')
-    ? tLayer.toGeoJSON()
-    : feature;
+    const f = (tLayer && typeof tLayer.toGeoJSON === 'function') ? tLayer.toGeoJSON() : feature;
+    if (!f || !f.geometry) throw new Error('enterTownship: missing geometry for mask');
 
-  if (!f || !f.geometry) throw new Error('enterTownship: missing geometry for mask');
+    worldMask = L.geoJSON(createWorldMask(f), {
+      pane: 'maskPane',
+      interactive: false,
+      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
+    }).addTo(map);
 
-  worldMask = L.geoJSON(createWorldMask(f), {
-    pane: 'maskPane',
-    interactive: false,
-    style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
-  }).addTo(map);
+    // never intercept clicks
+    try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
+  } catch (err) {
+    console.error('[mask] failed for', name, err);
+  }
 
-  // safety: never intercept clicks
-  worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
-
-  console.log('[mask] built for', name, 'onMap=', map.hasLayer(worldMask));
-} catch (err) {
-  console.error('[mask] failed for', name, err);
-}
-
-
-
-  // Fade township fill and block further taps (match MT visuals)
+  // 3) township visuals + block further taps (match MT visuals)
   try { tLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 }); } catch {}
-  const el = tLayer._path || tLayer.getElement?.();
-  if (el) { el.style.pointerEvents = 'none'; el.style.outline = 'none'; }
+  const tEl = tLayer._path || tLayer.getElement?.();
+  if (tEl) { tEl.style.pointerEvents = 'none'; tEl.style.outline = 'none'; }
 
-  // Zoom (reuse your mobile/desktop distinction)
-  const b = tLayer.getBounds();
-  const IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-  map.flyToBounds(b, {
-    paddingTopLeft: IS_COARSE ? L.point(6,18) : L.point(30,30),
-    paddingBottomRight: IS_COARSE ? L.point(6,18) : L.point(30,30),
-    maxZoom: IS_COARSE ? 20 : 15,
-    animate: true, duration: 1.0, easeLinearity: 0.2
-  });
-activeTownship = name;
+  // 4) state flags
+  activeTownship      = name;
+  currentTownship     = name;
+  insideManheim       = (name === 'Manheim Township');
+  currentLayerDepth   = 3;
+  updateBackButtonVisibility?.();
+  RoadsManager.clearActive?.(); // drop any lingering active-blue
 
-lockIntoTownship(name);
+  // 5) camera
+  try {
+    const b = tLayer.getBounds();
+    const IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    map.flyToBounds(b, {
+      paddingTopLeft:    IS_COARSE ? L.point(6, 18)  : L.point(30, 30),
+      paddingBottomRight:IS_COARSE ? L.point(6, 18)  : L.point(30, 30),
+      maxZoom:           IS_COARSE ? 20              : 15,
+      animate: true, duration: 1.0, easeLinearity: 0.2
+    });
+  } catch {}
 
-
-  // Your state flags (parallel to MT)
-  currentLayerDepth = 3;
-  updateBackButtonVisibility();
-  insideManheim = (name === "Manheim Township"); // keep your existing guard
-  currentTownship = name;
+  // 6) lock non-active townships + attach roads for this township
+  try { lockIntoTownship?.(name); } catch {}
+  try { RoadsManager.showForTownship(name); } catch (err) {
+    console.error('[RoadsManager.showForTownship]', err);
+  }
 
   if (e) L.DomEvent.stop(e);
-// === Attach per-township roads ===
-RoadsManager.showForTownship(name);
-
 }
+// ===== enterTownship END =====
+
 
 function lockIntoTownship(activeName) {
   activeTownship = activeName;
@@ -2232,616 +2240,539 @@ function suffixOnlyMismatch(guess, actual) {
   return sameBase && diffSuffix;
 }
 
+// ===== loadMap BEGIN =====
 async function loadMap() {
+  // -- Guard against double init -------------------------------------------
+  if (window.__loadMapInit) return;
+  window.__loadMapInit = true;
+
   await checkLogin();
 
-  fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
-    .then(res => res.json())
-    .then(data => {
-     const roadLayer = L.geoJSON(data, {
-  pane: 'hiddenRoads',          // ← TOP-LEVEL
-  renderer: roadsRenderer,      // ← TOP-LEVEL (keeps padding during drags)
-  style: {
-    color: 'black',
-    weight: 6,
-    opacity: 1,
-    lineCap: 'round'
-  },
-  onEachFeature: function (feature, layer) {
-          const id = String(feature.id);
-          const name = feature.properties.name || "";
-          segmentIdToName[id] = name;
-          if (!nameToLayers[name]) nameToLayers[name] = [];
-          nameToLayers[name].push(layer);
-
-          // ⬛ Style visible road based on state
-         // Style visible road based on state (precedence: orange > green > red > black)
-const st = segmentStateMap.get(id) || null;
-
-if (st?.used_hint) {
-  // ORANGE overlay; never paint base
-  drawHintOverlay(layer);
-  layer._originalColor = 'orange';
-
-} else if (st?.correct) {
-  // GREEN overlay; hide base
-  layer.setStyle({ color: 'transparent', opacity: 0, weight: 0, pane: 'hiddenRoads' });
-  layer.options.interactive = false;
-  layer._originalColor = 'greenish';
-
-} else if (st?.incorrect) {
-  // RED base; keep clickable
-  layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
-  layer.options.interactive = true;
-  layer._originalColor = 'red';
-
-} else {
-  // Default BLACK; keep clickable
-  layer.setStyle({ color: 'black', weight: 6, opacity: 1, pane: 'clickable-buffer' });
-  layer.options.interactive = true;
-  layer._originalColor = 'black';
-}
-
-
-          // 🟠 Add invisible buffer layer for easier clicking/tapping
-          const buffer = L.geoJSON(feature, {
-            renderer: roadsRenderer, 
-            pane: 'clickable-buffer',
-            style: {
-              color: 'black',
-              weight: 20,
-              opacity: 0,
-            },
-            onEachFeature: function (_, bufLayer) {
-              const state = segmentStateMap.get(id);
-              if (state?.correct || state?.used_hint) return;
-              bufLayer.on('click', () => {
-                layer.fire('click');
-              });
-              bufLayer.on('mouseover', () => {
-                layer.fire('mouseover');
-              });
-              bufLayer.on('mouseout', () => {
-                layer.fire('mouseout');
-              });
-            }
-          });
-          buffer.addTo(roadsBufferGroup);
-
-
-          // Hover effect
-          layer.on('mouseover', function (e) {
-           if (!hoverOK()) return;  // no hover on touch devices
-           if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return; // safety for hybrids
-            if (!insideLancaster) return;
-            const matchingLayers = nameToLayers[name] || [];
-            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-            // 🟢 Soft glow if already guessed correctly
-const state = segmentStateMap.get(String(layer.feature.id));
-if (state?.correct) {
-  const el = layer.getElement();
-  if (el) el.classList.add('hover-green');
-  return;
-}
-
-            for (const l of matchingLayers) {
-              const currentColor = l._originalColor;
-              if (currentColor === 'greenish') return;
-              if (['black', 'red', 'yellow'].includes(currentColor)) {
-                l.setStyle({
-                  color: '#ffd700',
-                  weight: 8,
-                  opacity: 1,
-                  lineCap: 'round',
-                  pane: 'clickable-buffer'
-                });
-              }
-              l.bringToFront?.();
-            }
-          });
-
-          layer.on('mouseout', function (e) {
-  if (!hoverOK()) return;
-  if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return;
-            const el = layer.getElement();
-if (el) el.classList.remove('hover-green');
-
-            const matchingLayers = nameToLayers[name] || [];
-            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-            // 🧽 Remove green glow if present
-
-
-
-            for (const l of matchingLayers) {
-              const currentColor = l._originalColor;
-              if (['black', 'red', 'yellow'].includes(currentColor)) {
-                l.setStyle({
-                  color: currentColor,
-                  weight: 6,
-                  opacity: 1,
-                  lineCap: 'round',
-                  pane: 'hiddenRoads'
-                });
-              }
-            }
-          });
-
-          layer.on('click', function () {
-            const id = feature.id;
-            if (!insideLancaster) return;
-            const state = segmentStateMap.get(id);
-            if (state?.correct || state?.used_hint) return;
-
-            if (activeRoadName && nameToLayers[activeRoadName]) {
-              for (const l of nameToLayers[activeRoadName]) {
-                const segmentId = String(l.feature.id);
-                const s = segmentStateMap.get(segmentId);
-               if (s?.used_hint) {
-  // one source of truth for orange
-  drawHintOverlay(l);
-  l._originalColor = 'orange';
-
-} else if (s?.correct) {
-  // solved: ensure base is hidden; overlay already handles the look
-  l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-  l.options.interactive = false;
-
-} else if (s?.incorrect) {
-  l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
-  l._originalColor = 'red';
-
-} else {
-  restoreLayerFromState(l);  // respects red/orange/green/default
-}
-
-
-              }
-            }
-
-            for (const l of nameToLayers[name] || []) {
-  const sid = String(l.feature.id);
-  const s = segmentStateMap.get(sid);
-  if (!s || (!s.correct && !s.used_hint)) {
-    l.setStyle({ color: '#00ccff', weight: 8, pane: 'hiddenRoads' });
-    l._originalColor = 'blue'; // Optional: update originalColor if needed
-  }
-}
-
-
-            activeRoadName = name;
-            currentRoad = { name, id, attempts: 0, layer };
-            interactionCount++;
-
-            document.getElementById('guess-modal').style.display = 'block';
-            document.getElementById('guess-input').value = '';
-            document.getElementById('feedback-message').innerText = '';
-            document.getElementById('guess-input').focus();
-          });
-        }
-      });
-
-      roadsLayerGroup.addLayer(roadLayer);
-      });
+  // -- 0) Map + Panes -------------------------------------------------------
+  (function ensurePanes() {
+    const ensure = (name, z) => {
+      let p = map.getPane(name);
+      if (!p) p = map.createPane(name);
+      if (z != null) p.style.zIndex = z;
+      return p;
     };
+    ensure('tilePane',         200);
+    ensure('countyPolygon',    300);
+    ensure('townshipPane',     400);
+    ensure('overlayPane',      500);   // Leaflet default-ish
+    ensure('hiddenRoads',      550);   // base road strokes (below clickable buffer)
+    ensure('clickable-buffer', 600);   // fat invisible hit area
+    ensure('solvedPane',       650);   // green/orange overlays
+    ensure('hoverPane',        700);   // hover fill
+    ensure('maskPane',         210);   // outside mask under outlines
+  })();
 
+  // -- 1) MT Roads (legacy) -------------------------------------------------
+  try {
+    const roadsRes = await fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson');
+    const roadsData = await roadsRes.json();
 
-fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
-  .then(res => res.json())
-  .then(data => {
-    const countyLayer = L.geoJSON(data, {
-      pane: 'countyPolygon',
+    const roadLayer = L.geoJSON(roadsData, {
+      pane: 'hiddenRoads',
+      renderer: roadsRenderer,
       style: {
         color: 'black',
-        weight: 1.5,
-        fillColor: '#cccccc',
-        fillOpacity: 0.7,
+        weight: 6,
+        opacity: 1,
+        lineCap: 'round'
       },
+      onEachFeature: (feature, layer) => {
+        const id   = String(feature.id);
+        const name = feature.properties.name || '';
 
-      onEachFeature: function (feature, layer) {
+        segmentIdToName[id] = name;
+        (nameToLayers[name] ||= []).push(layer);
+
+        // ---- initial state paint (base) -----------------------------------
+        const st = segmentStateMap.get(id) || null;
+
+        if (st?.used_hint) {
+          // ORANGE overlay; never paint base
+          drawHintOverlay(layer);
+          layer._originalColor = 'orange';
+          layer.options.interactive = false;
+        } else if (st?.correct) {
+          // GREEN overlay; hide base
+          try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
+          layer.options.interactive = false;
+          layer._originalColor = 'greenish';
+        } else if (st?.incorrect) {
+          // RED base; keep clickable
+          layer.setStyle({ color: 'red', weight: 6, opacity: 1 });
+          layer.options.interactive = true;
+          layer._originalColor = 'red';
+        } else {
+          // Default BLACK; keep clickable
+          layer.setStyle({ color: 'black', weight: 6, opacity: 1 });
+          layer.options.interactive = true;
+          layer._originalColor = 'black';
+        }
+
+        // ---- invisible buffer for easy clicking ---------------------------
+        const buffer = L.geoJSON(feature, {
+          renderer: roadsRenderer,
+          pane: 'clickable-buffer',
+          style: { color: 'black', weight: 20, opacity: 0 },
+          onEachFeature: (_, bufLayer) => {
+            const state = segmentStateMap.get(id);
+            if (state?.correct || state?.used_hint) return; // solved/locked: no events
+            bufLayer.on('click',    () => layer.fire('click'));
+            bufLayer.on('mouseover',() => layer.fire('mouseover'));
+            bufLayer.on('mouseout', () => layer.fire('mouseout'));
+          }
+        });
+        buffer.addTo(roadsBufferGroup);
+
+        // ---- hover ---------------------------------------------------------
+        layer.on('mouseover', (e) => {
+          if (!hoverOK()) return;
+          if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return;
+          if (!insideLancaster) return;
+          if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+
+          const state = segmentStateMap.get(String(layer.feature.id));
+          if (state?.correct) {
+            const el = layer.getElement?.();
+            if (el) el.classList.add('hover-green');
+            return;
+          }
+          for (const l of (nameToLayers[name] || [])) {
+            const currentColor = l._originalColor;
+            if (currentColor === 'greenish') continue;
+            if (['black', 'red', 'yellow'].includes(currentColor)) {
+              l.setStyle({ color: '#ffd700', weight: 8, opacity: 1, lineCap: 'round' });
+            }
+            l.bringToFront?.();
+          }
+        });
+
+        layer.on('mouseout', (e) => {
+          if (!hoverOK()) return;
+          if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return;
+
+          const el = layer.getElement?.();
+          if (el) el.classList.remove('hover-green');
+
+          for (const l of (nameToLayers[name] || [])) {
+            const currentColor = l._originalColor;
+            if (['black', 'red', 'yellow'].includes(currentColor)) {
+              l.setStyle({ color: currentColor, weight: 6, opacity: 1, lineCap: 'round' });
+            }
+          }
+        });
+
+        // ---- click (activate + modal) -------------------------------------
+        layer.on('click', () => {
+          if (!insideLancaster) return;
+
+          const state = segmentStateMap.get(id);
+          if (state?.correct || state?.used_hint) return; // locked
+
+          // restore previously active road visuals before switching
+          if (activeRoadName && nameToLayers[activeRoadName]) {
+            for (const l of nameToLayers[activeRoadName]) {
+              const segmentId = String(l.feature.id);
+              const s = segmentStateMap.get(segmentId);
+              if (s?.used_hint) {
+                drawHintOverlay(l);
+                l._originalColor = 'orange';
+              } else if (s?.correct) {
+                try { l.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch {}
+                l.options.interactive = false;
+              } else if (s?.incorrect) {
+                l.setStyle({ color: 'red', weight: 6, opacity: 1 });
+                l._originalColor = 'red';
+              } else {
+                restoreLayerFromState(l);
+              }
+            }
+          }
+
+          // set the new active (blue) look on unsolved parts
+          for (const l of (nameToLayers[name] || [])) {
+            const sid = String(l.feature.id);
+            const s = segmentStateMap.get(sid);
+            if (!s || (!s.correct && !s.used_hint)) {
+              l.setStyle({ color: '#00ccff', weight: 8 });
+              l._originalColor = 'blue';
+            }
+          }
+
+          activeRoadName = name;
+          currentRoad = { name, id, attempts: 0, layer };
+          interactionCount++;
+
+          const modal = document.getElementById('guess-modal');
+          modal.style.display = 'block';
+          document.getElementById('guess-input').value = '';
+          document.getElementById('feedback-message').innerText = '';
+          document.getElementById('guess-input').focus();
+        });
+      }
+    });
+
+    roadsLayerGroup.addLayer(roadLayer);
+  } catch (e) {
+    console.error('[loadMap] MT roads fetch failed', e);
+  }
+
+  // -- 2) County polygon (Lancaster) ---------------------------------------
+  try {
+    const countyRes = await fetch('Counties/Boundaries_County_Lancaster_PA.geojson');
+    const countyData = await countyRes.json();
+
+    const countyLayer = L.geoJSON(countyData, {
+      pane: 'countyPolygon',
+      style: { color: 'black', weight: 1.5, fillColor: '#cccccc', fillOpacity: 0.7 },
+      onEachFeature: (feature, layer) => {
         if (!countyFeatureRef) countyFeatureRef = feature;
-        layer.on('mouseover', function () {
+
+        // tooltip
+        layer.on('mouseover', () => {
           if (insideLancaster) return;
           const tooltip = document.getElementById('custom-tooltip');
           const center = layer.getBounds().getCenter();
           const screenPoint = map.latLngToContainerPoint(center);
           tooltip.innerText = 'Lancaster County';
           tooltip.style.left = screenPoint.x + 'px';
-          tooltip.style.top = screenPoint.y + 'px';
+          tooltip.style.top  = screenPoint.y + 'px';
           tooltip.style.display = 'block';
         });
-
-        layer.on('mouseout', function () {
+        layer.on('mouseout', () => {
           const tooltip = document.getElementById('custom-tooltip');
           tooltip.innerText = '';
           tooltip.style.display = 'none';
         });
 
-        layer.on('click', function () {
+        // click → enter county
+        layer.on('click', async () => {
           map.fitBounds(layer.getBounds());
-          // Build & cache the mask once, *after* zooming (so outer rect matches view)
-if (!countyMaskFeature) {
-  countyMaskFeature = createWorldMask(feature);
-}
+
+          // Build & cache the mask once
+          if (!countyMaskFeature) {
+            countyMaskFeature = createWorldMask(feature);
+          }
 
           currentLayerDepth = 2;
-updateBackButtonVisibility();
-
+          updateBackButtonVisibility();
           insideLancaster = true;
-// hide the county tooltip immediately on enter
-{ const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
+
+          // hide tooltip
+          { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
 
           // (Re)apply the saved outside-only mask for Lancaster
-if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
+          if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
 
-if (!map.getPane('maskPane')) map.createPane('maskPane');
-const mp = map.getPane('maskPane');
-if (mp && !mp.style.zIndex) mp.style.zIndex = 210; // keep under townshipPane=400
+          if (!map.getPane('maskPane')) map.createPane('maskPane');
+          const mp = map.getPane('maskPane'); if (mp && !mp.style.zIndex) mp.style.zIndex = 210;
 
-if (countyMaskFeature) {
-  worldMask = L.geoJSON(countyMaskFeature, {
-    style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
-  }).addTo(map);
+          if (countyMaskFeature) {
+            worldMask = L.geoJSON(countyMaskFeature, {
+              style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+            }).addTo(map);
 
-  // let clicks pass through the mask
-  try {
-    worldMask.eachLayer(l => {
-      const el = l.getElement?.();
-      if (el) el.style.pointerEvents = 'none';
-    });
-  } catch {}
-}
-
-
-          setTimeout(() => {
-            layer.setStyle({ fillOpacity: 0 });
-
-            const path = layer._path;
-            if (path) {
-              path.style.outline = 'none';
-              path.style.pointerEvents = 'none';
-            }
-
-            const mapContainer = map.getContainer();
-            if (mapContainer) {
-              mapContainer.blur();
-            }
-
-            // ✅ Load Manheim Township after zoom-in
-            fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
-              .then(r => r.json())
-              .then(mtData => {
-                 townshipLayerRef = L.geoJSON(mtData, {
-                  pane: 'townshipPane',
-                  style: {
-                    color: 'black',
-                    weight: 1.5,
-                    fillColor: '#e3f2fd',
-                    fillOpacity: 0.75
-                  },
-                  onEachFeature: (feature, mtLayer) => {
-                    mtLayer.on('mouseover', function () {
-  if (activeTownship) return;                     
-  if (insideManheim) return;
-
-  const tooltip = document.getElementById('custom-tooltip');
-  const center = mtLayer.getBounds().getCenter();
-  const screenPoint = map.latLngToContainerPoint(center);
-
-  tooltip.innerText = "Manheim Township";
-  tooltip.style.left = screenPoint.x + 'px';
-  tooltip.style.top = screenPoint.y + 'px';
-  tooltip.style.display = 'block';
-});
-
-mtLayer.on('mouseout', function () {
-  const tooltip = document.getElementById('custom-tooltip');
-  tooltip.style.display = 'none';
-  tooltip.innerText = '';
-});
-mtLayer.on('mouseover', function () {
-  if (activeTownship) return; 
-  if (insideManheim) return; // already clicked
-
-  // 🧹 Remove old hover overlay if any
-  if (hoverOverlay) {
-    map.removeLayer(hoverOverlay);
-    hoverOverlay = null;
-  }
-
-  // 🟡 Add gold semi-transparent hover overlay
-  hoverOverlay = L.geoJSON(mtLayer.feature, {
-  pane: 'hoverPane',
-  style: {
-    fillColor: '#ffd700',
-    fillOpacity: 0.30,
-    color: 'black',   // ← was 'black'
-    weight: 1,          // ← was 1
-    opacity: 1
-  }
-}).addTo(map);
-
-hoverOverlay.bringToFront?.(); // keep it above everything
-
-  // 🔒 Make hover overlay ignore pointer events
-  hoverOverlay.eachLayer(l => {
-    const el = l.getElement();
-    if (el) el.style.pointerEvents = 'none';
-  });
-});
-mtLayer.on('mouseout', function () {
-  if (hoverOverlay) {
-    map.removeLayer(hoverOverlay);
-    hoverOverlay = null;
-  }
-});
-                    mtLayer.on('touchstart', () => {
-  const tt = document.getElementById('custom-tooltip');
-  if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
-  // if you create a hover overlay on mouseover, remove it too
-  try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
-});
-
-mtLayer.on('click', function (e) {
-  if (insideManheim) { if (e) L.DomEvent.stop(e); return; }
-  if (activeTownship && activeTownship !== "Manheim Township") {
-  if (e) L.DomEvent.stop(e);
-  return;
-}
-lockIntoTownship("Manheim Township");
-
-
-  console.log("📍 Manheim Township clicked");
-  currentLayerDepth = 3;
-  updateBackButtonVisibility();
-  showSolvedPane();
-  normalizeAfterRoadsReady();
-  // kill tooltip/hover so nothing lingers
-  try { mtLayer.unbindTooltip(); } catch (err) {}
-  (function () {
-    const tt = document.getElementById('custom-tooltip');
-    if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
-  })();
-  try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch (err) {}
-
-  // fade township fill & stop it intercepting taps
-  mtLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 });
-  var mtPath = mtLayer._path || (typeof mtLayer.getElement === 'function' ? mtLayer.getElement() : null);
-  if (mtPath) { mtPath.style.pointerEvents = 'none'; mtPath.style.outline = 'none'; }
-
-  // MT-only mask (same as your code)
-  if (worldMask) { try { map.removeLayer(worldMask); } catch (err) {} worldMask = null; }
-  try {
-    worldMask = L.geoJSON(createWorldMask(feature), {
-      pane: 'maskPane',
-      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false}
-    }).addTo(map);
-    worldMask.eachLayer(function (layer) {
-      var el = (typeof layer.getElement === 'function') ? layer.getElement() : null;
-      if (el) el.style.pointerEvents = 'none';
-    });
-  } catch (err) {}
-
-  // --- Smooth zoom (desktop vs mobile) ---
-var IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? true : false;
-var bounds    = mtLayer.getBounds();
-
-if (IS_COARSE) {
-  // MOBILE: a bit tighter than before, but capped so it can't over-zoom
-  var padM   = L.point(6, 18);      // ↓ smaller = tighter; ↑ bigger = looser
-  var maxZM  = 20;                    // try 16, or 17 if still a tad wide
-  map.flyToBounds(bounds, {
-    paddingTopLeft: padM,
-    paddingBottomRight: padM,
-    maxZoom: maxZM,
-    animate: true,
-    duration: 1.0,                    // bump to 1.2 if you want slower
-    easeLinearity: 0.2
-  });
-} else {
-  // DESKTOP: keep your perfect settings
-  var padD = L.point(30, 30);
-  map.flyToBounds(bounds, {
-    paddingTopLeft: padD,
-    paddingBottomRight: padD,
-    maxZoom: 15,
-    animate: true,
-    duration: 1.0,
-    easeLinearity: 0.2
-  });
-}
-
-
-
-  // Add roads only when zoom settles
-  map.once('moveend', function () {
-    // ensure final frame (no under-zoom on some mobiles)
-    try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch (err) {}
-    try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch (err) {}
-    try { if (typeof armSolvedSegmentsForReentry === 'function') armSolvedSegmentsForReentry(); } catch (err) {}
-    try { if (typeof scrubHiddenRoadsBlue === 'function') scrubHiddenRoadsBlue(); } catch (err) {}
-    try { if (typeof normalizeCorrectOverlays === 'function') normalizeCorrectOverlays(); } catch (err) {}
-    // === APPLY SOLVED OVERLAYS FOR MT (START) ===
-   // paint as soon as the legacy SVG paths exist (usually ~1–2 frames)
-  requestAnimationFrame(() => {
-      requestAnimationFrame(async () => {
-        try {
-          await applySolvedFromDBForTownship("Manheim Township");
-        } catch (err) {
-          console.error('[MT moveend] applySolved error', err);
-        }
-      });
-    });
-  });
-
-  if (e) L.DomEvent.stop(e);
-});
-
-
-
-
-                  }
-                }).addTo(map);
-                // ✅ Add East Petersburg alongside MT
-showTownshipOutline("East Petersburg").catch(console.error);
+            try {
+              worldMask.eachLayer(l => {
+                const el = l.getElement?.();
+                if (el) el.style.pointerEvents = 'none';
               });
+            } catch {}
+          }
+
+          // smooth fade of county fill, then prep MT/EP
+          setTimeout(async () => {
+            try {
+              layer.setStyle({ fillOpacity: 0 });
+              const path = layer._path;
+              if (path) { path.style.outline = 'none'; path.style.pointerEvents = 'none'; }
+              map.getContainer()?.blur();
+            } catch {}
+
+            // load Manheim Township outline
+            try {
+              const mtRes = await fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson');
+              const mtData = await mtRes.json();
+
+              townshipLayerRef = L.geoJSON(mtData, {
+                pane: 'townshipPane',
+                style: { color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 },
+                onEachFeature: (feature, mtLayer) => {
+                  // unified mouseover: tooltip + gold hover fill
+                  mtLayer.on('mouseover', () => {
+                    if (activeTownship) return;
+                    if (insideManheim)  return;
+
+                    const tooltip = document.getElementById('custom-tooltip');
+                    const center = mtLayer.getBounds().getCenter();
+                    const pt = map.latLngToContainerPoint(center);
+                    tooltip.innerText = 'Manheim Township';
+                    tooltip.style.left = pt.x + 'px';
+                    tooltip.style.top  = pt.y + 'px';
+                    tooltip.style.display = 'block';
+
+                    // gold semi-transparent hover overlay
+                    try {
+                      if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
+                      hoverOverlay = L.geoJSON(mtLayer.feature, {
+                        pane: 'hoverPane',
+                        style: { fillColor: '#ffd700', fillOpacity: 0.30, color: 'black', weight: 1, opacity: 1 }
+                      }).addTo(map);
+                      hoverOverlay.bringToFront?.();
+                      hoverOverlay.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; });
+                    } catch {}
+                  });
+
+                  mtLayer.on('mouseout', () => {
+                    const tooltip = document.getElementById('custom-tooltip');
+                    tooltip.style.display = 'none';
+                    tooltip.innerText = '';
+                    if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
+                  });
+
+                  // touchstart cleanup
+                  mtLayer.on('touchstart', () => {
+                    const tt = document.getElementById('custom-tooltip');
+                    if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
+                    try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+                  });
+
+                  // click → enter MT
+                  mtLayer.on('click', (e) => {
+                    if (insideManheim) { if (e) L.DomEvent.stop(e); return; }
+                    if (activeTownship && activeTownship !== 'Manheim Township') { if (e) L.DomEvent.stop(e); return; }
+
+                    lockIntoTownship('Manheim Township');
+
+                    currentLayerDepth = 3;
+                    updateBackButtonVisibility();
+                    showSolvedPane();
+                    normalizeAfterRoadsReady?.();
+
+                    try { mtLayer.unbindTooltip(); } catch {}
+                    { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
+                    try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+
+                    // fade township fill & stop intercepting taps
+                    try { mtLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 }); } catch {}
+                    const mtPath = mtLayer._path || mtLayer.getElement?.();
+                    if (mtPath) { mtPath.style.pointerEvents = 'none'; mtPath.style.outline = 'none'; }
+
+                    // MT-only mask
+                    if (worldMask) { try { map.removeLayer(worldMask); } catch {} worldMask = null; }
+                    try {
+                      worldMask = L.geoJSON(createWorldMask(feature), {
+                        pane: 'maskPane',
+                        style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
+                      }).addTo(map);
+                      worldMask.eachLayer((l) => {
+                        const el = l.getElement?.();
+                        if (el) el.style.pointerEvents = 'none';
+                      });
+                    } catch {}
+
+                    // camera
+                    try {
+                      const IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+                      const bounds = mtLayer.getBounds();
+                      const pad = IS_COARSE ? L.point(6, 18) : L.point(30, 30);
+                      const maxZ = IS_COARSE ? 20 : 15;
+                      map.flyToBounds(bounds, {
+                        paddingTopLeft: pad, paddingBottomRight: pad,
+                        maxZoom: maxZ, animate: true, duration: 1.0, easeLinearity: 0.2
+                      });
+                    } catch {}
+
+                    // add legacy roads after zoom finishes, then paint solved
+                    map.once('moveend', () => {
+                      try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch {}
+                      try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch {}
+                      try { armSolvedSegmentsForReentry?.(); } catch {}
+                      try { scrubHiddenRoadsBlue?.(); } catch {}
+                      try { normalizeCorrectOverlays?.(); } catch {}
+
+                      requestAnimationFrame(() => {
+                        requestAnimationFrame(async () => {
+                          try { await applySolvedFromDBForTownship('Manheim Township'); }
+                          catch (err) { console.error('[MT moveend] applySolved error', err); }
+                        });
+                      });
+
+                      if (e) L.DomEvent.stop(e);
+                    });
+                  });
+                }
+              }).addTo(map);
+
+              // also show EP outline now
+              showTownshipOutline('East Petersburg').catch(console.error);
+
+            } catch (err) {
+              console.error('[loadMap] MT outline fetch failed', err);
+            }
           }, 500);
         });
-            }
-    });
-    countyLayerRef = countyLayer.addTo(map);
-  });
-
-loadMap();
-  updateBackButtonVisibility();
- document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
-// Back from Township → County
-if (currentLayerDepth === 3) {
-  // Set state FIRST so county hover won't fire during the transition
-  insideManheim = false;
-  insideLancaster = true;
-  currentLayerDepth = 2;
-
-  // Hard-kill any lingering custom tooltip
-  resetCountyTooltip();
-
-  // Also make sure no Leaflet tooltip is bound on county (prevents phantom mini-boxes)
-  try {
-    if (countyLayerRef) {
-      countyLayerRef.eachLayer(l => {
-        if (l.getTooltip && l.getTooltip()) l.unbindTooltip();
-      });
-    }
-  } catch {}
-
-  // 0) Ensure pane z-order: mask below township so MT can receive clicks
-  try {
-    if (!map.getPane('maskPane')) map.createPane('maskPane');
-    map.getPane('maskPane').style.zIndex = 210;  // below township
-
-    if (!map.getPane('townshipPane')) map.createPane('townshipPane');
-    map.getPane('townshipPane').style.zIndex = 400; // above mask
-  } catch {}
-
-  // 1) Hide roads + buffers
-  try {
-    if (map.hasLayer(roadsLayerGroup))  map.removeLayer(roadsLayerGroup);
-    if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
-  } catch {}
-clearSolvedOverlays();
-hideSolvedPane();
-clearSolvedPaneLayers();
-
-  // 2) Make sure MT is visible and CLICKABLE again at county depth
-  try {
-    if (townshipLayerRef) {
-      if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
-      townshipLayerRef.eachLayer(mt => {
-        // county-depth visuals
-        mt.setStyle({
-    color: 'black',
-    weight: 1.5,
-    fillColor: '#e3f2fd',
-    fillOpacity: 0.75
-  });
-        // ensure interactivity
-        mt.options.interactive = true;
-        const p = mt._path;
-        if (p) p.style.pointerEvents = 'auto';
-        if (mt.bringToFront) mt.bringToFront(); // above mask just in case
-      });
-    }
-  } catch {}
-// 2b) Make sure EP is visible and CLICKABLE again at county depth
-try {
-  const epLayer = (typeof townshipLayersByName !== 'undefined')
-    ? townshipLayersByName["East Petersburg"]
-    : null;
-
-  if (epLayer) {
-    if (!map.hasLayer(epLayer)) epLayer.addTo(map);
-
-    epLayer.eachLayer(ep => {
-      // county-depth visuals (match MT)
-      ep.setStyle({
-        color: 'black',
-        weight: 1.5,
-        fillColor: '#e3f2fd',
-        fillOpacity: 0.75
-      });
-
-      // ensure interactivity
-      ep.options.interactive = true;
-      const p = ep._path || (typeof ep.getElement === 'function' ? ep.getElement() : null);
-      if (p) p.style.pointerEvents = 'auto';
-    });
-
-    if (epLayer.bringToFront) epLayer.bringToFront(); // above mask just in case
-  }
-} catch {}
-// 2c) Remove any lingering hover overlay / tooltip
-try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
-{ const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
-
-  // 3) County polygon should be hidden and NON-interactive at county depth
-try {
-  if (countyLayerRef) {
-    if (!map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
-    countyLayerRef.eachLayer(l => {
-      // keep interior clear while inside county
-      l.setStyle({ fillOpacity: 0 });
-      const p = l._path;
-      if (p) {
-        p.style.pointerEvents = 'none'; // don't block township
-        p.style.outline = 'none';
       }
     });
+
+    countyLayerRef = countyLayer.addTo(map);
+  } catch (e) {
+    console.error('[loadMap] county fetch failed', e);
   }
-} catch {}
 
-
-  // Reapply outside-only mask using the cached feature
-if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
-if (!map.getPane('maskPane')) map.createPane('maskPane');
-const mp = map.getPane('maskPane'); if (mp && !mp.style.zIndex) mp.style.zIndex = 210;
-
-if (countyMaskFeature) {
-  worldMask = L.geoJSON(countyMaskFeature, {
-    style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
-  }).addTo(map);
-  try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
-} else {
-  // fallback if user navigated before cache existed
-  rebuildCountyMask();
+  // -- 3) Initial UI --------------------------------------------------------
+  try { logPaneState?.('after loadMap'); } catch {}
+  updateBackButtonVisibility?.();
 }
-unlockTownships();
-RoadsManager.hideAll(); // ensure no township roads remain visible
+// ===== loadMap END =====
 
+// ===== Exit/Back handler BEGIN =====
+document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
+  // ---------- Back from Township → County ----------
+  if (currentLayerDepth === 3) {
+    // Set state FIRST so county hover won't fire during the transition
+    insideManheim = false;
+    insideLancaster = true;
+    currentLayerDepth = 2;
 
-  // 5) Fit to county bounds
-  try {
-    // smooth + slightly relaxed framing (matches zoom-in feel)
-if (countyLayerRef) {
-  const pad = L.point(30, 30); // use the same desktop pad you liked
-  map.flyToBounds(countyLayerRef.getBounds(), {
-    paddingTopLeft: pad,
-    paddingBottomRight: pad,
-    maxZoom: 12,
-    animate: true,
-    duration: 1.0,     // tweak to 1.2 if you want even slower
-    easeLinearity: 0.2 // same easing as your zoom-in
-  });
-}
+    // Clear any active-blue state
+    try { RoadsManager.clearActive?.(); } catch {}
 
-  } catch {}
+    // Hard-kill any lingering custom tooltip
+    resetCountyTooltip();
 
-  insideLancaster   = true;
-  currentLayerDepth = 2;
-  updateBackButtonVisibility();
-  logPaneState('BACK');
-  return;
-}
+    // Also make sure no Leaflet tooltip is bound on county (prevents phantom mini-boxes)
+    try {
+      if (countyLayerRef) {
+        countyLayerRef.eachLayer(l => {
+          if (l.getTooltip && l.getTooltip()) l.unbindTooltip();
+        });
+      }
+    } catch {}
 
+    // 0) Ensure pane z-order: mask below township so MT can receive clicks
+    try {
+      if (!map.getPane('maskPane')) map.createPane('maskPane');
+      map.getPane('maskPane').style.zIndex = 210;  // below township
 
+      if (!map.getPane('townshipPane')) map.createPane('townshipPane');
+      map.getPane('townshipPane').style.zIndex = 400; // above mask
+    } catch {}
+
+    // 1) Hide roads + buffers (do NOT destroy solved overlays)
+    try {
+      if (map.hasLayer(roadsLayerGroup))  map.removeLayer(roadsLayerGroup);
+      if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
+    } catch {}
+    // CHANGED: keep overlays cached; just hide the pane
+    try { hideSolvedPane?.(); } catch {}
+    // REMOVED: clearSolvedOverlays(); clearSolvedPaneLayers();
+
+    // 2) Make sure MT is visible and CLICKABLE again at county depth
+    try {
+      if (townshipLayerRef) {
+        if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
+        townshipLayerRef.eachLayer(mt => {
+          // county-depth visuals
+          mt.setStyle({
+            color: 'black',
+            weight: 1.5,
+            fillColor: '#e3f2fd',
+            fillOpacity: 0.75
+          });
+          // ensure interactivity
+          mt.options.interactive = true;
+          const p = mt._path;
+          if (p) p.style.pointerEvents = 'auto';
+          mt.bringToFront?.(); // above mask just in case
+        });
+      }
+    } catch {}
+
+    // 2b) Make sure EP is visible and CLICKABLE again at county depth
+    try {
+      const epLayer = (typeof townshipLayersByName !== 'undefined')
+        ? townshipLayersByName["East Petersburg"]
+        : null;
+
+      if (epLayer) {
+        if (!map.hasLayer(epLayer)) epLayer.addTo(map);
+        epLayer.eachLayer(ep => {
+          ep.setStyle({
+            color: 'black',
+            weight: 1.5,
+            fillColor: '#e3f2fd',
+            fillOpacity: 0.75
+          });
+          ep.options.interactive = true;
+          const p = ep._path || (typeof ep.getElement === 'function' ? ep.getElement() : null);
+          if (p) p.style.pointerEvents = 'auto';
+        });
+        epLayer.bringToFront?.();
+      }
+    } catch {}
+
+    // 2c) Remove any lingering hover overlay / tooltip
+    try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+    { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
+
+    // 3) County polygon should be hidden and NON-interactive at county depth
+    try {
+      if (countyLayerRef) {
+        if (!map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
+        countyLayerRef.eachLayer(l => {
+          l.setStyle({ fillOpacity: 0 });
+          const p = l._path;
+          if (p) {
+            p.style.pointerEvents = 'none'; // don't block township
+            p.style.outline = 'none';
+          }
+        });
+      }
+    } catch {}
+
+    // Reapply outside-only mask using the cached feature
+    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
+    if (!map.getPane('maskPane')) map.createPane('maskPane');
+    const mp = map.getPane('maskPane'); if (mp && !mp.style.zIndex) mp.style.zIndex = 210;
+
+    if (countyMaskFeature) {
+      worldMask = L.geoJSON(countyMaskFeature, {
+        style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
+      }).addTo(map);
+      try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
+    } else {
+      rebuildCountyMask();
+    }
+
+    unlockTownships();
+    RoadsManager.hideAll?.(); // ensure no township roads remain visible
+
+    // 5) Fit to county bounds
+    try {
+      if (countyLayerRef) {
+        const pad = L.point(30, 30);
+        map.flyToBounds(countyLayerRef.getBounds(), {
+          paddingTopLeft: pad,
+          paddingBottomRight: pad,
+          maxZoom: 12,
+          animate: true,
+          duration: 1.0,
+          easeLinearity: 0.2
+        });
+      }
+    } catch {}
+
+    insideLancaster   = true;
+    currentLayerDepth = 2;
+    updateBackButtonVisibility();
+    try { logPaneState?.('BACK'); } catch {}
+    return;
+  }
 
   // ---------- Back from County → World ----------
   if (currentLayerDepth === 2) {
@@ -2856,24 +2787,24 @@ if (countyLayerRef) {
       if (typeof roadsBufferGroup !== 'undefined' && map.hasLayer(roadsBufferGroup))  map.removeLayer(roadsBufferGroup);
       if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
     } catch {}
+
     // Also remove any additional township outlines we added at county depth (e.g., EP)
-try {
-  if (typeof townshipLayersByName !== 'undefined' && townshipLayersByName) {
-    Object.values(townshipLayersByName).forEach(lyr => {
-      if (lyr && map.hasLayer(lyr)) map.removeLayer(lyr); // keep cached; just hide
-    });
-  }
-} catch {}
+    try {
+      if (typeof townshipLayersByName !== 'undefined' && townshipLayersByName) {
+        Object.values(townshipLayersByName).forEach(lyr => {
+          if (lyr && map.hasLayer(lyr)) map.removeLayer(lyr); // keep cached; just hide
+        });
+      }
+    } catch {}
 
-// Clean up any lingering hover overlay / custom tooltip
-try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
-{ const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
+    // Clean up any lingering hover overlay / custom tooltip
+    try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
+    { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
 
-clearSolvedOverlays();
-hideSolvedPane();
-clearSolvedPaneLayers();
-RoadsManager.hideAll(); // ensure no township roads remain visible
-
+    // CHANGED: keep solved overlays cached; just hide the pane
+    try { hideSolvedPane?.(); } catch {}
+    // REMOVED: clearSolvedOverlays(); clearSolvedPaneLayers();
+    RoadsManager.hideAll?.(); // ensure no township roads remain visible
 
     // Restore county polygon UI (optional safeguard)
     try {
@@ -2892,6 +2823,8 @@ RoadsManager.hideAll(); // ensure no township roads remain visible
     updateBackButtonVisibility();
   }
 });
+// ===== Exit/Back handler END =====
+
 
 
 
@@ -3121,6 +3054,7 @@ function triggerCorrectDissolveAnimation(layer) {
 
 
 
+// ===== submitGuessHandler BEGIN =====
 // Submit handler defined OUTSIDE of loadMap
 document.getElementById('submit-guess').onclick = async function () {
   if (!currentRoad) return;
@@ -3159,20 +3093,43 @@ document.getElementById('submit-guess').onclick = async function () {
   const attemptKey = `${activeTownship}::${normalizedCorrect}`;
   const n = (attemptCounts[attemptKey] = (attemptCounts[attemptKey] || 0) + 1);
 
+  // helpers
+  const setMsg = (txt) => {
+    const msg = document.getElementById('feedback-message');
+    if (msg) msg.innerText = txt || '';
+  };
+  const closeModalSoon = (delayMs = 0) => {
+    setTimeout(() => {
+      const modal = document.getElementById('guess-modal');
+      if (modal) modal.style.display = 'none';
+      setMsg('');
+      currentRoad = null;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, delayMs);
+  };
+  const persist = async (status, used_hint) => {
+    const ok = await recordGuessNormalized({
+      township: activeTownship,
+      normalizedName: normalizedCorrect,
+      displayName: correctName,
+      status,
+      used_hint,
+      layers,
+    });
+    if (!ok) console.warn('[guesses] insert failed', { status, township: activeTownship, normalizedName: normalizedCorrect });
+  };
+
   // --- suffix helper (keep your logic) ---
   if (normalizedGuess !== normalizedCorrect &&
       normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
-    const msg = document.getElementById('feedback-message');
-    if (msg) msg.innerText = 'Check the suffix!';
-    setTimeout(() => { if (msg) msg.innerText = ''; }, 5000);
+    setMsg('Check the suffix!');
+    setTimeout(() => setMsg(''), 5000);
     for (const layer of layers) {
-      layer.setStyle({ color: 'yellow', weight: 6.001 });
+      layer.setStyle({ color: 'yellow', weight: BASE_ROAD_WEIGHT, opacity: 1 });
       layer.__originalColor = 'yellow';
     }
     return;
   }
-
-  // ... keep the rest of your existing branches (correct / incorrect / hint / 5th+) ...
 
   const isCorrect = normalizedGuess === normalizedCorrect;
 
@@ -3181,201 +3138,129 @@ document.getElementById('submit-guess').onclick = async function () {
   // -----------------------------
   if (n <= 3) {
     if (isCorrect) {
-// GREEN + lock (animate dissolve)
-RoadsManager.clearActive?.();  // drop active-blue before animating
+      // GREEN + lock (animate dissolve)
+      RoadsManager.clearActive?.();  // drop active-blue before animating
 
-// collect ids once (used for buffer removal + DB)
-const segmentIds = layers.map(l => String(l?.feature?.id ?? '')).filter(Boolean);
+      for (const layer of layers) {
+        const sid = String(layer?.feature?.id ?? '');
+        if (sid) segmentStateMap.set(sid, { correct: true, used_hint: false });
 
-for (const layer of layers) {
-  const sid = String(layer?.feature?.id ?? '');
-  if (sid) segmentStateMap.set(sid, { correct: true, used_hint: false });
+        layer.__originalColor = 'green';
+        layer.__solved = true;               // stop clicks immediately
+        layer.options.interactive = false;
 
-  layer.__originalColor = 'green';
-  layer.__solved = true;               // stop clicks immediately
-  layer.options.interactive = false;
+        // animate base path → green overlay
+        triggerCorrectDissolveAnimation(layer);
+      }
 
-  // animate base path → green overlay
-  triggerCorrectDissolveAnimation(layer);
-}
+      if (typeof removeMatchingBuffers === 'function') {
+        removeMatchingBuffers(segmentIds);
+      }
 
-if (typeof removeMatchingBuffers === 'function') {
-  removeMatchingBuffers(segmentIds);
-}
-
-// ⬇️ persist the guess (await it so errors surface in console)
-const ok = await recordGuessNormalized({
-  township: activeTownship,
-  normalizedName: normalizedCorrect,
-  displayName: correctName,
-  status: 'correct',
-  used_hint: false,
-  layers,
-});
-if (!ok) console.warn('[guesses] correct insert failed', {
-  township: activeTownship, normalizedName: normalizedCorrect
-});
-
-
-
-      const msg = document.getElementById('feedback-message');
-      if (msg) msg.innerText = 'Correct!';
+      await persist('correct', false);
+      setMsg('Correct!');
+      // close a beat later for nicer UX
       setTimeout(() => {
         const modal = document.getElementById('guess-modal');
         if (modal) modal.style.display = 'none';
-        if (msg) msg.innerText = '';
+        setMsg('');
         currentRoad = null;
       }, 300);
       return;
     } else {
-  // RED + close
-  RoadsManager.clearActive?.(); // drop active-blue so red shows
+      // RED + close
+      RoadsManager.clearActive?.(); // drop active-blue so red shows
 
-  for (const layer of layers) {
-    const sid = String(layer?.feature?.id ?? '');
-    if (sid) segmentStateMap.set(sid, { incorrect: true, correct: false, used_hint: false });
+      for (const layer of layers) {
+        const sid = String(layer?.feature?.id ?? '');
+        if (sid) segmentStateMap.set(sid, { incorrect: true, correct: false, used_hint: false });
 
-    layer.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-    layer.__originalColor = 'red';
-    layer.__solved = false;           // keep road guessable
-    layer.options.interactive = true; // unlimited retries
-  }
+        layer.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+        layer.__originalColor = 'red';
+        layer.__solved = false;           // keep road guessable
+        layer.options.interactive = true; // unlimited retries
+      }
 
-  // save the attempt
-  const ok = await recordGuessNormalized({
-    township: activeTownship,
-    normalizedName: normalizedCorrect, // target road
-    displayName: correctName,
-    status: 'incorrect',
-    used_hint: false,
-    layers,
-  });
-  if (!ok) console.warn('[guesses] incorrect insert failed', {
-    township: activeTownship, normalizedName: normalizedCorrect
-  });
-
-  // close modal (keep your existing UI timing)
-  setTimeout(() => {
-    const modal = document.getElementById('guess-modal');
-    if (modal) modal.style.display = 'none';
-    const msg = document.getElementById('feedback-message');
-    if (msg) msg.innerText = '';
-    currentRoad = null;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, 0);
-  return;
-}
-
-  }
-
-  // -------------------------------
-// 4th attempt = HINT ONLY
-// -------------------------------
-if (n === 4) {
-  currentRoad.hintGiven = true;
-
-  // mark "used hint" in local state for all segments of this road
-  const segIds = layers.map(l => String(l?.feature?.id ?? '')).filter(Boolean);
-  for (const layer of layers) {
-    const sid = String(layer?.feature?.id ?? '');
-    if (!sid) continue;
-    const prev = segmentStateMap.get(sid) || {};
-    segmentStateMap.set(sid, { ...prev, used_hint: true });
-  }
-
-  // (optional) draw a visual hint overlay on each segment
-  if (typeof drawHintOverlay === 'function') {
-    for (const layer of layers) {
-      try { drawHintOverlay(layer); } catch (e) { console.warn('drawHintOverlay failed', e); }
+      await persist('incorrect', false);
+      closeModalSoon(0);
+      return;
     }
   }
 
-  // UI: show first-letter hint & keep modal open
-  const firstLetter = correctName.charAt(0).toUpperCase();
-  const msg = document.getElementById('feedback-message');
-  if (msg) msg.innerText = `Hint: Road begins with “${firstLetter}”`;
-  const inputEl = document.getElementById('guess-input') || document.querySelector('#guess-modal input');
-  if (inputEl) { inputEl.value = ''; inputEl.focus(); }
-  document.getElementById('submit-guess')?.removeAttribute('disabled');
-  document.getElementById('give-up')?.removeAttribute('disabled');
+  // -------------------------------
+  // 4th attempt = HINT ONLY
+  // -------------------------------
+  if (n === 4) {
+    currentRoad.hintGiven = true;
 
-  // persist an attempt marked as "incorrect" + used_hint=true (schema-friendly)
-  const ok = await recordGuessNormalized({
-    township: activeTownship,
-    normalizedName: normalizedCorrect,
-    displayName: correctName,
-    status: 'incorrect',   // hint attempt is still an incorrect try
-    used_hint: true,       // <- this is the key bit
-    layers,
-  });
-  if (!ok) console.warn('[guesses] hint insert failed', {
-    township: activeTownship, normalizedName: normalizedCorrect
-  });
+    // mark "used hint" locally
+    for (const layer of layers) {
+      const sid = String(layer?.feature?.id ?? '');
+      if (!sid) continue;
+      const prev = segmentStateMap.get(sid) || {};
+      segmentStateMap.set(sid, { ...prev, used_hint: true });
+    }
 
-  return; // keep modal open for next attempt
-}
+    // optional hint overlay
+    if (typeof drawHintOverlay === 'function') {
+      for (const layer of layers) {
+        try { drawHintOverlay(layer); } catch (e) { console.warn('drawHintOverlay failed', e); }
+      }
+    }
 
+    // UI hint text; keep modal open for next attempt
+    const firstLetter = correctName.charAt(0).toUpperCase();
+    setMsg(`Hint: Road begins with “${firstLetter}”`);
+    const focusEl = document.getElementById('guess-input') || document.querySelector('#guess-modal input');
+    if (focusEl) { focusEl.value = ''; focusEl.focus(); }
+    document.getElementById('submit-guess')?.removeAttribute('disabled');
+    document.getElementById('give-up')?.removeAttribute('disabled');
+
+    // schema-friendly: store as incorrect with used_hint=true
+    await persist('incorrect', true);
+    return;
+  }
 
   // -------------------------------
-// 5th+ attempts = ORANGE + lock regardless of correctness
-// -------------------------------
-RoadsManager.clearActive?.(); // ensure no blue remains
+  // 5th+ attempts = ORANGE + lock regardless of correctness
+  // -------------------------------
+  RoadsManager.clearActive?.(); // ensure no blue remains
 
-// paint base path orange & lock, track state
-for (const layer of layers) {
-  layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-  layer.__originalColor = 'orange';
-  layer.__solved = true;
-  layer.options.interactive = false;
+  for (const layer of layers) {
+    layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+    layer.__originalColor = 'orange';
+    layer.__solved = true;
+    layer.options.interactive = false;
 
-  const sid = String(layer?.feature?.id ?? '');
-  if (sid) {
-    const st = segmentStateMap.get(sid) || {};
-    segmentStateMap.set(sid, {
-      ...st,
-      used_hint: true,
-      correct: !!isCorrect,
-      giveup: !isCorrect
-    });
+    const sid = String(layer?.feature?.id ?? '');
+    if (sid) {
+      const st = segmentStateMap.get(sid) || {};
+      segmentStateMap.set(sid, {
+        ...st,
+        used_hint: true,
+        correct: !!isCorrect,
+        giveup: !isCorrect
+      });
+    }
+
+    if (typeof drawHintOverlay === 'function') {
+      try { drawHintOverlay(layer); } catch {}
+    }
   }
 
-  if (typeof drawHintOverlay === 'function') {
-    try { drawHintOverlay(layer); } catch (e) { /* no-op */ }
-  }
-}
+  if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
 
-// remove fat click buffers so these segments stop catching clicks
-if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
+  setMsg(isCorrect ? 'Correct!' : `Answer: ${correctName}`);
 
-// user message
-const msg = document.getElementById('feedback-message');
-if (msg) msg.innerText = isCorrect ? 'Correct!' : `Answer: ${correctName}`;
+  await persist(isCorrect ? 'correct' : 'giveup', true);
 
-// persist status ('correct' vs 'giveup'), but always with used_hint=true after 4th+
-const ok = await recordGuessNormalized({
-  township: activeTownship,
-  normalizedName: normalizedCorrect,
-  displayName: correctName,
-  status: isCorrect ? 'correct' : 'giveup',
-  used_hint: true,
-  layers
-});
-if (!ok) console.warn('[guesses] 5th+ insert failed', {
-  township: activeTownship, normalizedName: normalizedCorrect, isCorrect
-});
-
-// close modal shortly after reveal
-setTimeout(() => {
-  const modal = document.getElementById('guess-modal');
-  if (modal) modal.style.display = 'none';
-  if (msg) msg.innerText = '';
-  currentRoad = null;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}, 1500);
-
-
+  // close after reveal
+  closeModalSoon(1500);
 };
+// ===== submitGuessHandler END =====
 
+
+// ===== giveUpHandler BEGIN =====
 document.getElementById('give-up').onclick = async function () {
   if (!currentRoad) return;
 
@@ -3387,93 +3272,115 @@ document.getElementById('give-up').onclick = async function () {
   const normalizedKey = Object.keys(roadNameToIds).find(k => normalizeName(k) === normalizedCorrect);
   let layers = nameToLayers[normalizedKey] || [];
   layers = layers.filter(l => (l.__township || 'Manheim Township') === activeTownship);
-  if (!layers.length) return;
+  if (!layers.length) {
+    console.warn('[give-up] no layers for', normalizedKey, 'in', activeTownship);
+    return;
+  }
 
-  const segmentIds = layers.map(l => String(l.feature.id));
+  // unique segment ids (used for buffers + logging)
+  const segmentIds = Array.from(new Set(
+    layers.map(l => String(l?.feature?.id ?? '')).filter(Boolean)
+  ));
 
   // bump attempt count
   const n = (attemptCounts[attemptKey] = (attemptCounts[attemptKey] || 0) + 1);
 
-  // 1–3: paint red + close modal
-  if (n <= 3) {
-    for (const layer of layers) {
-      layer.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-      layer.__originalColor = 'red';
-      layer.__solved = false;
-      layer.options.interactive = true;
-    }
-    recordGuessNormalized({
-      township: activeTownship,
-      normalizedName: normalizedCorrect,
-      displayName: correctName,
-      status: 'incorrect',
-      used_hint: false,
-      layers
-    });
+  // tiny helpers
+  const setMsg = (txt) => { const m = document.getElementById('feedback-message'); if (m) m.innerText = txt || ''; };
+  const closeModalSoon = (delayMs = 0) => {
     setTimeout(() => {
       const modal = document.getElementById('guess-modal');
       if (modal) modal.style.display = 'none';
-      const m = document.getElementById('feedback-message'); if (m) m.innerText = '';
+      setMsg('');
       currentRoad = null;
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 0);
+    }, delayMs);
+  };
+  const persist = async (status, used_hint) => {
+    const ok = await recordGuessNormalized({
+      township: activeTownship,
+      normalizedName: normalizedCorrect,
+      displayName: correctName,
+      status,
+      used_hint,
+      layers
+    });
+    if (!ok) console.warn('[guesses] insert failed', { status, township: activeTownship, normalizedName: normalizedCorrect });
+  };
+
+  // 1–3: paint red + close modal (counts as incorrect, no hint)
+  if (n <= 3) {
+    RoadsManager.clearActive?.(); // drop active-blue so red shows
+    for (const layer of layers) {
+      const sid = String(layer?.feature?.id ?? '');
+      if (sid) segmentStateMap.set(sid, { incorrect: true, correct: false, used_hint: false });
+
+      layer.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+      layer.__originalColor = 'red';
+      layer.__solved = false;           // keep road guessable
+      layer.options.interactive = true; // unlimited retries
+    }
+    await persist('incorrect', false);
+    closeModalSoon(0);
     return;
   }
 
   // 4th: SHOW HINT ONLY (no color/lock), keep modal open
   if (n === 4) {
     currentRoad.hintGiven = true;
-    const firstLetter = correctName.charAt(0).toUpperCase();
-    const msg = document.getElementById('feedback-message');
-    if (msg) msg.innerText = `Hint: Road begins with '${firstLetter}'`;
 
+    // mark hint used in local state
+    for (const layer of layers) {
+      const sid = String(layer?.feature?.id ?? '');
+      if (!sid) continue;
+      const prev = segmentStateMap.get(sid) || {};
+      segmentStateMap.set(sid, { ...prev, used_hint: true });
+    }
+
+    // optional: draw hint overlay
+    if (typeof drawHintOverlay === 'function') {
+      for (const layer of layers) {
+        try { drawHintOverlay(layer); } catch {}
+      }
+    }
+
+    const firstLetter = correctName.charAt(0).toUpperCase();
+    setMsg(`Hint: Road begins with '${firstLetter}'`);
     const input = document.getElementById('guess-input');
     if (input) { input.value = ''; input.focus(); }
     document.getElementById('submit-guess')?.removeAttribute('disabled');
     document.getElementById('give-up')?.removeAttribute('disabled');
 
-    recordGuessNormalized({
-      township: activeTownship,
-      normalizedName: normalizedCorrect,
-      displayName: correctName,
-      status: 'incorrect',   // still an incorrect attempt
-      used_hint: true,       // ← mark hint used
-      layers
-    });
-    return; // wait for next action
+    // schema-friendly: incorrect with used_hint=true
+    await persist('incorrect', true);
+    return;
   }
 
-  // 5th+: FINAL REVEAL → orange + lock
+  // 5th+: FINAL REVEAL → orange + lock (giveup)
+  RoadsManager.clearActive?.(); // ensure no blue remains
   for (const layer of layers) {
     layer.setStyle({ color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 1 });
     layer.__originalColor = 'orange';
     layer.__solved = true;
     layer.options.interactive = false;
+
+    const sid = String(layer?.feature?.id ?? '');
+    if (sid) {
+      const st = segmentStateMap.get(sid) || {};
+      segmentStateMap.set(sid, { ...st, used_hint: true, correct: false, giveup: true });
+    }
+
     if (typeof drawHintOverlay === 'function') { try { drawHintOverlay(layer); } catch {} }
   }
+
   if (typeof removeMatchingBuffers === 'function') removeMatchingBuffers(segmentIds);
+  setMsg(`Answer: ${correctName}`);
 
-  // show the answer in the modal
-  const msg = document.getElementById('feedback-message');
-  if (msg) msg.innerText = `Answer: ${correctName}`;
-
-  recordGuessNormalized({
-    township: activeTownship,
-    normalizedName: normalizedCorrect,
-    displayName: correctName,
-    status: 'giveup',
-    used_hint: true,
-    layers
-  });
-  setTimeout(() => {
-  const modal = document.getElementById('guess-modal');
-  if (modal) modal.style.display = 'none';
-  if (msg) msg.innerText = '';
-  currentRoad = null;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}, 1500);
-
+  await persist('giveup', true);
+  closeModalSoon(1500);
 };
+// ===== giveUpHandler END =====
+
 
 
 
