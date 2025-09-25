@@ -726,6 +726,34 @@ function resetTownshipVisualState(township) {
     if (sid) segmentStateMap.delete(sid);
   }
 }
+// === DIAGNOSTICS (non-destructive) ===
+function logPaneState(tag = '') {
+  try {
+    const p = map.getPane('solvedPane');
+    const disp = p?.style?.display ?? '(unset)';
+    const count = Object.values(map._layers || {})
+      .filter(l => l?.options?.pane === 'solvedPane').length;
+    console.log(`[diag] ${tag} solvedPane display=${disp} overlays=${count}`);
+  } catch(e) { console.warn('[diag] logPaneState failed', e); }
+}
+
+function countBasePathsForTownship(township) {
+  let n = 0;
+  try {
+    const grp = roadsLayerByTownship?.get?.(township);
+    const list = (grp && typeof grp.eachLayer === 'function') ? grp.getLayers() : (grp ? [grp] : []);
+    for (const l of list) if (l?.feature && typeof l.setStyle === 'function') n++;
+  } catch {}
+  return n;
+}
+
+function logEPEntry(township, phase) {
+  const base = countBasePathsForTownship(township);
+  const segState = (typeof segmentStateMap?.size === 'number') ? segmentStateMap.size : '(n/a)';
+  console.log(`[diag] ${phase} EP entry basePaths=${base} segState.size=${segState}`);
+  logPaneState(phase);
+}
+
 async function repaintFromDB(township) {
   // Wait 2 frames so Leaflet's SVGs exist (works for both EP & MT)
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -971,6 +999,9 @@ async function applySolvedFromDBForTownship(township) {
   } catch (e) {
     console.error('[applySolvedFromDBForTownship] failed', e);
   }
+  console.log('[applySolved]', { township, paintedSolved, paintedGiveup });
+  logPaneState('after applySolved');
+
 }
 
 
@@ -1715,6 +1746,7 @@ const RoadsManager = {
 
   // ================= showForTownship =================
   async showForTownship(name) {
+    logEPEntry(name, 'ENTER(top)');
     // overlays must be visible whenever we enter a township
     try { showSolvedPane?.(); } catch {}
 
@@ -1738,6 +1770,7 @@ const RoadsManager = {
     const existing = roadsLayerByTownship.get(name);
     if (existing) {
       if (!map.hasLayer(existing)) map.addLayer(existing);
+      logEPEntry(name, 'ENTER(existing+added)');
       clearForTownship(existing);
       repaintFromDB(name);
       return;
@@ -1890,6 +1923,8 @@ const RoadsManager = {
 
     roadsLayerByTownship.set(name, roadsLayer);
     map.addLayer(roadsLayer);
+    logEPEntry(name, 'ENTER(fresh+added)');
+
 
     // baseline reset so roads start clickable (no styling changes)
     this.clearForTownship(roadsLayer, name);
@@ -2812,6 +2847,7 @@ if (countyLayerRef) {
   insideLancaster   = true;
   currentLayerDepth = 2;
   updateBackButtonVisibility();
+  logPaneState('BACK');
   return;
 }
 
