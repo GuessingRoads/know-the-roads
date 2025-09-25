@@ -1744,25 +1744,24 @@ const RoadsManager = {
     this.activeLayers.length = 0;
   },
 
+  // NEW: reset only hover bookkeeping / interactivity for unsolved
+  clearForTownship(lyrOrGroup, townshipName) {
+    const list = (typeof lyrOrGroup?.eachLayer === 'function')
+      ? lyrOrGroup.getLayers()
+      : [lyrOrGroup];
+    for (const l of list) {
+      if ((l.__township || 'Manheim Township') !== townshipName) continue;
+      l.__hoverSaved = false;
+      l.__savedHoverStyle = null;
+      if (!l.__solved) l.options.interactive = true;
+      // DO NOT touch __solved or segmentStateMap here.
+    }
+  },
+
   // ================= showForTownship =================
   async showForTownship(name) {
-    logEPEntry(name, 'ENTER(top)');
-    // overlays must be visible whenever we enter a township
-    try { showSolvedPane?.(); } catch {}
-
-    // local helper: reset only hover bookkeeping (do NOT clear solved state)
-    const clearForTownship = (lyrOrGroup) => {
-      const list = (typeof lyrOrGroup?.eachLayer === 'function')
-        ? lyrOrGroup.getLayers()
-        : [lyrOrGroup];
-      for (const l of list) {
-        if ((l.__township || 'Manheim Township') !== name) continue;
-        l.__hoverSaved = false;
-        l.__savedHoverStyle = null;
-        if (!l.__solved) l.options.interactive = true;
-        // DO NOT touch __solved or segmentStateMap here.
-      }
-    };
+    try { logEPEntry?.(name, 'ENTER(top)'); } catch {}
+    try { showSolvedPane?.(); } catch {}     // overlays must be visible
 
     if (name === "Manheim Township") return; // MT handled by legacy layer
 
@@ -1770,12 +1769,13 @@ const RoadsManager = {
     const existing = roadsLayerByTownship.get(name);
     if (existing) {
       if (!map.hasLayer(existing)) map.addLayer(existing);
-      logEPEntry(name, 'ENTER(existing+added)');
-      clearForTownship(existing);
-      repaintFromDB(name);
+      try { logEPEntry?.(name, 'ENTER(existing+added)'); } catch {}
+      this.clearForTownship(existing, name);
+      repaintFromDB?.(name);                 // fire & forget repaint (robust helper)
       return;
     }
-    // -------- load fresh ----------
+
+    // ---------- fresh load ----------
     const url = ROADS_REGISTRY[name];
     if (!url) { console.warn(`[Roads] No URL for "${name}".`); return; }
 
@@ -1892,7 +1892,7 @@ const RoadsManager = {
           const locked = !!l.__solved;
           if (locked || activeTownship !== name) return;
 
-          RoadsManager.selectByName(roadName);  // << active blue for all segments
+          RoadsManager.selectByName(roadName);  // active blue for all segments
           const sid = String(l.feature.id);
           currentRoad  = { name: roadName, id: sid, hintGiven: false };
           currentRoad2 = currentRoad;
@@ -1923,51 +1923,46 @@ const RoadsManager = {
 
     roadsLayerByTownship.set(name, roadsLayer);
     map.addLayer(roadsLayer);
-    logEPEntry(name, 'ENTER(fresh+added)');
-
+    try { logEPEntry?.(name, 'ENTER(fresh+added)'); } catch {}
 
     // baseline reset so roads start clickable (no styling changes)
     this.clearForTownship(roadsLayer, name);
-    repaintFromDB(name);
 
-    // (optional) debug logs you had
-   // Fallback: handle clicks at the GeoJSON group level for any child path
-  roadsLayer.on('click', (e) => {
-  // prefer the actual child path; sometimes Leaflet gives you the group
-  const child   = e.propagatedFrom || e.layer || e.target;
-  const feature = child?.feature || e.layer?.feature || e.target?.feature;
+    // repaint solved state once the layer is present
+    repaintFromDB?.(name);
 
-  const fid      = String(feature?.id ?? '');
-  const roadName = (feature?.properties?.name || '').trim();
-  if (!fid || !roadName) return;
+    // Fallback: handle clicks at the GeoJSON group level for any child path
+    roadsLayer.on('click', (e) => {
+      const child   = e.propagatedFrom || e.layer || e.target;   // prefer the real child
+      const feature = child?.feature || e.layer?.feature || e.target?.feature;
 
-  // hard lock: respect solved state even if the event bubbled from the group
-  const locked = !!(child?.__solved || e.layer?.__solved || e.target?.__solved);
-  if (locked || activeTownship !== name) {
-    // console.log('GROUP CLICK blocked', { fid, locked, township: activeTownship });
-    return;
-  }
+      const fid      = String(feature?.id ?? '');
+      const roadName = (feature?.properties?.name || '').trim();
+      if (!fid || !roadName) return;
 
-  currentRoad  = { name: roadName, id: fid, hintGiven: false };
-  currentRoad2 = currentRoad;
+      const locked = !!(child?.__solved || e.layer?.__solved || e.target?.__solved);
+      if (locked || activeTownship !== name) return;
 
-  if (typeof window.openGuessModal === 'function') {
-    window.openGuessModal(child, roadName, feature, name);
-  } else if (typeof openGuessModal === 'function') {
-    openGuessModal(child, roadName, feature, name);
-  } else if (typeof showGuessModal === 'function') {
-    showGuessModal(child, roadName, feature, name);
-  } else {
-    const modal = document.getElementById('guess-modal');
-    if (modal) {
-      modal.style.display = 'block';
-      const input = modal.querySelector('#guess-input, input');
-      if (input) { input.value = ''; input.focus(); }
-    }
-  }
-  });
+      currentRoad  = { name: roadName, id: fid, hintGiven: false };
+      currentRoad2 = currentRoad;
 
+      if (typeof window.openGuessModal === 'function') {
+        window.openGuessModal(child, roadName, feature, name);
+      } else if (typeof openGuessModal === 'function') {
+        openGuessModal(child, roadName, feature, name);
+      } else if (typeof showGuessModal === 'function') {
+        showGuessModal(child, roadName, feature, name);
+      } else {
+        const modal = document.getElementById('guess-modal');
+        if (modal) {
+          modal.style.display = 'block';
+          const input = modal.querySelector('#guess-input, input');
+          if (input) { input.value = ''; input.focus(); }
+        }
+      }
+    });
 
+    // (optional) per-segment debug
     roadsLayer.eachLayer(l => {
       console.log('Road debug:', {
         id: String(l.feature.id),
@@ -1978,13 +1973,7 @@ const RoadsManager = {
       });
     });
 
-    // solved styling restore
-    const u = await waitForAuthUser();
-    if (u) {
-      await applySolvedFromDBForTownship(name);
-    } else {
-      setTimeout(() => applySolvedFromDBForTownship(name), 600);
-    }
+    // NOTE: removed duplicate "solved styling restore" here to avoid double-paint races.
   },
 
   hideForTownship(name) {
@@ -1999,6 +1988,7 @@ const RoadsManager = {
   }
 };
 // ============ RoadsManager ============ END
+
 
 
 
