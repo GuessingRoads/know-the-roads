@@ -539,6 +539,7 @@
       maxZoom: 19
     }).addTo(map);
     const roadsRenderer = L.svg({ padding: 1.0 }); // try 0.5; bump to 0.6 if needed
+    const solvedRenderer = L.svg({ pane: 'solvedPane' });
     function ensureRoadsPane() {
       if (roadsPaneCreated) return;
       // Put roads above township fills but below UI overlays.
@@ -949,7 +950,7 @@
           if (!layer.__hasSolvedOverlay) {
             L.geoJSON(layer.feature, {
               pane: 'solvedPane',
-              renderer: roadsRenderer,
+              renderer: solvedRenderer,
               interactive: false,
               className,
               style: {
@@ -1197,7 +1198,7 @@
       removeSolvedOverlay(layer);
       const ov = L.geoJSON(layer.feature, {
         pane: 'solvedPane',
-        renderer: roadsRenderer,
+        renderer: solvedRenderer,
         interactive: false,
         style: { color: HINT_COLOR, weight: HINT_WEIGHT, opacity: HINT_OPACITY, lineCap: 'round' }
       }).addTo(map);
@@ -1428,7 +1429,7 @@
       removeHintOverlay(layer);
       const ov = L.geoJSON(layer.feature, {
         pane: 'solvedPane',
-        renderer: roadsRenderer,
+        renderer: solvedRenderer,
         interactive: false,
         style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
       }).addTo(map);
@@ -3092,7 +3093,7 @@
         if (!layer.__hasSolvedOverlay) {
           L.geoJSON(layer.feature, {
             pane: 'solvedPane',
-            renderer: roadsRenderer,
+            renderer: solvedRenderer,
             interactive: false,
             className: 'correct-overlay', // if you’re using that CSS rule
             style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
