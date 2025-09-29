@@ -697,6 +697,30 @@
         layer.off('mouseout');
       } catch { }
     }
+    // --- Helpers to fully de-arm MT attach + hide/show road panes ----
+    function unarmMTMoveend() {
+      try {
+        if (window.__mtMoveend) {
+          map.off('moveend', window.__mtMoveend);
+          window.__mtMoveend = null;
+        }
+      } catch { }
+      try {
+        if (window.__mtPaint2) { cancelAnimationFrame(window.__mtPaint2); window.__mtPaint2 = 0; }
+        if (window.__mtPaint1) { cancelAnimationFrame(window.__mtPaint1); window.__mtPaint1 = 0; }
+      } catch { }
+    }
+
+    function hideRoadPanes() {
+      try { map.getPane('hiddenRoads')?.style && (map.getPane('hiddenRoads').style.display = 'none'); } catch { }
+      try { map.getPane('clickable-buffer')?.style && (map.getPane('clickable-buffer').style.display = 'none'); } catch { }
+    }
+
+    function showRoadPanes() {
+      try { map.getPane('hiddenRoads')?.style && (map.getPane('hiddenRoads').style.display = ''); } catch { }
+      try { map.getPane('clickable-buffer')?.style && (map.getPane('clickable-buffer').style.display = ''); } catch { }
+    }
+
     function setActiveByName(roadName) {
       clearActive();
       if (!roadName) return;
@@ -2602,6 +2626,7 @@
                             easeLinearity: 0.2
                           });
                         } catch { }
+                        showRoadPanes();
 
                         // add legacy roads after zoom finishes, then paint solved
                         map.once('moveend', () => {
@@ -2657,6 +2682,12 @@
         insideManheim = false;
         insideLancaster = true;
         currentLayerDepth = 2;
+        // 0) Make sure nothing re-adds roads after the back zoom
+        unarmMTMoveend();
+
+        // 1) Hide both road panes as a belt-and-suspenders safeguard
+        hideRoadPanes();
+
 
         // Clear any active-blue state
         try { RoadsManager.clearActive?.(); } catch { }
@@ -2798,6 +2829,12 @@
         resetCountyTooltip();
         insideManheim = false;
         insideLancaster = false;
+        // 0) Make sure nothing re-adds roads after the back zoom
+        unarmMTMoveend();
+
+        // 1) Hide both road panes as a belt-and-suspenders safeguard
+        hideRoadPanes();
+
 
         // Remove township, roads, buffers, mask
         try {
