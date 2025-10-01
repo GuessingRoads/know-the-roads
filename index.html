@@ -898,11 +898,13 @@
 
 
 
+    // ===== applySolvedFromDBForTownship BEGIN =====
     // Restore latest state for this user in the township: red / orange / green
     async function applySolvedFromDBForTownship(township) {
-      let paintedSolved = 0, paintedGiveup = 0;  // keep counters visible for final log
+      let paintedSolved = 0, paintedGiveup = 0, paintedIncorrect = 0;
 
       try {
+        // --- auth + scope ---
         const { data: auth } = await supabase.auth.getUser();
         const uid = auth?.user?.id;
         if (!uid) return;
@@ -910,14 +912,14 @@
         const scopeId = await ensureScope({ type: 'township', township });
         if (!scopeId) return;
 
-        // ---- index base road layers (EP + MT legacy) ----
+        // --- index all base road layers for this township (EP dynamic + MT legacy) ---
         const byId = new Map();
 
         const collectGroup = (group) => {
           if (!group) return;
           const items = (typeof group.eachLayer === 'function') ? group.getLayers() : [group];
           for (const l of items) {
-            if (typeof l.eachLayer === 'function') collectGroup(l); // recurse groups
+            if (typeof l.eachLayer === 'function') { collectGroup(l); continue; } // recurse groups
             const fid = String(l?.feature?.id ?? '');
             const isOverlay = l?.options?.pane === 'solvedPane';
             if (!fid || isOverlay || typeof l.setStyle !== 'function') continue;
@@ -925,12 +927,12 @@
           }
         };
 
-        // EP roads (RoadsManager)
+        // EP (RoadsManager layers)
         try { collectGroup(roadsLayerByTownship?.get?.(township)); } catch { }
-        // MT legacy roads (global)
+        // MT (legacy)
         try { if (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) collectGroup(roadsLayerGroup); } catch { }
 
-        // ---- helpers ----
+        // --- painters -----------------------------------------------------------
         const scrubBase = (layer) => {
           try { layer.off(); } catch { }
           try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch { }
@@ -947,21 +949,20 @@
         };
 
         const addOverlay = (layer, color, className) => {
-          if (!layer.__hasSolvedOverlay) {
-            L.geoJSON(layer.feature, {
-              pane: 'solvedPane',
-              renderer: solvedRenderer,
-              interactive: false,
-              className,
-              style: {
-                color: color,                      // set explicit color so we don't rely on CSS only
-                weight: SOLVED_WEIGHT,
-                opacity: SOLVED_OPACITY,
-                lineCap: 'round'
-              }
-            }).addTo(map);
-            layer.__hasSolvedOverlay = true;
-          }
+          if (layer.__hasSolvedOverlay) return;
+          L.geoJSON(layer.feature, {
+            pane: 'solvedPane',
+            renderer: solvedRenderer,           // <-- ensure overlays render in solvedPane
+            interactive: false,
+            className,
+            style: {
+              color,
+              weight: (typeof SOLVED_WEIGHT !== 'undefined' ? SOLVED_WEIGHT : 6),
+              opacity: (typeof SOLVED_OPACITY !== 'undefined' ? SOLVED_OPACITY : 0.9),
+              lineCap: 'round'
+            }
+          }).addTo(map);
+          layer.__hasSolvedOverlay = true;
         };
 
         const drawSolved = (layer) => {
@@ -976,16 +977,30 @@
         const drawGiveUp = (layer) => {
           if (!layer) return;
           scrubBase(layer);
-          // paint an ORANGE overlay into solvedPane (this was missing)
-          addOverlay(layer, '#ff8800', 'giveup-overlay');
-          // optional: also draw your patterned hint overlay if you like
+          addOverlay(layer, '#ff8800', 'giveup-overlay'); // orange overlay
           try { if (typeof drawHintOverlay === 'function') drawHintOverlay(layer); } catch { }
           layer.__originalColor = 'orange';
           layer.__solved = true;
           paintedGiveup++;
         };
 
-        // ---- primary: normalized guesses (guesses -> roads in this scope) ----
+        const drawIncorrect = (layer) => {
+          if (!layer) return;
+          // visible red base; keep clickable
+          try { layer.setStyle({ color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
+          layer.options.interactive = true;
+          const el = layer._path || layer.getElement?.();
+          if (el) {
+            el.style.pointerEvents = 'auto';
+            el.style.display = '';
+            el.style.stroke = '';
+          }
+          layer.__originalColor = 'red';
+          layer.__solved = false;
+          paintedIncorrect++;
+        };
+
+        // --- primary: normalized guesses (latest per road) ---------------------
         const { data: guessRows, error: gErr } = await supabase
           .from('guesses')
           .select('road_id, status, used_hint, created_at, roads!inner(id,scope_id)')
@@ -995,11 +1010,13 @@
 
         const latestByRoad = new Map();
         if (!gErr && Array.isArray(guessRows)) {
-          for (const r of guessRows) if (!latestByRoad.has(r.road_id)) latestByRoad.set(r.road_id, r);
+          for (const r of guessRows) {
+            if (!latestByRoad.has(r.road_id)) latestByRoad.set(r.road_id, r);
+          }
         }
 
         if (latestByRoad.size > 0) {
-          // expand road -> osm ids via road_ways
+          // expand road -> osm ids
           const roadIds = Array.from(latestByRoad.keys());
           const { data: ways, error: wErr } = await supabase
             .from('road_ways')
@@ -1009,9 +1026,7 @@
           const osmByRoad = new Map();
           if (!wErr && Array.isArray(ways)) {
             for (const w of ways) {
-              const arr = osmByRoad.get(w.road_id) || [];
-              arr.push(String(w.osm_id));
-              osmByRoad.set(w.road_id, arr);
+              (osmByRoad.get(w.road_id) || osmByRoad.set(w.road_id, []).get(w.road_id)).push(String(w.osm_id));
             }
           }
 
@@ -1020,11 +1035,19 @@
             for (const sid of osms) {
               const layer = byId.get(String(sid));
               if (!layer) continue;
-              (row.status === 'correct' && !row.used_hint) ? drawSolved(layer) : drawGiveUp(layer);
+
+              if (row.status === 'correct' && !row.used_hint) {
+                drawSolved(layer);              // GREEN
+              } else if (row.status === 'giveup' || row.used_hint) {
+                drawGiveUp(layer);              // ORANGE (give up OR hint-used)
+              } else {
+                // row.status === 'incorrect' && !used_hint
+                drawIncorrect(layer);           // RED
+              }
             }
           }
         } else {
-          // ---- fallback: legacy road_guesses (keyed by osm_id) ----
+          // --- fallback: legacy road_guesses keyed by osm_id -------------------
           const { data: legacy, error: lErr } = await supabase
             .from('road_guesses')
             .select('osm_id, status, used_hint, created_at')
@@ -1040,19 +1063,33 @@
             for (const [sid, row] of latestByOsm) {
               const layer = byId.get(sid);
               if (!layer) continue;
-              (row.status === 'correct' && !row.used_hint) ? drawSolved(layer) : drawGiveUp(layer);
+
+              if (row.status === 'correct' && !row.used_hint) {
+                drawSolved(layer);
+              } else if (row.status === 'giveup' || row.used_hint) {
+                drawGiveUp(layer);
+              } else {
+                drawIncorrect(layer);
+              }
             }
           }
         }
 
-        console.log('[applySolved]', { township, indexed: byId.size, paintedSolved, paintedGiveup });
+        console.log('[applySolved]', {
+          township,
+          indexed: byId.size,
+          paintedSolved,
+          paintedGiveup,
+          paintedIncorrect
+        });
       } catch (e) {
         console.error('[applySolvedFromDBForTownship] failed', e);
       } finally {
         try { logPaneState?.('after applySolved'); } catch { }
-        console.log('[applySolved]', { township, paintedSolved, paintedGiveup });
       }
     }
+    // ===== applySolvedFromDBForTownship END =====
+
 
 
 
