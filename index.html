@@ -950,9 +950,10 @@
 
         const addOverlay = (layer, color, className) => {
           if (layer.__hasSolvedOverlay) return;
-          L.geoJSON(layer.feature, {
+
+          const ol = L.geoJSON(layer.feature, {
             pane: 'solvedPane',
-            renderer: solvedRenderer,           // <-- ensure overlays render in solvedPane
+            renderer: solvedRenderer,
             interactive: false,
             className,
             style: {
@@ -961,9 +962,22 @@
               opacity: (typeof SOLVED_OPACITY !== 'undefined' ? SOLVED_OPACITY : 0.9),
               lineCap: 'round'
             }
-          }).addTo(map);
+          });
+
+          // ⬇️ key change: add overlays into the township's vector group (EP)
+          const townshipName = layer.__township || township; // layer flag set by RoadsManager
+          const targetGroup = roadsLayerByTownship?.get?.(townshipName);
+
+          if (targetGroup && typeof targetGroup.addLayer === 'function') {
+            targetGroup.addLayer(ol);
+          } else {
+            // fallback for legacy MT if no group is available
+            ol.addTo(map);
+          }
+
           layer.__hasSolvedOverlay = true;
         };
+
 
         const drawSolved = (layer) => {
           if (!layer) return;
