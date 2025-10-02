@@ -2781,35 +2781,40 @@
           }
         } catch { }
 
-        // 2b) Re-enable East Petersburg outline + click handler
-        try {
-          const epGroup = (typeof townshipLayersByName !== 'undefined')
-            ? townshipLayersByName['East Petersburg']
-            : null;
+        // 2b) === re-arm East Petersburg (no await needed) ===
+        (function rearmEP() {
+          function arm(epGroupOrLayer) {
+            if (!epGroupOrLayer) return;
 
-          if (epGroup) {
-            if (!map.hasLayer(epGroup)) epGroup.addTo(map);
+            if (!map.hasLayer(epGroupOrLayer)) epGroupOrLayer.addTo(map);
 
-            epGroup.eachLayer((poly) => {
+            const items = (typeof epGroupOrLayer.eachLayer === 'function')
+              ? epGroupOrLayer.getLayers()
+              : [epGroupOrLayer];
+
+            for (const poly of items) {
               // visuals at county depth
-              poly.setStyle({
-                color: 'black',
-                weight: 1.5,
-                fillColor: '#e3f2fd',
-                fillOpacity: 0.75
-              });
+              try {
+                poly.setStyle({
+                  color: 'black',
+                  weight: 1.5,
+                  fillColor: '#e3f2fd',
+                  fillOpacity: 0.75
+                });
+              } catch { }
 
-              // ensure it can receive pointer events again
+              // be clickable again
               poly.options.interactive = true;
               const el = poly._path || poly.getElement?.();
               if (el) el.style.pointerEvents = 'auto';
 
-              // (re)bind events in case anything removed them earlier
-              try { poly.off('click'); } catch { }
-              poly.on('click', (evt) => enterTownship('East Petersburg', poly.feature, poly, evt));
+              // remove stale handlers then rebind
+              try { poly.off(); } catch { }
+              poly.on('click', (evt) =>
+                enterTownship('East Petersburg', poly.feature, poly, evt)
+              );
 
-              // optional: restore hover tooltip behavior if you had it
-              try { poly.off('mouseover'); poly.off('mouseout'); } catch { }
+              // optional: tooltip
               poly.on('mouseover', () => {
                 const tt = document.getElementById('custom-tooltip');
                 if (!tt) return;
@@ -2824,13 +2829,44 @@
                 const tt = document.getElementById('custom-tooltip');
                 if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
               });
-            });
+            }
 
-            epGroup.bringToFront?.();
+            epGroupOrLayer.bringToFront?.();
           }
-        } catch (e) {
-          console.warn('[back] failed to re-arm East Petersburg outline', e);
-        }
+
+          try {
+            let ep = (typeof townshipLayersByName !== 'undefined')
+              ? townshipLayersByName['East Petersburg']
+              : null;
+
+            if (ep) {
+              // cached → wire up now
+              arm(ep);
+              return;
+            }
+
+            // not cached → call builder; handle either sync return or Promise
+            const maybe = showTownshipOutline('East Petersburg');
+            if (maybe && typeof maybe.then === 'function') {
+              maybe.then((built) => {
+                if (!built) return;
+                if (typeof townshipLayersByName !== 'undefined') {
+                  townshipLayersByName['East Petersburg'] = built;
+                }
+                arm(built);
+              }).catch((e) => console.warn('[back] EP outline build failed', e));
+            } else if (maybe) {
+              if (typeof townshipLayersByName !== 'undefined') {
+                townshipLayersByName['East Petersburg'] = maybe;
+              }
+              arm(maybe);
+            }
+          } catch (e) {
+            console.warn('[back] failed to re-arm East Petersburg outline', e);
+          }
+        })();
+
+
 
 
         // 2c) Remove any lingering hover overlay / tooltip
