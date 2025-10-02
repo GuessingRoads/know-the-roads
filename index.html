@@ -1822,7 +1822,7 @@
         for (const l of layers) {
           const el = this.getEl(l);
           if (!el) continue;
-          el.classList.add('active-blue');  // relies on your CSS
+          el.classList.add('active-blue'); // relies on your CSS
           this.activeLayers.push(l);
         }
       },
@@ -1908,10 +1908,103 @@
           pane: 'clickable-buffer'
         });
 
+        // --- helpers bound to this township instance ---
+        const mgr = this;
+
+        const styleFromOriginal = (layer) => {
+          switch (layer.__originalColor) {
+            case 'red': return { color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 };
+            case 'orange': return { color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+            case 'green': return { color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+            default: return { color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 };
+          }
+        };
+
+        const handleOver = (t) => {
+          const f = t?.feature;
+          if (!f) return;
+
+          const roadName = (f.properties?.name || '').trim();
+          const sid = String(f.id ?? '');
+          const st = segmentStateMap.get(sid);
+          const el = mgr.getEl(t);
+
+          const locked = !!t?.__solved || st?.correct || st?.giveup || st?.locked;
+          if (locked || activeTownship !== name || !el) return;
+          if (el.classList.contains('active-blue')) return;
+
+          const layers = (nameToLayers[roadName] || []).filter(x => x.__township === name);
+          if (!layers.length) return;
+
+          for (const m of layers) {
+            if (m.__solved) continue;
+            if (!m.__hoverSaved) {
+              m.__hoverSaved = true;
+              m.__savedHoverStyle = {
+                color: m.options.color,
+                weight: m.options.weight,
+                opacity: m.options.opacity
+              };
+            }
+            m.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 });
+          }
+        };
+
+        const handleOut = (t) => {
+          const f = t?.feature;
+          const roadName = (f?.properties?.name || '').trim();
+          if (!roadName) return;
+
+          const layers = (nameToLayers[roadName] || []).filter(x => x.__township === name);
+          for (const m of layers) {
+            const el = mgr.getEl(m);
+            if (el && el.classList.contains('active-blue')) continue;
+            if (m.__hoverSaved && m.__savedHoverStyle) {
+              m.setStyle(m.__savedHoverStyle);
+            } else {
+              m.setStyle(styleFromOriginal(m));
+            }
+            m.__hoverSaved = false;
+            m.__savedHoverStyle = null;
+          }
+        };
+
+        const handleClick = (t) => {
+          const f = t?.feature;
+          if (!f) return;
+
+          const fid = String(f.id ?? '');
+          const roadName = (f.properties?.name || '').trim();
+          if (!fid || !roadName) return;
+
+          const locked = !!t?.__solved;
+          if (locked || activeTownship !== name) return;
+
+          mgr.selectByName(roadName);
+
+          currentRoad = { name: roadName, id: fid, hintGiven: false };
+          currentRoad2 = currentRoad;
+
+          if (typeof window.openGuessModal === 'function') {
+            window.openGuessModal(t, roadName, f, name);
+          } else if (typeof openGuessModal === 'function') {
+            openGuessModal(t, roadName, f, name);
+          } else if (typeof showGuessModal === 'function') {
+            showGuessModal(t, roadName, f, name);
+          } else {
+            const modal = document.getElementById('guess-modal');
+            if (modal) {
+              modal.style.display = 'block';
+              const input = modal.querySelector('#guess-input, input');
+              if (input) { input.value = ''; input.focus(); }
+            }
+          }
+        };
+
         // --- collect buffers during indexing; attach after group exists ---
         const pendingBuffers = [];
 
-        // ——— Index children only (no per-child listeners) ———
+        // ——— Index children and attach listeners ———
         const onEach = (feature, segLayer) => {
           const roadName = (feature?.properties?.name || '').trim();
 
@@ -1929,15 +2022,21 @@
               (roadNameToIds[roadName] ||= []).push(String(feature.id));
             }
 
+            // Attach listeners directly to the visible stroke (covers no-buffer edge cases)
+            l.on('mouseover', () => handleOver(l));
+            l.on('mouseout', () => handleOut(l));
+            l.on('click', () => handleClick(l));
+
             // collect buffer params; attach after roadsLayer exists
             try {
               const latlngs = (typeof l.getLatLngs === 'function') ? l.getLatLngs() : null;
               if (latlngs) {
                 pendingBuffers.push({
                   latlngs,
-                  feature: l.feature,        // preserve metadata for handlers
+                  feature: l.feature,     // preserve metadata for handlers
                   township: l.__township,
-                  solved: l.__solved
+                  solved: l.__solved,
+                  childRef: l             // so buffer can delegate to the same handlers
                 });
               }
             } catch { }
@@ -1952,7 +2051,7 @@
           pane: 'clickable-buffer'
         });
 
-        // Attach all collected buffers **into** the group so delegated handlers see them
+        // Attach all collected buffers **into** the group and wire their events
         for (const b of pendingBuffers) {
           const buf = L.polyline(b.latlngs, {
             renderer: roadsRenderer,
@@ -1967,7 +2066,12 @@
           buf.__township = b.township;
           buf.__solved = b.solved;
 
-          roadsLayer.addLayer(buf); // key change: buffer is inside the group
+          // Explicit listeners on the buffer, routed to the same handlers
+          buf.on('mouseover', () => handleOver(b.childRef));
+          buf.on('mouseout', () => handleOut(b.childRef));
+          buf.on('click', () => handleClick(b.childRef));
+
+          roadsLayer.addLayer(buf);
         }
         pendingBuffers.length = 0;
 
@@ -1979,105 +2083,12 @@
         this.clearForTownship(roadsLayer, name);
         repaintFromDB?.(name);
 
-        // ---------- Group-level event delegation (fixes MultiLineString) ----------
-        const styleFromOriginal = (layer) => {
-          switch (layer.__originalColor) {
-            case 'red': return { color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 };
-            case 'orange': return { color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
-            case 'green': return { color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
-            default: return { color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 };
-          }
-        };
-
-        const getTarget = (e) => e.propagatedFrom || e.layer || e.target;
-
-        roadsLayer.on('mouseover', (e) => {
-          const t = getTarget(e);
-          const f = t?.feature;
-          if (!f) return;
-
-          const roadName = (f.properties?.name || '').trim();
-          const sid = String(f.id ?? '');
-          const st = segmentStateMap.get(sid);
-          const el = this.getEl(t);
-
-          const locked = !!t?.__solved || st?.correct || st?.giveup || st?.locked;
-          if (locked || activeTownship !== name || !el) return;
-          if (el.classList.contains('active-blue')) return;
-
-          const layers = (nameToLayers[roadName] || []).filter(x => x.__township === name);
-          for (const m of layers) {
-            if (m.__solved) continue;
-            if (!m.__hoverSaved) {
-              m.__hoverSaved = true;
-              m.__savedHoverStyle = {
-                color: m.options.color,
-                weight: m.options.weight,
-                opacity: m.options.opacity
-              };
-            }
-            m.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 });
-          }
-        });
-
-        roadsLayer.on('mouseout', (e) => {
-          const t = getTarget(e);
-          const roadName = (t?.feature?.properties?.name || '').trim();
-          if (!roadName) return;
-
-          const layers = (nameToLayers[roadName] || []).filter(x => x.__township === name);
-          for (const m of layers) {
-            const el = this.getEl(m);
-            if (el && el.classList.contains('active-blue')) continue;
-            if (m.__hoverSaved && m.__savedHoverStyle) {
-              m.setStyle(m.__savedHoverStyle);
-            } else {
-              m.setStyle(styleFromOriginal(m));
-            }
-            m.__hoverSaved = false;
-            m.__savedHoverStyle = null;
-          }
-        });
-
-        roadsLayer.on('click', (e) => {
-          const child = getTarget(e);
-          const feature = child?.feature;
-          if (!feature) return;
-
-          const fid = String(feature?.id ?? '');
-          const roadName = (feature?.properties?.name || '').trim();
-          if (!fid || !roadName) return;
-
-          const locked = !!child?.__solved;
-          if (locked || activeTownship !== name) return;
-
-          this.selectByName(roadName);
-
-          currentRoad = { name: roadName, id: fid, hintGiven: false };
-          currentRoad2 = currentRoad;
-
-          if (typeof window.openGuessModal === 'function') {
-            window.openGuessModal(child, roadName, feature, name);
-          } else if (typeof openGuessModal === 'function') {
-            openGuessModal(child, roadName, feature, name);
-          } else if (typeof showGuessModal === 'function') {
-            showGuessModal(child, roadName, feature, name);
-          } else {
-            const modal = document.getElementById('guess-modal');
-            if (modal) {
-              modal.style.display = 'block';
-              const input = modal.querySelector('#guess-input, input');
-              if (input) { input.value = ''; input.focus(); }
-            }
-          }
-        });
-
         // optional debug
         roadsLayer.eachLayer(l => {
           try {
             console.log('Road debug:', {
               id: String(l.feature?.id),
-              color: l.options?.color,
+              name: (l.feature?.properties?.name || '').trim(),
               interactive: l.options?.interactive,
               pane: l.options?.pane,
               solved: l.__solved
@@ -2093,11 +2104,12 @@
 
       hideAll() {
         for (const lyr of roadsLayerByTownship.values()) {
-          if (map.hasLayer(lyr)) map.removeLayer(lyr);
+          if (lyr && map.hasLayer(lyr)) map.removeLayer(lyr);
         }
       }
     };
     // ============ RoadsManager ============ END
+
 
 
 
