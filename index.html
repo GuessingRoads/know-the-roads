@@ -2781,28 +2781,57 @@
           }
         } catch { }
 
-        // 2b) Make sure EP is visible and CLICKABLE again at county depth
+        // 2b) Re-enable East Petersburg outline + click handler
         try {
-          const epLayer = (typeof townshipLayersByName !== 'undefined')
-            ? townshipLayersByName["East Petersburg"]
+          const epGroup = (typeof townshipLayersByName !== 'undefined')
+            ? townshipLayersByName['East Petersburg']
             : null;
 
-          if (epLayer) {
-            if (!map.hasLayer(epLayer)) epLayer.addTo(map);
-            epLayer.eachLayer(ep => {
-              ep.setStyle({
+          if (epGroup) {
+            if (!map.hasLayer(epGroup)) epGroup.addTo(map);
+
+            epGroup.eachLayer((poly) => {
+              // visuals at county depth
+              poly.setStyle({
                 color: 'black',
                 weight: 1.5,
                 fillColor: '#e3f2fd',
                 fillOpacity: 0.75
               });
-              ep.options.interactive = true;
-              const p = ep._path || (typeof ep.getElement === 'function' ? ep.getElement() : null);
-              if (p) p.style.pointerEvents = 'auto';
+
+              // ensure it can receive pointer events again
+              poly.options.interactive = true;
+              const el = poly._path || poly.getElement?.();
+              if (el) el.style.pointerEvents = 'auto';
+
+              // (re)bind events in case anything removed them earlier
+              try { poly.off('click'); } catch { }
+              poly.on('click', (evt) => enterTownship('East Petersburg', poly.feature, poly, evt));
+
+              // optional: restore hover tooltip behavior if you had it
+              try { poly.off('mouseover'); poly.off('mouseout'); } catch { }
+              poly.on('mouseover', () => {
+                const tt = document.getElementById('custom-tooltip');
+                if (!tt) return;
+                const c = poly.getBounds().getCenter();
+                const p = map.latLngToContainerPoint(c);
+                tt.innerText = 'East Petersburg';
+                tt.style.left = p.x + 'px';
+                tt.style.top = p.y + 'px';
+                tt.style.display = 'block';
+              });
+              poly.on('mouseout', () => {
+                const tt = document.getElementById('custom-tooltip');
+                if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
+              });
             });
-            epLayer.bringToFront?.();
+
+            epGroup.bringToFront?.();
           }
-        } catch { }
+        } catch (e) {
+          console.warn('[back] failed to re-arm East Petersburg outline', e);
+        }
+
 
         // 2c) Remove any lingering hover overlay / tooltip
         try { if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch { }
@@ -2838,6 +2867,11 @@
         }
 
         unlockTownships();
+        // make 100% sure no township is considered active anymore
+        activeTownship = null;
+        currentTownship = null;
+        insideManheim = false;
+
         RoadsManager.hideAll?.(); // ensure no township roads remain visible
 
         // 5) Fit to county bounds
