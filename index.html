@@ -1000,77 +1000,77 @@
           paintedIncorrect++;
         };
 
-        // --- primary: normalized guesses (latest per road) ---------------------
+        // --- Step 1: get all road IDs in this township (scope) -------------------
+        const { data: roadsInScope, error: roadsErr } = await supabase
+          .from('roads')
+          .select('id')
+          .eq('scope_id', scopeId);
+
+        if (roadsErr) { console.error('[applySolved] roads query failed:', roadsErr); return; }
+        const roadIds = Array.isArray(roadsInScope) ? roadsInScope.map(r => r.id) : [];
+        if (!roadIds.length) {
+          console.log('[applySolved] No roads for scope', scopeId);
+          return;
+        }
+
+        // --- Step 2: latest guesses per road for this user -----------------------
+        // Pull guesses only for those roads, most recent first.
         const { data: guessRows, error: gErr } = await supabase
           .from('guesses')
-          .select('road_id, status, used_hint, created_at, roads!inner(id,scope_id)')
+          .select('road_id, status, used_hint, created_at')
           .eq('user_id', uid)
-          .eq('roads.scope_id', scopeId)
-          .order('created_at', { ascending: false });
+          .in('road_id', roadIds)
+          .order('created_at', { ascending: false })
+          .limit(20000);
 
+        if (gErr) { console.error('[applySolved] guesses query failed:', gErr); return; }
+
+        // fold to "latest per road"
         const latestByRoad = new Map();
-        if (!gErr && Array.isArray(guessRows)) {
+        if (Array.isArray(guessRows)) {
           for (const r of guessRows) {
             if (!latestByRoad.has(r.road_id)) latestByRoad.set(r.road_id, r);
           }
         }
 
-        if (latestByRoad.size > 0) {
-          // expand road -> osm ids
-          const roadIds = Array.from(latestByRoad.keys());
-          const { data: ways, error: wErr } = await supabase
-            .from('road_ways')
-            .select('road_id, osm_id')
-            .in('road_id', roadIds);
+        if (latestByRoad.size === 0) {
+          console.log('[applySolved] No guesses for user in scope', { township, scopeId });
+          return;
+        }
 
-          const osmByRoad = new Map();
-          if (!wErr && Array.isArray(ways)) {
-            for (const w of ways) {
-              (osmByRoad.get(w.road_id) || osmByRoad.set(w.road_id, []).get(w.road_id)).push(String(w.osm_id));
-            }
+        // --- Step 3: road -> OSM ids ---------------------------------------------
+        const roadIdList = Array.from(latestByRoad.keys());
+        const { data: ways, error: wErr } = await supabase
+          .from('road_ways')
+          .select('road_id, osm_id')
+          .in('road_id', roadIdList);
+
+        if (wErr) { console.error('[applySolved] road_ways query failed:', wErr); return; }
+
+        const osmByRoad = new Map();
+        if (Array.isArray(ways)) {
+          for (const w of ways) {
+            (osmByRoad.get(w.road_id) || osmByRoad.set(w.road_id, []).get(w.road_id)).push(String(w.osm_id));
           }
+        }
 
-          for (const [roadId, row] of latestByRoad) {
-            const osms = osmByRoad.get(roadId) || [];
-            for (const sid of osms) {
-              const layer = byId.get(String(sid));
-              if (!layer) continue;
+        // --- Step 4: paint --------------------------------------------------------
+        for (const [roadId, row] of latestByRoad) {
+          const osms = osmByRoad.get(roadId) || [];
+          for (const sid of osms) {
+            const layer = byId.get(String(sid));
+            if (!layer) continue;
 
-              if (row.status === 'correct' && !row.used_hint) {
-                drawSolved(layer);              // GREEN
-              } else if (row.status === 'giveup' || row.used_hint) {
-                drawGiveUp(layer);              // ORANGE (give up OR hint-used)
-              } else {
-                // row.status === 'incorrect' && !used_hint
-                drawIncorrect(layer);           // RED
-              }
-            }
-          }
-        } else {
-          // --- fallback: legacy road_guesses keyed by osm_id -------------------
-          const { data: legacy, error: lErr } = await supabase
-            .from('road_guesses')
-            .select('osm_id, status, used_hint, created_at')
-            .eq('user_id', uid)
-            .order('created_at', { ascending: false });
+            const status = row.status;
+            const used = !!row.used_hint;
 
-          if (!lErr && Array.isArray(legacy)) {
-            const latestByOsm = new Map();
-            for (const r of legacy) {
-              const k = String(r.osm_id);
-              if (!latestByOsm.has(k)) latestByOsm.set(k, r);
-            }
-            for (const [sid, row] of latestByOsm) {
-              const layer = byId.get(sid);
-              if (!layer) continue;
-
-              if (row.status === 'correct' && !row.used_hint) {
-                drawSolved(layer);
-              } else if (row.status === 'giveup' || row.used_hint) {
-                drawGiveUp(layer);
-              } else {
-                drawIncorrect(layer);
-              }
+            if (status === 'correct' && !used) {
+              drawSolved(layer);              // GREEN
+            } else if (status === 'giveup' || used) {
+              drawGiveUp(layer);              // ORANGE (give up OR hint-used)
+            } else {
+              // status === 'incorrect' (or anything else) without hint
+              drawIncorrect(layer);           // RED
             }
           }
         }
@@ -1089,6 +1089,7 @@
       }
     }
     // ===== applySolvedFromDBForTownship END =====
+
 
 
 
@@ -1628,26 +1629,42 @@
     async function loadGuessedSegmentIds() {
       if (!currentUserId) return;
 
+      // Pull user's guess history (most recent first)
       const { data, error } = await supabase
-        .from('road_guesses')                           // same table you write to
-        .select('road_id, correct, used_hint')          // ← remove 'incorrect'
-        .eq('user_id', currentUserId);
+        .from('guesses')
+        .select('road_id, status, used_hint, created_at')
+        .eq('user_id', currentUserId)
+        .order('created_at', { ascending: false })
+        .limit(10000);
 
-      if (error) { console.error('❌ Error loading guesses:', error); return; }
+      if (error) { console.error('✘ Error loading guesses:', error); return; }
       if (!Array.isArray(data) || !data.length) return;
+
+      const seen = new Set(); // keep latest row per road
 
       for (const row of data) {
         const id = String(row.road_id);
+        if (!id || seen.has(id)) continue;  // already processed a newer row for this road
+        seen.add(id);
+
         const prev = segmentStateMap.get(id) || {};
 
+        const rowCorrect = row.status === 'correct';
+        const rowIncorrect = row.status === 'incorrect';
+        const rowGiveup = row.status === 'giveup';
+
+        // Merge with any existing in-memory state
         const mergedUsedHint = !!(prev.used_hint || row.used_hint);
-        const mergedCorrect = !!(prev.correct || row.correct);
-        // derive red from the row: a row with both flags false means “incorrect”
-        const rowIncorrect = (row.correct === false) && (row.used_hint === false);
-        const mergedIncorrect = !!(prev.incorrect || rowIncorrect) && !(mergedUsedHint || mergedCorrect);
+        const mergedGiveup = !!(prev.giveup || rowGiveup);
+        const mergedCorrect = !!(prev.correct || rowCorrect);
+        // "incorrect" means latest known status is incorrect and not already correct/giveup/hint-correct
+        const mergedIncorrect = !!(
+          prev.incorrect || (rowIncorrect && !mergedGiveup && !mergedCorrect)
+        );
 
         segmentStateMap.set(id, {
           used_hint: mergedUsedHint,
+          giveup: mergedGiveup,
           correct: mergedCorrect,
           incorrect: mergedIncorrect,
         });
@@ -1658,8 +1675,10 @@
 
 
 
+
+    // ========== BEGIN: saveGuessSegmentIds (uses `guesses`) ==========
     async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
-      // 🔐 make sure we have a session/user id
+      // 🔐 ensure we have a user
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id ?? currentUserId ?? null;
       if (!userId) {
@@ -1667,140 +1686,89 @@
         return;
       }
 
-      // 🧰 normalize input to an array
+      // 🧰 normalize to array
       const ids = Array.isArray(segmentIds) ? segmentIds : [segmentIds];
 
       for (const id of ids) {
-        const stringId = String(id);
-
-        // derive a normalized name for convenience
-        const rawName = stringId.startsWith('way/')
-          ? (segmentIdToName[stringId] || '')
-          : stringId;
-        const normalized = normalizeName(rawName);
-
-        console.log('🔗 Handling segment:', { stringId, normalized, isCorrect, usedHint });
-
-        // SELECT existing (kept your flow, though upsert would also cover it)
-        const { data: existingRows, error: fetchError } = await supabase
-          .from('road_guesses')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('road_id', stringId);
-
-        if (fetchError) {
-          console.error('❌ Fetch error during saveGuessSegmentIds:', fetchError);
+        // road_id expected as int8; parse & validate
+        const roadIdNum = typeof id === 'number' ? id : Number(String(id).trim());
+        if (!Number.isFinite(roadIdNum)) {
+          console.warn('saveGuessSegmentIds: skipping non-numeric road_id:', id);
           continue;
         }
 
-        const existing = existingRows[0];
+        const status = isCorrect ? 'correct' : 'incorrect';
 
-        if (!existing) {
-          // INSERT / UPSERT new row
-          const { error: insertError } = await supabase.from('road_guesses').upsert([{
-            user_id: userId,
-            road_id: stringId,      // ← make sure this column is TEXT in your DB
-            road_name: normalized,
-            correct: !!isCorrect,
-            used_hint: !!usedHint
-          }], { onConflict: 'user_id,road_id' });
+        // append to guesses (history)
+        const { error } = await supabase.from('guesses').insert([{
+          user_id: userId,
+          road_id: roadIdNum,
+          status,
+          used_hint: !!usedHint
+        }]);
 
-          if (insertError) {
-            console.error('❌ Supabase insert error:', insertError);
-          } else {
-            segmentStateMap.set(stringId, { correct: !!isCorrect, used_hint: !!usedHint });
-          }
-
-        } else {
-          // UPDATE only if state changes
-          const needsUpdate =
-            (isCorrect && !existing.correct) ||
-            (usedHint && !existing.used_hint);
-
-          if (needsUpdate) {
-            const updates = {
-              correct: isCorrect || existing.correct,
-              used_hint: usedHint || existing.used_hint
-            };
-
-            const { error: updateError } = await supabase
-              .from('road_guesses')
-              .update(updates)
-              .eq('user_id', userId)
-              .eq('road_id', stringId);
-
-            if (updateError) {
-              console.error('❌ Supabase update error:', updateError);
-            } else {
-              segmentStateMap.set(stringId, updates);
-            }
-          } else {
-            console.log('✅ No update needed. Existing values already match.');
-          }
+        if (error) {
+          console.error('❌ Supabase insert error (guesses):', error, { roadIdNum, status, usedHint });
+          continue;
         }
+
+        // update in-memory state for instant UI
+        const prev = segmentStateMap.get(String(roadIdNum)) || {};
+        const merged = {
+          used_hint: !!(prev.used_hint || usedHint),
+          correct: !!(prev.correct || isCorrect),
+          // incorrect only when latest is incorrect and not already correct
+          incorrect: !!(prev.incorrect || (!isCorrect && !prev.correct))
+          // giveup remains as-is here
+        };
+        segmentStateMap.set(String(roadIdNum), merged);
       }
     }
-    // Only add if you don't already have one:
-    if (typeof openGuessModal !== 'function') {
-      window.openGuessModal = function openGuessModal(layer, roadName = '', feature = null, township = '') {
-        const modal = document.getElementById('guess-modal');
-        if (!modal) return;
+    // ========== END: saveGuessSegmentIds ==========
+    // ========== BEGIN: saveGiveUpSegmentIds (writes status='giveup') ==========
+    async function saveGiveUpSegmentIds(segmentIds) {
+      // 🔐 ensure we have a user
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id ?? currentUserId ?? null;
+      if (!userId) {
+        console.warn('saveGiveUpSegmentIds: no session; skipping write');
+        return;
+      }
 
-        // 1) ensure your handlers won't early-return
-        const resolvedName = (roadName || feature?.properties?.name || '').trim();
-        currentRoad = { name: resolvedName, id: feature?.id != null ? String(feature.id) : '', hintGiven: false };
-        currentRoad2 = currentRoad; // legacy alias
+      const ids = Array.isArray(segmentIds) ? segmentIds : [segmentIds];
 
-        // (optional) keep your context if other code uses it
-        window.currentGuessContext = { layer, feature, roadName: resolvedName, township };
-
-        // 2) show modal + focus input
-        modal.style.display = 'block';
-        const input = modal.querySelector('#guess-input, input');
-        if (input) {
-          input.value = '';
-          input.focus();
+      for (const id of ids) {
+        const roadIdNum = typeof id === 'number' ? id : Number(String(id).trim());
+        if (!Number.isFinite(roadIdNum)) {
+          console.warn('saveGiveUpSegmentIds: skipping non-numeric road_id:', id);
+          continue;
         }
 
-        // 3) rebind the visible buttons to your legacy handlers
-        const submitBtn = modal.querySelector('#submit-guess') || modal.querySelector('[data-role="guess-submit"]');
-        const giveUpBtn = modal.querySelector('#give-up') || modal.querySelector('[data-role="guess-giveup"]');
+        // append give-up row
+        const { error } = await supabase.from('guesses').insert([{
+          user_id: userId,
+          road_id: roadIdNum,
+          status: 'giveup',
+          used_hint: false
+        }]);
 
-        if (submitBtn) {
-          submitBtn.type = 'button';
-          submitBtn.onclick = (e) => {
-            e.preventDefault();
-            if (typeof window.__legacySubmitClick === 'function') {
-              window.__legacySubmitClick.call(submitBtn, e);
-            } else {
-              console.warn('[Modal] No legacy submit handler found.');
-            }
-          };
+        if (error) {
+          console.error('❌ Supabase insert error (giveup -> guesses):', error, { roadIdNum });
+          continue;
         }
 
-        if (giveUpBtn) {
-          giveUpBtn.type = 'button';
-          giveUpBtn.onclick = (e) => {
-            e.preventDefault();
-            if (typeof window.__legacyGiveUpClick === 'function') {
-              window.__legacyGiveUpClick.call(giveUpBtn, e);
-            } else {
-              console.warn('[Modal] No legacy give-up handler found.');
-            }
-          };
-        }
-
-        // 4) Enter key submits (bind to the current input)
-        if (input && submitBtn) {
-          input.onkeydown = (e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              submitBtn.click();
-            }
-          };
-        }
-      };
+        // update in-memory state: giveup dominates incorrect; does not mark correct
+        const prev = segmentStateMap.get(String(roadIdNum)) || {};
+        segmentStateMap.set(String(roadIdNum), {
+          used_hint: !!prev.used_hint,
+          correct: !!prev.correct,   // do not force false; if user had correct already, leave it
+          incorrect: false,            // giveup overrides incorrect
+          giveup: true
+        });
+      }
     }
+    // ========== END: saveGiveUpSegmentIds ==========
+
 
     // ============ RoadsManager ============ BEGIN
     const BASE_ROAD_WEIGHT = 6;
