@@ -934,7 +934,7 @@
 
         // --- painters -----------------------------------------------------------
         const scrubBase = (layer) => {
-          try { layer.off(); } catch { }
+          // do NOT remove event listeners; we want hover/click to still exist
           try { layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 }); } catch { }
           layer.options.interactive = false;
           const el = layer._path || layer.getElement?.();
@@ -947,6 +947,7 @@
             el.removeAttribute?.('stroke-width');
           }
         };
+
 
         const addOverlay = (layer, color, className) => {
           if (layer.__hasSolvedOverlay) return;
@@ -2114,22 +2115,40 @@
           map.removeLayer(grp);
         }
 
-        // restore base appearance of any scrubbed roads for this township
+        // restore base appearance for this township
         if (grp) {
           grp.eachLayer(l => {
             if (!l || (l.__township || 'Manheim Township') !== name) return;
             if (typeof l.setStyle !== 'function') return;
 
-            try {
-              l.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-            } catch { }
+            try { l.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
             l.options.interactive = true;
             l.__solved = false;
             l.__hasSolvedOverlay = false;
             l.__originalColor = 'black';
           });
         }
+
+        // 🔍 remove any *old* overlays that were previously added directly to the map
+        // (these were created before Step 1 moved overlays into the township group)
+        try {
+          Object.values(map._layers).forEach(LayerMaybe => {
+            const ly = LayerMaybe;
+            // Only care about vector layers in the solved overlay pane
+            if (!ly || !ly.options || ly.options.pane !== 'solvedPane') return;
+            const tw = ly?.feature && (ly.feature.__township || ly.feature.properties?.__township);
+            // If we stored township on the segment layers instead, try parent
+            const matchesTownship = (tw === name) ||
+              (ly.__township === name) ||
+              (Array.isArray(ly._layers) && ly._layers.some(ch => ch?.__township === name));
+
+            if (matchesTownship && map.hasLayer(ly)) {
+              map.removeLayer(ly);
+            }
+          });
+        } catch { }
       }
+
 
     };
     // ============ RoadsManager ============ END
