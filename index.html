@@ -1822,7 +1822,7 @@
         for (const l of layers) {
           const el = this.getEl(l);
           if (!el) continue;
-          el.classList.add('active-blue'); // relies on your CSS
+          el.classList.add('active-blue');  // relies on your CSS
           this.activeLayers.push(l);
         }
       },
@@ -1855,9 +1855,9 @@
         try { logEPEntry?.(name, 'ENTER(top)'); } catch { }
         try { showSolvedPane?.(); } catch { }
 
-        if (name === 'Manheim Township') return; // MT handled by legacy layer
+        if (name === "Manheim Township") return; // MT handled by legacy layer
 
-        // existing cached GeoJSON group?
+        // ---------- existing layer path ----------
         const existing = roadsLayerByTownship.get(name);
         if (existing) {
           if (!map.hasLayer(existing)) map.addLayer(existing);
@@ -1867,7 +1867,7 @@
           return;
         }
 
-        // fetch fresh
+        // ---------- fresh load ----------
         const url = ROADS_REGISTRY[name];
         if (!url) { console.warn(`[Roads] No URL for "${name}".`); return; }
 
@@ -1908,122 +1908,44 @@
           pane: 'clickable-buffer'
         });
 
-        // --- onEachFeature: wire EVERY child path (handles MultiLineString) ---
+        // ——— Index children only (no per-child listeners) ———
         const onEach = (feature, segLayer) => {
           const roadName = (feature?.properties?.name || '').trim();
 
-          // all real path children we’ll wire
-          const kids = (typeof segLayer.eachLayer === 'function')
+          const children = (typeof segLayer.eachLayer === 'function')
             ? segLayer.getLayers()
             : [segLayer];
 
-          // helper: layers in this township with the same road name
-          const matchingLayers = () =>
-            (nameToLayers[roadName] || []).filter(x => x.__township === name);
-
-          const styleFromOriginal = (layer) => {
-            switch (layer.__originalColor) {
-              case 'red': return { color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 };
-              case 'orange': return { color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
-              case 'green': return { color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
-              default: return { color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 };
-            }
-          };
-
-          // wire one child path (hover/out/click) and add a fat hit-buffer
-          const wireChild = (l) => {
-            // ensure meta + interactivity
+          const indexChild = (l) => {
             l.options.interactive = true;
             if (!l.feature) l.feature = feature;
             l.__township = name;
 
-            // index for lookups (name -> layers, name -> ids)
             if (roadName) {
               (nameToLayers[roadName] ||= []).push(l);
               (roadNameToIds[roadName] ||= []).push(String(feature.id));
             }
 
-            // HOVER (skip if solved or not this township)
-            l.on('mouseover', () => {
-              const sid = String(l.feature.id);
-              const st = segmentStateMap.get(sid);
-              const el = RoadsManager.getEl(l);
-              const locked = !!l.__solved || st?.correct || st?.giveup || st?.locked;
-              if (locked || activeTownship !== name || !el) return;
-              if (el.classList.contains('active-blue')) return;
-
-              for (const m of matchingLayers()) {
-                if (m.__solved) continue;
-                if (!m.__hoverSaved) {
-                  m.__hoverSaved = true;
-                  m.__savedHoverStyle = {
-                    color: m.options.color,
-                    weight: m.options.weight,
-                    opacity: m.options.opacity
-                  };
-                }
-                m.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 });
-              }
-            });
-
-            // OUT: restore pre-hover style
-            l.on('mouseout', () => {
-              for (const m of matchingLayers()) {
-                const el = RoadsManager.getEl(m);
-                if (el && el.classList.contains('active-blue')) continue; // keep active look
-                if (m.__hoverSaved && m.__savedHoverStyle) {
-                  m.setStyle(m.__savedHoverStyle);
-                } else {
-                  m.setStyle(styleFromOriginal(m));
-                }
-                m.__hoverSaved = false;
-                m.__savedHoverStyle = null;
-              }
-            });
-
-            // CLICK: activate + open modal
-            l.on('click', () => {
-              if (l.__solved || activeTownship !== name) return;
-
-              RoadsManager.selectByName(roadName);
-              const sid = String(l.feature.id);
-              currentRoad = { name: roadName, id: sid, hintGiven: false };
-              currentRoad2 = currentRoad;
-
-              if (typeof window.openGuessModal === 'function') {
-                window.openGuessModal(l, roadName, feature, name);
-              } else if (typeof openGuessModal === 'function') {
-                openGuessModal(l, roadName, feature, name);
-              } else if (typeof showGuessModal === 'function') {
-                showGuessModal(l, roadName, feature, name);
-              } else {
-                const modal = document.getElementById('guess-modal');
-                if (modal) {
-                  modal.style.display = 'block';
-                  const input = modal.querySelector('#guess-input, input');
-                  if (input) { input.value = ''; input.focus(); }
-                }
-              }
-            });
-
-            // add a thin invisible hit-buffer that relays events to this child path
+            // thin invisible buffer for easier hits, **inherit metadata**
             try {
-              const buf = L.polyline(l.getLatLngs(), {
-                renderer: roadsRenderer,
-                pane: 'clickable-buffer',
-                color: '#000000',
-                weight: 18,
-                opacity: 0,
-                interactive: true
-              }).addTo(map);
-              buf.on('mouseover', () => l.fire('mouseover'));
-              buf.on('mouseout', () => l.fire('mouseout'));
-              buf.on('click', () => l.fire('click'));
+              const latlngs = (typeof l.getLatLngs === 'function') ? l.getLatLngs() : null;
+              if (latlngs) {
+                const buf = L.polyline(latlngs, {
+                  renderer: roadsRenderer,
+                  pane: 'clickable-buffer',
+                  color: '#000000',
+                  weight: 18,
+                  opacity: 0,
+                  interactive: true
+                }).addTo(map);
+                buf.feature = l.feature;    // <- key for delegation
+                buf.__township = l.__township; // <- keep same township
+                buf.__solved = l.__solved;
+              }
             } catch { }
           };
 
-          // wire all children (covers MultiLineString fully)
-          kids.forEach(wireChild);
+          children.forEach(indexChild);
         };
 
         const roadsLayer = L.geoJSON(geo, {
@@ -2036,24 +1958,101 @@
         map.addLayer(roadsLayer);
         try { logEPEntry?.(name, 'ENTER(fresh+added)'); } catch { }
 
-        // make sure everything starts clickable; then paint solved
+        // keep everything clickable, then paint solved from DB
         this.clearForTownship(roadsLayer, name);
         repaintFromDB?.(name);
 
-        // group-level fallback: if Leaflet ever bubbles clicks from the group
+        // ---------- Group-level event delegation (fixes MultiLineString) ----------
+        const styleFromOriginal = (layer) => {
+          switch (layer.__originalColor) {
+            case 'red': return { color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 };
+            case 'orange': return { color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+            case 'green': return { color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+            default: return { color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 };
+          }
+        };
+
+        const getTarget = (e) => e.propagatedFrom || e.layer || e.target;
+
+        roadsLayer.on('mouseover', (e) => {
+          const t = getTarget(e);
+          const f = t?.feature;
+          if (!f) return;
+
+          const roadName = (f.properties?.name || '').trim();
+          const sid = String(f.id ?? '');
+          const st = segmentStateMap.get(sid);
+          const el = this.getEl(t);
+
+          const locked = !!t?.__solved || st?.correct || st?.giveup || st?.locked;
+          if (locked || activeTownship !== name || !el) return;
+          if (el.classList.contains('active-blue')) return;
+
+          const layers = (nameToLayers[roadName] || []).filter(x => x.__township === name);
+          for (const m of layers) {
+            if (m.__solved) continue;
+            if (!m.__hoverSaved) {
+              m.__hoverSaved = true;
+              m.__savedHoverStyle = {
+                color: m.options.color,
+                weight: m.options.weight,
+                opacity: m.options.opacity
+              };
+            }
+            m.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 });
+          }
+        });
+
+        roadsLayer.on('mouseout', (e) => {
+          const t = getTarget(e);
+          const roadName = (t?.feature?.properties?.name || '').trim();
+          if (!roadName) return;
+
+          const layers = (nameToLayers[roadName] || []).filter(x => x.__township === name);
+          for (const m of layers) {
+            const el = this.getEl(m);
+            if (el && el.classList.contains('active-blue')) continue;
+            if (m.__hoverSaved && m.__savedHoverStyle) {
+              m.setStyle(m.__savedHoverStyle);
+            } else {
+              m.setStyle(styleFromOriginal(m));
+            }
+            m.__hoverSaved = false;
+            m.__savedHoverStyle = null;
+          }
+        });
+
         roadsLayer.on('click', (e) => {
-          const child = e.propagatedFrom || e.layer || e.target;
-          const feature = child?.feature || e.layer?.feature || e.target?.feature;
+          const child = getTarget(e);
+          const feature = child?.feature;
+          if (!feature) return;
+
           const fid = String(feature?.id ?? '');
           const roadName = (feature?.properties?.name || '').trim();
           if (!fid || !roadName) return;
 
-          const locked = !!(child?.__solved || e.layer?.__solved || e.target?.__solved);
+          const locked = !!child?.__solved;
           if (locked || activeTownship !== name) return;
+
+          this.selectByName(roadName);
 
           currentRoad = { name: roadName, id: fid, hintGiven: false };
           currentRoad2 = currentRoad;
-          (window.openGuessModal || openGuessModal || showGuessModal)?.(child, roadName, feature, name);
+
+          if (typeof window.openGuessModal === 'function') {
+            window.openGuessModal(child, roadName, feature, name);
+          } else if (typeof openGuessModal === 'function') {
+            openGuessModal(child, roadName, feature, name);
+          } else if (typeof showGuessModal === 'function') {
+            showGuessModal(child, roadName, feature, name);
+          } else {
+            const modal = document.getElementById('guess-modal');
+            if (modal) {
+              modal.style.display = 'block';
+              const input = modal.querySelector('#guess-input, input');
+              if (input) { input.value = ''; input.focus(); }
+            }
+          }
         });
 
         // optional debug
@@ -2080,6 +2079,7 @@
       }
     };
     // ============ RoadsManager ============ END
+
 
 
 
