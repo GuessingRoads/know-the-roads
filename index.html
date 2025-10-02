@@ -1938,9 +1938,16 @@
                   opacity: 0,
                   interactive: true
                 }).addTo(map);
-                buf.feature = l.feature;    // <- key for delegation
-                buf.__township = l.__township; // <- keep same township
+
+                // keep metadata aligned with the visible child
+                buf.feature = l.feature;          // <- key for delegation
+                buf.__township = l.__township;    // <- keep same township
                 buf.__solved = l.__solved;
+
+                // *** critical: proxy buffer events to roadsLayer as if 'l' fired them ***
+                buf.on('mouseover', () => roadsLayer.fire('mouseover', { layer: l }));
+                buf.on('mouseout', () => roadsLayer.fire('mouseout', { layer: l }));
+                buf.on('click', () => roadsLayer.fire('click', { layer: l }));
               }
             } catch { }
           };
