@@ -1811,6 +1811,7 @@
       // --- helpers/state (scoped to the manager) ---
       activeLayers: [],
 
+      // NOTE: stop relying on DOM nodes (canvas renderer returns null elements).
       getEl(layer) {
         return (typeof layer.getElement === 'function' ? layer.getElement() : layer._path) || null;
       },
@@ -1820,18 +1821,14 @@
         if (!roadName) return;
         const layers = nameToLayers[roadName] || [];
         for (const l of layers) {
-          const el = this.getEl(l);
-          if (!el) continue;
-          el.classList.add('active-blue'); // relies on your CSS
+          l.__activeSelected = true; // internal flag replaces .classList('active-blue')
           this.activeLayers.push(l);
         }
       },
 
       clearActive() {
         for (const l of this.activeLayers) {
-          const el = this.getEl(l);
-          if (!el) continue;
-          el.classList.remove('active-blue');
+          l.__activeSelected = false;
         }
         this.activeLayers.length = 0;
       },
@@ -1845,9 +1842,47 @@
           if ((l.__township || 'Manheim Township') !== townshipName) continue;
           l.__hoverSaved = false;
           l.__savedHoverStyle = null;
-          if (!l.__solved) l.options.interactive = true;
-          // DO NOT touch __solved or segmentStateMap here.
+          if (!l.__solved) l.options.interactive = true; // don't touch style or __originalColor
         }
+      },
+
+      // Style helper that respects original color markers
+      styleFromOriginal(layer) {
+        switch (layer.__originalColor) {
+          case 'red': return { color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 };
+          case 'orange': return { color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+          case 'green': return { color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
+          default: return { color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 };
+        }
+      },
+
+      applyStateFromSegmentMap(group, townshipName) {
+        // Restore colors from segmentStateMap on initial load/refresh
+        if (!group) return;
+        group.eachLayer(l => {
+          const sid = String(l?.feature?.id ?? '');
+          if (!sid) return;
+          const st = segmentStateMap.get(sid);
+          if (!st) return;
+
+          // Normalize known flags (adjust to your schema if different)
+          if (st.correct) {
+            l.__solved = true;
+            l.__originalColor = 'green';
+            l.setStyle(this.styleFromOriginal(l));
+            l.options.interactive = false;
+          } else if (st.giveup || st.incorrect) {
+            l.__solved = false;
+            l.__originalColor = 'red';
+            l.setStyle(this.styleFromOriginal(l));
+            l.options.interactive = true;
+          } else if (st.used_hint) {
+            l.__solved = true; // if your logic treats hint-completed as done
+            l.__originalColor = 'orange';
+            l.setStyle(this.styleFromOriginal(l));
+            l.options.interactive = false;
+          }
+        });
       },
 
       // ================= showForTownship =================
@@ -1863,6 +1898,8 @@
           if (!map.hasLayer(existing)) map.addLayer(existing);
           try { logEPEntry?.(name, 'ENTER(existing+added)'); } catch { }
           this.clearForTownship(existing, name);
+          // Ensure repaint on re-show
+          this.applyStateFromSegmentMap(existing, name);
           repaintFromDB?.(name);
           return;
         }
@@ -1908,18 +1945,53 @@
           pane: 'clickable-buffer'
         });
 
-        // --- helpers bound to this township instance ---
         const mgr = this;
 
-        const styleFromOriginal = (layer) => {
-          switch (layer.__originalColor) {
-            case 'red': return { color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 };
-            case 'orange': return { color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
-            case 'green': return { color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
-            default: return { color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 };
-          }
+        // --- collect buffers during indexing; attach after group exists ---
+        const pendingBuffers = [];
+
+        // ——— Index children and attach listeners (both visible stroke + buffer) ———
+        const onEach = (feature, segLayer) => {
+          const roadName = (feature?.properties?.name || '').trim();
+
+          const children = (typeof segLayer.eachLayer === 'function')
+            ? segLayer.getLayers()
+            : [segLayer];
+
+          const indexChild = (l) => {
+            l.options.interactive = true;
+            if (!l.feature) l.feature = feature;
+            l.__township = name;
+
+            if (roadName) {
+              (nameToLayers[roadName] ||= []).push(l);
+              (roadNameToIds[roadName] ||= []).push(String(feature.id));
+            }
+
+            // Attach listeners to visible stroke (Canvas/SVG agnostic)
+            l.on('mouseover', () => handleOver(l));
+            l.on('mouseout', () => handleOut(l));
+            l.on('click', () => handleClick(l));
+
+            // collect buffer params; attach buffers inside group later
+            try {
+              const latlngs = (typeof l.getLatLngs === 'function') ? l.getLatLngs() : null;
+              if (latlngs) {
+                pendingBuffers.push({
+                  latlngs,
+                  feature: l.feature,
+                  township: l.__township,
+                  solved: l.__solved,
+                  childRef: l
+                });
+              }
+            } catch { }
+          };
+
+          children.forEach(indexChild);
         };
 
+        // Handlers (no DOM element assumptions)
         const handleOver = (t) => {
           const f = t?.feature;
           if (!f) return;
@@ -1927,11 +1999,10 @@
           const roadName = (f.properties?.name || '').trim();
           const sid = String(f.id ?? '');
           const st = segmentStateMap.get(sid);
-          const el = mgr.getEl(t);
 
           const locked = !!t?.__solved || st?.correct || st?.giveup || st?.locked;
-          if (locked || activeTownship !== name || !el) return;
-          if (el.classList.contains('active-blue')) return;
+          if (locked || activeTownship !== name) return;
+          if (t.__activeSelected) return;
 
           const layers = (nameToLayers[roadName] || []).filter(x => x.__township === name);
           if (!layers.length) return;
@@ -1957,12 +2028,11 @@
 
           const layers = (nameToLayers[roadName] || []).filter(x => x.__township === name);
           for (const m of layers) {
-            const el = mgr.getEl(m);
-            if (el && el.classList.contains('active-blue')) continue;
+            if (m.__activeSelected) continue;
             if (m.__hoverSaved && m.__savedHoverStyle) {
               m.setStyle(m.__savedHoverStyle);
             } else {
-              m.setStyle(styleFromOriginal(m));
+              m.setStyle(mgr.styleFromOriginal(m));
             }
             m.__hoverSaved = false;
             m.__savedHoverStyle = null;
@@ -2001,57 +2071,13 @@
           }
         };
 
-        // --- collect buffers during indexing; attach after group exists ---
-        const pendingBuffers = [];
-
-        // ——— Index children and attach listeners ———
-        const onEach = (feature, segLayer) => {
-          const roadName = (feature?.properties?.name || '').trim();
-
-          const children = (typeof segLayer.eachLayer === 'function')
-            ? segLayer.getLayers()
-            : [segLayer];
-
-          const indexChild = (l) => {
-            l.options.interactive = true;
-            if (!l.feature) l.feature = feature;
-            l.__township = name;
-
-            if (roadName) {
-              (nameToLayers[roadName] ||= []).push(l);
-              (roadNameToIds[roadName] ||= []).push(String(feature.id));
-            }
-
-            // Attach listeners directly to the visible stroke (covers no-buffer edge cases)
-            l.on('mouseover', () => handleOver(l));
-            l.on('mouseout', () => handleOut(l));
-            l.on('click', () => handleClick(l));
-
-            // collect buffer params; attach after roadsLayer exists
-            try {
-              const latlngs = (typeof l.getLatLngs === 'function') ? l.getLatLngs() : null;
-              if (latlngs) {
-                pendingBuffers.push({
-                  latlngs,
-                  feature: l.feature,     // preserve metadata for handlers
-                  township: l.__township,
-                  solved: l.__solved,
-                  childRef: l             // so buffer can delegate to the same handlers
-                });
-              }
-            } catch { }
-          };
-
-          children.forEach(indexChild);
-        };
-
         const roadsLayer = L.geoJSON(geo, {
           style: styleFn,
           onEachFeature: onEach,
           pane: 'clickable-buffer'
         });
 
-        // Attach all collected buffers **into** the group and wire their events
+        // Attach buffers inside the group and wire their events
         for (const b of pendingBuffers) {
           const buf = L.polyline(b.latlngs, {
             renderer: roadsRenderer,
@@ -2061,19 +2087,16 @@
             opacity: 0,
             interactive: true
           });
-          // keep metadata aligned; handlers rely on .feature and township flags
           buf.feature = b.feature;
           buf.__township = b.township;
           buf.__solved = b.solved;
 
-          // Explicit listeners on the buffer, routed to the same handlers
           buf.on('mouseover', () => handleOver(b.childRef));
           buf.on('mouseout', () => handleOut(b.childRef));
           buf.on('click', () => handleClick(b.childRef));
 
           roadsLayer.addLayer(buf);
         }
-        pendingBuffers.length = 0;
 
         roadsLayerByTownship.set(name, roadsLayer);
         map.addLayer(roadsLayer);
@@ -2081,6 +2104,11 @@
 
         // keep everything clickable, then paint solved from DB
         this.clearForTownship(roadsLayer, name);
+
+        // <<< critical: restore colors from DB so red stays red after refresh >>>
+        this.applyStateFromSegmentMap(roadsLayer, name);
+
+        // Optional: your existing DB repaint hook can still refine/override
         repaintFromDB?.(name);
 
         // optional debug
@@ -2091,7 +2119,8 @@
               name: (l.feature?.properties?.name || '').trim(),
               interactive: l.options?.interactive,
               pane: l.options?.pane,
-              solved: l.__solved
+              solved: l.__solved,
+              originalColor: l.__originalColor
             });
           } catch { }
         });
@@ -2109,6 +2138,7 @@
       }
     };
     // ============ RoadsManager ============ END
+
 
 
 
