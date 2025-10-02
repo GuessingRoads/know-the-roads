@@ -1822,7 +1822,7 @@
         for (const l of layers) {
           const el = this.getEl(l);
           if (!el) continue;
-          el.classList.add('active-blue');  // relies on your CSS
+          el.classList.add('active-blue'); // relies on your CSS
           this.activeLayers.push(l);
         }
       },
@@ -1836,7 +1836,7 @@
         this.activeLayers.length = 0;
       },
 
-      // NEW: reset only hover bookkeeping / interactivity for unsolved
+      // reset only hover bookkeeping / interactivity for unsolved
       clearForTownship(lyrOrGroup, townshipName) {
         const list = (typeof lyrOrGroup?.eachLayer === 'function')
           ? lyrOrGroup.getLayers()
@@ -1853,21 +1853,21 @@
       // ================= showForTownship =================
       async showForTownship(name) {
         try { logEPEntry?.(name, 'ENTER(top)'); } catch { }
-        try { showSolvedPane?.(); } catch { }     // overlays must be visible
+        try { showSolvedPane?.(); } catch { }
 
-        if (name === "Manheim Township") return; // MT handled by legacy layer
+        if (name === 'Manheim Township') return; // MT handled by legacy layer
 
-        // ---------- existing layer path ----------
+        // existing cached GeoJSON group?
         const existing = roadsLayerByTownship.get(name);
         if (existing) {
           if (!map.hasLayer(existing)) map.addLayer(existing);
           try { logEPEntry?.(name, 'ENTER(existing+added)'); } catch { }
           this.clearForTownship(existing, name);
-          repaintFromDB?.(name);                 // fire & forget repaint (robust helper)
+          repaintFromDB?.(name);
           return;
         }
 
-        // ---------- fresh load ----------
+        // fetch fresh
         const url = ROADS_REGISTRY[name];
         if (!url) { console.warn(`[Roads] No URL for "${name}".`); return; }
 
@@ -1908,44 +1908,42 @@
           pane: 'clickable-buffer'
         });
 
-        // shared event wiring for each segment
+        // --- onEachFeature: wire EVERY child path (handles MultiLineString) ---
         const onEach = (feature, segLayer) => {
-          // flatten possible multi-geometries
-          const children = [];
-          if (typeof segLayer.eachLayer === 'function') {
-            segLayer.eachLayer(c => children.push(c));
-          } else {
-            children.push(segLayer);
-          }
-
           const roadName = (feature?.properties?.name || '').trim();
 
-          // helpers in onEach scope
+          // all real path children we’ll wire
+          const kids = (typeof segLayer.eachLayer === 'function')
+            ? segLayer.getLayers()
+            : [segLayer];
+
+          // helper: layers in this township with the same road name
           const matchingLayers = () =>
             (nameToLayers[roadName] || []).filter(x => x.__township === name);
 
-          function styleFromOriginal(layer) {
+          const styleFromOriginal = (layer) => {
             switch (layer.__originalColor) {
               case 'red': return { color: 'red', weight: BASE_ROAD_WEIGHT, opacity: 1 };
               case 'orange': return { color: '#ff8800', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
               case 'green': return { color: '#009944', weight: BASE_ROAD_WEIGHT, opacity: 0.7 };
               default: return { color: BASE_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 };
             }
-          }
+          };
 
-          for (const l of children) {
-            // ensure feature+township tags
+          // wire one child path (hover/out/click) and add a fat hit-buffer
+          const wireChild = (l) => {
+            // ensure meta + interactivity
             l.options.interactive = true;
             if (!l.feature) l.feature = feature;
             l.__township = name;
 
-            // register for lookups
+            // index for lookups (name -> layers, name -> ids)
             if (roadName) {
               (nameToLayers[roadName] ||= []).push(l);
               (roadNameToIds[roadName] ||= []).push(String(feature.id));
             }
 
-            // HOVER (skip if solved/active)
+            // HOVER (skip if solved or not this township)
             l.on('mouseover', () => {
               const sid = String(l.feature.id);
               const st = segmentStateMap.get(sid);
@@ -1958,13 +1956,17 @@
                 if (m.__solved) continue;
                 if (!m.__hoverSaved) {
                   m.__hoverSaved = true;
-                  m.__savedHoverStyle = { color: m.options.color, weight: m.options.weight, opacity: m.options.opacity };
+                  m.__savedHoverStyle = {
+                    color: m.options.color,
+                    weight: m.options.weight,
+                    opacity: m.options.opacity
+                  };
                 }
                 m.setStyle({ color: HOVER_ROAD_COLOR, weight: BASE_ROAD_WEIGHT, opacity: 1 });
               }
             });
 
-            // MOUSEOUT (restore exact pre-hover style)
+            // OUT: restore pre-hover style
             l.on('mouseout', () => {
               for (const m of matchingLayers()) {
                 const el = RoadsManager.getEl(m);
@@ -1979,12 +1981,11 @@
               }
             });
 
-            // CLICK → set active blue + open modal
+            // CLICK: activate + open modal
             l.on('click', () => {
-              const locked = !!l.__solved;
-              if (locked || activeTownship !== name) return;
+              if (l.__solved || activeTownship !== name) return;
 
-              RoadsManager.selectByName(roadName);  // active blue for all segments
+              RoadsManager.selectByName(roadName);
               const sid = String(l.feature.id);
               currentRoad = { name: roadName, id: sid, hintGiven: false };
               currentRoad2 = currentRoad;
@@ -2004,7 +2005,25 @@
                 }
               }
             });
-          }
+
+            // add a thin invisible hit-buffer that relays events to this child path
+            try {
+              const buf = L.polyline(l.getLatLngs(), {
+                renderer: roadsRenderer,
+                pane: 'clickable-buffer',
+                color: '#000000',
+                weight: 18,
+                opacity: 0,
+                interactive: true
+              }).addTo(map);
+              buf.on('mouseover', () => l.fire('mouseover'));
+              buf.on('mouseout', () => l.fire('mouseout'));
+              buf.on('click', () => l.fire('click'));
+            } catch { }
+          };
+
+          // wire all children (covers MultiLineString fully)
+          kids.forEach(wireChild);
         };
 
         const roadsLayer = L.geoJSON(geo, {
@@ -2017,17 +2036,14 @@
         map.addLayer(roadsLayer);
         try { logEPEntry?.(name, 'ENTER(fresh+added)'); } catch { }
 
-        // baseline reset so roads start clickable (no styling changes)
+        // make sure everything starts clickable; then paint solved
         this.clearForTownship(roadsLayer, name);
-
-        // repaint solved state once the layer is present
         repaintFromDB?.(name);
 
-        // Fallback: handle clicks at the GeoJSON group level for any child path
+        // group-level fallback: if Leaflet ever bubbles clicks from the group
         roadsLayer.on('click', (e) => {
-          const child = e.propagatedFrom || e.layer || e.target;   // prefer the real child
+          const child = e.propagatedFrom || e.layer || e.target;
           const feature = child?.feature || e.layer?.feature || e.target?.feature;
-
           const fid = String(feature?.id ?? '');
           const roadName = (feature?.properties?.name || '').trim();
           if (!fid || !roadName) return;
@@ -2037,24 +2053,10 @@
 
           currentRoad = { name: roadName, id: fid, hintGiven: false };
           currentRoad2 = currentRoad;
-
-          if (typeof window.openGuessModal === 'function') {
-            window.openGuessModal(child, roadName, feature, name);
-          } else if (typeof openGuessModal === 'function') {
-            openGuessModal(child, roadName, feature, name);
-          } else if (typeof showGuessModal === 'function') {
-            showGuessModal(child, roadName, feature, name);
-          } else {
-            const modal = document.getElementById('guess-modal');
-            if (modal) {
-              modal.style.display = 'block';
-              const input = modal.querySelector('#guess-input, input');
-              if (input) { input.value = ''; input.focus(); }
-            }
-          }
+          (window.openGuessModal || openGuessModal || showGuessModal)?.(child, roadName, feature, name);
         });
 
-        // (optional) per-segment debug
+        // optional debug
         roadsLayer.eachLayer(l => {
           console.log('Road debug:', {
             id: String(l.feature.id),
@@ -2064,8 +2066,6 @@
             solved: l.__solved
           });
         });
-
-        // NOTE: removed duplicate "solved styling restore" here to avoid double-paint races.
       },
 
       hideForTownship(name) {
