@@ -2109,15 +2109,28 @@
       },
 
       hideForTownship(name) {
-        const lyr = roadsLayerByTownship.get(name);
-        if (lyr && map.hasLayer(lyr)) map.removeLayer(lyr);
-      },
+        const grp = roadsLayerByTownship.get(name);
+        if (grp && map.hasLayer(grp)) {
+          map.removeLayer(grp);
+        }
 
-      hideAll() {
-        for (const lyr of roadsLayerByTownship.values()) {
-          if (lyr && map.hasLayer(lyr)) map.removeLayer(lyr);
+        // restore base appearance of any scrubbed roads for this township
+        if (grp) {
+          grp.eachLayer(l => {
+            if (!l || (l.__township || 'Manheim Township') !== name) return;
+            if (typeof l.setStyle !== 'function') return;
+
+            try {
+              l.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+            } catch { }
+            l.options.interactive = true;
+            l.__solved = false;
+            l.__hasSolvedOverlay = false;
+            l.__originalColor = 'black';
+          });
         }
       }
+
     };
     // ============ RoadsManager ============ END
 
