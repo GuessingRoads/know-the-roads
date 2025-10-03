@@ -731,9 +731,16 @@
 
     function removeHintOverlay(layer) {
       try {
-        if (layer.__hintOverlay) { map.removeLayer(layer.__hintOverlay); layer.__hintOverlay = null; }
+        const ov = layer && layer.__hintOverlay;
+        if (ov) {
+          if (typeof ov.remove === 'function') ov.remove();
+          else if (map && map.hasLayer(ov)) map.removeLayer(ov);
+          layer.__hintOverlay = null;
+          layer.__hasHintOverlay = false;
+        }
       } catch { }
     }
+
     function armSolvedSegmentsForReentry() {
       try {
         if (!roadsLayerGroup) return;
@@ -770,9 +777,17 @@
 
     function removeSolvedOverlay(layer) {
       try {
-        if (layer.__solvedOverlay) { map.removeLayer(layer.__solvedOverlay); layer.__solvedOverlay = null; }
+        const ov = layer && layer.__solvedOverlay;
+        if (ov) {
+          // remove from whichever parent it has (map or a group)
+          if (typeof ov.remove === 'function') ov.remove();
+          else if (map && map.hasLayer(ov)) map.removeLayer(ov);
+          layer.__solvedOverlay = null;
+          layer.__hasSolvedOverlay = false;
+        }
       } catch { }
     }
+
     // Rebuild overlays when *inside* MT only.
     // Orange (used_hint) takes priority over green (correct).
     function normalizeCorrectOverlays() {
