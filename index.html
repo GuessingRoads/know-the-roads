@@ -695,28 +695,40 @@
     }
     // ORANGE (always wins; replaces green if present)
     function drawHintOverlay(layer) {
-      if (!canShowOverlays()) return;        // ← guard
-      // (remove any showSolvedPane() call from here)
-      const el = layer.getElement?.();
-      layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-      layer.options.interactive = false;
-      if (el) {
-        el.style.display = 'none';
-        el.style.stroke = 'none';
-        el.removeAttribute('stroke');
-        el.removeAttribute('stroke-opacity');
-        el.removeAttribute('stroke-width');
-      }
+      if (!canShowOverlays()) return;        // guard
+
+      // DO NOT scrub/hide the base path anymore.
+      // Keep the base visible (black) and simply stack the orange overlay above it.
+      try { layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
+      layer.options.interactive = false;     // optional: prevent clicks after hint
+
+      // orange replaces any green overlay
       removeSolvedOverlay(layer);
+
+      // ensure pane exists (map is definitely initialized here)
+      if (map && !map.getPane('solvedPane')) {
+        const sp = map.createPane('solvedPane');
+        sp.style.zIndex = '650';
+      }
+
       const ov = L.geoJSON(layer.feature, {
         pane: 'solvedPane',
         renderer: roadsRenderer,
         interactive: false,
         style: { color: HINT_COLOR, weight: HINT_WEIGHT, opacity: HINT_OPACITY, lineCap: 'round' }
-      }).addTo(map);
+      });
+
+      // add into the township overlay group (not the map)
+      const target = (window.mtOverlayGroup && typeof window.mtOverlayGroup.addLayer === 'function')
+        ? window.mtOverlayGroup
+        : roadsLayerGroup; // safe fallback
+
+      ov.addTo(target);
+
       layer.__hintOverlay = ov;
       layer.__hasHintOverlay = true;
     }
+
     function removeHintOverlay(layer) {
       try {
         if (layer.__hintOverlay) { map.removeLayer(layer.__hintOverlay); layer.__hintOverlay = null; }
