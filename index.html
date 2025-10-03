@@ -436,19 +436,10 @@
     let hoverOverlay = null;
     let worldMask;
     let roadsLayerGroup = L.layerGroup(); // Holds all road layers
-    // --- STEP 1: create a township overlay group under the MT base group (no behavior change yet) ---
-    if (!map.getPane('solvedPane')) {
-      const sp = map.createPane('solvedPane');
-      // keep it above base vectors but below markers/controls
-      sp.style.zIndex = '650';
-    }
-
-    // one overlay group nested under the base roads group
+    // --- STEP 1 (revised): create an overlay group under the MT base group ---
     let mtOverlayGroup = L.layerGroup();
     roadsLayerGroup.addLayer(mtOverlayGroup);
-
-    // expose for later steps if you want to inspect in console
-    window.mtOverlayGroup = mtOverlayGroup;
+    window.mtOverlayGroup = mtOverlayGroup; // optional: for console inspection
 
     let insideLancaster = false;
     let insideManheim = false;
