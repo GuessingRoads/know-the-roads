@@ -1,140 +1,151 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
   <title>Know The Roads</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    #map { height: 100vh; }
+    #map {
+      height: 100vh;
+    }
 
     .legend {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 8px;
-  font-family: system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4em;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
-  z-index: 1000;
-  width: fit-content;
-  max-width: 200px;
-}
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 8px;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4em;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+      z-index: 1000;
+      width: fit-content;
+      max-width: 200px;
+    }
 
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 2px 0;
-}
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 2px 0;
+    }
 
-.legend-color {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  margin-right: 8px;
-  border: 1px solid #666;
-  display: inline-block;
-  vertical-align: middle;
-  box-sizing: border-box; /* ✅ forces equal sizing and alignment */
-}
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      margin-right: 8px;
+      border: 1px solid #666;
+      display: inline-block;
+      vertical-align: middle;
+      box-sizing: border-box;
+      /* ✅ forces equal sizing and alignment */
+    }
 
 
     #auth-box {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1000;
-  max-width: 220px;
-  text-align: right;
-}
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      max-width: 220px;
+      text-align: right;
+    }
 
-#auth-box button {
-  padding: 5px 10px;
-  font-size: 12.5px;
-  background: #333;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-
- #legend-buttons-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-}
+    #auth-box button {
+      padding: 5px 10px;
+      font-size: 12.5px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
 
 
-#music-btn {
-  background: white;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.12);
-  flex-shrink: 0; /* prevent stretching */
-  flex-grow: 0;   /* prevent expansion */
-}
+    #legend-buttons-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
 
-#exit-zone-btn {
-  padding: 6px 12px;
-  font-size: 13px;
-  font-family: system-ui, sans-serif;
-  font-weight: 600;
-  background: white;
-  border: 1px solid #aaa;
-  border-radius: 5px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  cursor: pointer;
-  flex-shrink: 0; /* prevent stretching */
-  flex-grow: 0;   /* prevent expansion */
-}
-#legend-button-zone {
-  position: absolute;
-  top: calc(10px + 155px); /* adjust to be just beneath the legend */
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-}
+
+    #music-btn {
+      background: white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+      flex-shrink: 0;
+      /* prevent stretching */
+      flex-grow: 0;
+      /* prevent expansion */
+    }
+
+    #exit-zone-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      font-family: system-ui, sans-serif;
+      font-weight: 600;
+      background: white;
+      border: 1px solid #aaa;
+      border-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      flex-shrink: 0;
+      /* prevent stretching */
+      flex-grow: 0;
+      /* prevent expansion */
+    }
+
+    #legend-button-zone {
+      position: absolute;
+      top: calc(10px + 155px);
+      /* adjust to be just beneath the legend */
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
 
 
     #music-modal {
-  position: absolute;
-  top: 190px;
-  top: 210px;
-  left: 10px;
-  background: white;
-  border: 1px solid #ccc;
-  padding: 8px;
-  border-radius: 6px;
-  z-index: 1003;
-  flex-direction: column;
-  align-items: stretch;
-  opacity: 0;
-  transform: translateY(-10px);
-  pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-#music-modal.show {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-  display: flex;
-}
+      position: absolute;
+      top: 190px;
+      top: 210px;
+      left: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 6px;
+      z-index: 1003;
+      flex-direction: column;
+      align-items: stretch;
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #music-modal.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      display: flex;
+    }
 
 
     #music-modal button {
@@ -159,23 +170,25 @@
       padding: 16px;
       border-radius: 8px;
       border: 2px solid #333;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
       z-index: 1005;
       display: none;
       width: 260px;
       text-align: center;
     }
 
-   #guess-modal input {
-  display: block;
-  width: calc(100% - 16px); /* prevents overflow */
-  margin: 0 auto 8px auto;
-  padding: 8px;
-  font-size: 16px;
-  box-sizing: border-box;  /* crucial for padding */
-  border: 1px solid #aaa;
-  border-radius: 4px;
-}
+    #guess-modal input {
+      display: block;
+      width: calc(100% - 16px);
+      /* prevents overflow */
+      margin: 0 auto 8px auto;
+      padding: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      /* crucial for padding */
+      border: 1px solid #aaa;
+      border-radius: 4px;
+    }
 
 
     #guess-modal button {
@@ -188,110 +201,122 @@
       cursor: pointer;
       margin: 4px;
     }
+
     #custom-tooltip {
-  position: absolute;
-  background-color: white;
-  color: black;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 4px;
-  padding: 2px 6px;
-  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 1000;
-  transform: translate(-50%, -50%);
-  display: none; /* Hidden by default */
-}
-.hover-green {
-  filter: drop-shadow(0 0 6px rgba(0, 255, 0, 0.4));
-  transition: filter 0.3s ease;
-}
+      position: absolute;
+      background-color: white;
+      color: black;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 4px;
+      padding: 2px 6px;
+      box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 1000;
+      transform: translate(-50%, -50%);
+      display: none;
+      /* Hidden by default */
+    }
+
+    .hover-green {
+      filter: drop-shadow(0 0 6px rgba(0, 255, 0, 0.4));
+      transition: filter 0.3s ease;
+    }
 
 
     .hint-dissolve {
-  transition: opacity 2s ease;
-  opacity: .7;
-}
+      transition: opacity 2s ease;
+      opacity: .7;
+    }
 
-.correct-dissolve {
-  transition: opacity 2000ms ease-out;
-  opacity: 0;
-}
+    .correct-dissolve {
+      transition: opacity 2000ms ease-out;
+      opacity: 0;
+    }
 
-.correct-final {
-  stroke: #00ccff;               /* Start as active blue */
-  stroke-width: 6;
-  opacity: .7;
-  animation: dissolveBlueToGreen 2.5s ease-out forwards;
-  pointer-events: none;
-}
-
-
-
-
-
-
-@keyframes dissolveBlueToGreen {
-  0% {
-    stroke: #00ccff;             /* Blue */
-    opacity: 1;
-  }
-  100% {
-    stroke: #009944;             /* Final green */
-    opacity: 0.7;                /* Slight transparency */
-  }
-}
-
-/* === Unified "Correct" road style (matches the thicker purple one) === */
-:root{
-  --correct-green: #128230;   /* tweak here if you want a different green */
-  --correct-opacity: 0.7;    /* a bit darker than before */
-  --correct-width: 8px;       /* thicker stroke to match purple */
-}
-
-/* Only style explicit correct overlays; do NOT force base paths green */
-.leaflet-overlay-pane path.correct-overlay{
-  stroke: var(--correct-green) !important;
-  stroke-opacity: var(--correct-opacity) !important;
-  stroke-width: var(--correct-width) !important;
-  fill: none !important;
-  pointer-events: none !important;
-}
-
-
-/* Keep this from before — tweak amounts as you like */
-.leaflet-tile-pane.blurred {
-  /* softens edges + lowers contrast */
-  filter: blur(1.6px) brightness(1.02) saturate(0.85) contrast(0.85);
-  /* dim the tiles so big letters don't pop */
-  opacity: 0.22;                 /* try 0.22–0.35 range */
-  transition: filter 120ms ease, opacity 120ms ease;
-  transform: translateZ(0);
-  will-change: filter, opacity;
-}
-
-/* Key trick: when upscaled, render tiles as chunky pixels = text becomes unreadable */
-.leaflet-tile-pane.blurred .leaflet-tile {
-  image-rendering: pixelated;    /* or 'crisp-edges' as fallback */
-}
-/* Only overlays, not the black base paths */
-.leaflet-solvedPane-pane path {
-  opacity: 0.7 !important;         /* SOLVED_OPACITY */
-  stroke-opacity: 0.7 !important;
-}
-
-.leaflet-hiddenRoads-pane path {
-  opacity: 0.7 !important;         /* HINT_OPACITY */
-  stroke-opacity: 0.7 !important;
-}
+    .correct-final {
+      stroke: #00ccff;
+      /* Start as active blue */
+      stroke-width: 6;
+      opacity: .7;
+      animation: dissolveBlueToGreen 2.5s ease-out forwards;
+      pointer-events: none;
+    }
 
 
 
 
 
+
+    @keyframes dissolveBlueToGreen {
+      0% {
+        stroke: #00ccff;
+        /* Blue */
+        opacity: 1;
+      }
+
+      100% {
+        stroke: #009944;
+        /* Final green */
+        opacity: 0.7;
+        /* Slight transparency */
+      }
+    }
+
+    /* === Unified "Correct" road style (matches the thicker purple one) === */
+    :root {
+      --correct-green: #128230;
+      /* tweak here if you want a different green */
+      --correct-opacity: 0.7;
+      /* a bit darker than before */
+      --correct-width: 8px;
+      /* thicker stroke to match purple */
+    }
+
+    /* Only style explicit correct overlays; do NOT force base paths green */
+    .leaflet-overlay-pane path.correct-overlay {
+      stroke: var(--correct-green) !important;
+      stroke-opacity: var(--correct-opacity) !important;
+      stroke-width: var(--correct-width) !important;
+      fill: none !important;
+      pointer-events: none !important;
+    }
+
+
+    /* Keep this from before — tweak amounts as you like */
+    .leaflet-tile-pane.blurred {
+      /* softens edges + lowers contrast */
+      filter: blur(1.6px) brightness(1.02) saturate(0.85) contrast(0.85);
+      /* dim the tiles so big letters don't pop */
+      opacity: 0.22;
+      /* try 0.22–0.35 range */
+      transition: filter 120ms ease, opacity 120ms ease;
+      transform: translateZ(0);
+      will-change: filter, opacity;
+    }
+
+    /* Key trick: when upscaled, render tiles as chunky pixels = text becomes unreadable */
+    .leaflet-tile-pane.blurred .leaflet-tile {
+      image-rendering: pixelated;
+      /* or 'crisp-edges' as fallback */
+    }
+
+    /* Only overlays, not the black base paths */
+    .leaflet-solvedPane-pane path {
+      opacity: 0.7 !important;
+      /* SOLVED_OPACITY */
+      stroke-opacity: 0.7 !important;
+    }
+
+    .leaflet-hiddenRoads-pane path {
+      opacity: 0.7 !important;
+      /* HINT_OPACITY */
+      stroke-opacity: 0.7 !important;
+    }
   </style>
 </head>
+
 <body>
   <div id="auth-box" style="
   position: absolute;
@@ -312,10 +337,10 @@
 
 
 
-  <div id="auth-message">Checking login...</div>
-  <button id="login-btn" style="margin-top: 2px;">Login with Google</button>
+    <div id="auth-message">Checking login...</div>
+    <button id="login-btn" style="margin-top: 2px;">Login with Google</button>
 
-<p id="login-note" style="
+    <p id="login-note" style="
   font-size: 12px;
   color: #888;
   margin-top: 2px;
@@ -324,79 +349,75 @@
   line-height: 1.4;
   word-wrap: break-word;
 ">
-  🔒 You'll briefly see <code>supabase.co</code> during login, it's safe and secure.
-</p>
-  <button id="logout-btn" style="margin-top: 6px; display: none;">Logout</button>
-</div>
+      🔒 You'll briefly see <code>supabase.co</code> during login, it's safe and secure.
+    </p>
+    <button id="logout-btn" style="margin-top: 6px; display: none;">Logout</button>
+  </div>
   <div id="map"></div>
 
- <div class="legend" id="legend">
-  <strong style="display: block; text-align: center; margin-bottom: 6px;">Legend</strong>
-  <div class="legend-item">
-  <div class="legend-color" style="background: black;"></div>
-  <div style="flex: 1; text-align: center;">Unguessed</div>
-</div>
-  <div class="legend-item">
-  <div class="legend-color" style="background: red;"></div>
-  <div style="flex: 1; text-align: center;">Incorrect</div>
-</div>
-  <div class="legend-item">
-  <div class="legend-color" style="background: orange;"></div>
-  <div style="flex: 1; text-align: center;">Hint Used</div>
-</div>
+  <div class="legend" id="legend">
+    <strong style="display: block; text-align: center; margin-bottom: 6px;">Legend</strong>
+    <div class="legend-item">
+      <div class="legend-color" style="background: black;"></div>
+      <div style="flex: 1; text-align: center;">Unguessed</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: red;"></div>
+      <div style="flex: 1; text-align: center;">Incorrect</div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: orange;"></div>
+      <div style="flex: 1; text-align: center;">Hint Used</div>
+    </div>
 
-  <div class="legend-item">
-  <div class="legend-color" style="background-color: #008000; margin-right: 15px;"></div>
-  <div style="flex: 1; text-align: center;">Correct</div>
-</div>
+    <div class="legend-item">
+      <div class="legend-color" style="background-color: #008000; margin-right: 15px;"></div>
+      <div style="flex: 1; text-align: center;">Correct</div>
+    </div>
 
 
-  <div class="legend-item">
-  <div class="legend-color" style="background: yellow;"></div>
-  <div style="flex: 1; text-align: center;">Suffix Warning</div>
-</div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: yellow;"></div>
+      <div style="flex: 1; text-align: center;">Suffix Warning</div>
+    </div>
 
-  <div class="legend-item">
-  <div class="legend-color" style="
+    <div class="legend-item">
+      <div class="legend-color" style="
     background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet);
     border: none;
   "></div>
-  <div style="flex: 1; text-align: center;">Photo Only</div>
-</div>
- <div id="legend-button-zone">
-  <div id="legend-buttons-wrapper">
-    <div id="music-btn" title="Music Settings">🎵</div>
-    <button id="exit-zone-btn" style="display: none;">
-      <span style="font-size: 16px;">⬅</span>
-      <span style="font-size: 15px; font-weight: 600; margin-left: 6px;">Exit</span>
-    </button>
+      <div style="flex: 1; text-align: center;">Photo Only</div>
+    </div>
+    <div id="legend-button-zone">
+      <div id="legend-buttons-wrapper">
+        <div id="music-btn" title="Music Settings">🎵</div>
+        <button id="exit-zone-btn" style="display: none;">
+          <span style="font-size: 16px;">⬅</span>
+          <span style="font-size: 15px; font-weight: 600; margin-left: 6px;">Exit</span>
+        </button>
+      </div>
+    </div>
+    <div id="music-modal">
+      <button id="mute-btn">Mute</button>
+      <button id="skip-btn">Skip Track</button>
+    </div>
   </div>
-</div>
-   <div id="music-modal">
-    <button id="mute-btn">Mute</button>
-    <button id="skip-btn">Skip Track</button>
-  </div>
-</div>
 
 
   <div id="guess-modal">
-   <input 
-  type="text" 
-  id="guess-input" 
-  placeholder="Enter road name" 
-  autocorrect="off" 
-  autocapitalize="off" 
-  spellcheck="false" 
-/>
-<div id="inline-encouragement" style="display: none; margin-top: 10px; font-size: 12.5px; color: #333; background: #fff8dc; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc;">
-  <strong>Log in to save your progress!</strong><br>
-  <span style="font-size: 12px;">Guesses made while <b>logged out</b> are temporary and <b>won’t carry over after you sign in</b>.
-    Log in first to save your progress.</span>
-</div>
+    <input type="text" id="guess-input" placeholder="Enter road name" autocorrect="off" autocapitalize="off"
+      spellcheck="false" />
+    <div id="inline-encouragement"
+      style="display: none; margin-top: 10px; font-size: 12.5px; color: #333; background: #fff8dc; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc;">
+      <strong>Log in to save your progress!</strong><br>
+      <span style="font-size: 12px;">Guesses made while <b>logged out</b> are temporary and <b>won’t carry over after
+          you sign in</b>.
+        Log in first to save your progress.</span>
+    </div>
 
-<p id="hint-info" style="font-size: 12.5px; color: #666; margin: 6px 0 12px; text-align: center;">
-  Need help? A hint appears automatically after 4 incorrect guesses.
-</p>
+    <p id="hint-info" style="font-size: 12.5px; color: #666; margin: 6px 0 12px; text-align: center;">
+      Need help? A hint appears automatically after 4 incorrect guesses.
+    </p>
 
     <div>
       <button id="submit-guess">Submit</button>
@@ -407,30 +428,30 @@
   <div id="custom-tooltip">Lancaster County</div>
 
 
- <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="module">
-  let currentRoad = null;
-  let currentLayerDepth = 0; // 1 = county, 2 = township, 3 = roads
-  let activeRoadName = null;
-  let hoverOverlay = null;
-  let worldMask;
-  let roadsLayerGroup = L.layerGroup(); // Holds all road layers
-  let insideLancaster = false;
-  let insideManheim = false;
-  let countyLayerRef;        // county L.GeoJSON
-  let countyFeatureRef;      // county Feature for mask rebuild
-  let townshipLayerRef;      // MT L.GeoJSON
-  let roadsBufferGroup = L.layerGroup(); // holds 20px invisible buffers
-  let countyMaskFeature = null; // a prebuilt mask (outer rect with Lanc as hole)
-  const INITIAL_CENTER = [40.09, -76.3];
-  const INITIAL_ZOOM   = 10;
-  const SMOOTH = { animate: true, duration: 1.0, easeLinearity: 0.2 };
-  const SOLVED_COLOR   = '#009944'; // match keyframes 100%
-  const SOLVED_WEIGHT  = 6;         // match .correct-final stroke-width
-  const SOLVED_OPACITY = 0.7;       // match keyframes 100%
-  const HINT_COLOR   = '#FF8000';
-  const HINT_WEIGHT  = 6;
-  const HINT_OPACITY = 0.7;
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module">
+    let currentRoad = null;
+    let currentLayerDepth = 0; // 1 = county, 2 = township, 3 = roads
+    let activeRoadName = null;
+    let hoverOverlay = null;
+    let worldMask;
+    let roadsLayerGroup = L.layerGroup(); // Holds all road layers
+    let insideLancaster = false;
+    let insideManheim = false;
+    let countyLayerRef;        // county L.GeoJSON
+    let countyFeatureRef;      // county Feature for mask rebuild
+    let townshipLayerRef;      // MT L.GeoJSON
+    let roadsBufferGroup = L.layerGroup(); // holds 20px invisible buffers
+    let countyMaskFeature = null; // a prebuilt mask (outer rect with Lanc as hole)
+    const INITIAL_CENTER = [40.09, -76.3];
+    const INITIAL_ZOOM = 10;
+    const SMOOTH = { animate: true, duration: 1.0, easeLinearity: 0.2 };
+    const SOLVED_COLOR = '#009944'; // match keyframes 100%
+    const SOLVED_WEIGHT = 6;         // match .correct-final stroke-width
+    const SOLVED_OPACITY = 0.7;       // match keyframes 100%
+    const HINT_COLOR = '#FF8000';
+    const HINT_WEIGHT = 6;
+    const HINT_OPACITY = 0.7;
 
 
 
@@ -438,1835 +459,1840 @@
 
 
 
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-  const supabase = createClient(
-    'https://yulvzmznvnctgaiwuypb.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
-  );
+    const supabase = createClient(
+      'https://yulvzmznvnctgaiwuypb.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1bHZ6bXpudm5jdGdhaXd1eXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNzEzNjMsImV4cCI6MjA2Nzg0NzM2M30.7LOh2rqTkdB4oNJuFTd5o9snzX9dA7AOkmt7y9prQgM'
+    );
 
-  import { roadNameToIds } from './Conversions/Convert_Lancaster_ManheimTownship.js';
-  console.log("Loaded roadNameToIds:", Object.keys(roadNameToIds));
-  const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 10);
-  // ---------- Pane stack (LOW → HIGH) ----------
-// tiles (Leaflet default) live below everything we create
+    import { roadNameToIds } from './Conversions/Convert_Lancaster_ManheimTownship.js';
+    console.log("Loaded roadNameToIds:", Object.keys(roadNameToIds));
+    const map = L.map('map', { zoomControl: false }).setView([40.09, -76.3], 10);
+    // ---------- Pane stack (LOW → HIGH) ----------
+    // tiles (Leaflet default) live below everything we create
 
-// Gray world mask (below everything else we draw)
-if (!map.getPane('maskPane')) map.createPane('maskPane');
-map.getPane('maskPane').style.zIndex = 299;
-
-// Township fill/outline (sits under roads)
-if (!map.getPane('townshipPane')) map.createPane('townshipPane');
-map.getPane('townshipPane').style.zIndex = 510;
-
-// Base road strokes (black/active-blue)
-if (!map.getPane('hiddenRoads')) map.createPane('hiddenRoads');
-map.getPane('hiddenRoads').style.zIndex = 620;
-map.getPane('hiddenRoads').style.pointerEvents = 'none';   // base paths never catch clicks
-
-// County polygon (you wanted it above roads but below hover/solved)
-if (!map.getPane('countyPolygon')) map.createPane('countyPolygon');
-map.getPane('countyPolygon').style.zIndex = 650;
-
-// Clickable buffer (fat invisible stroke used for hit-targets)
-if (!map.getPane('clickable-buffer')) map.createPane('clickable-buffer');
-map.getPane('clickable-buffer').style.zIndex = 660;
-map.getPane('clickable-buffer').style.pointerEvents = 'auto';
-map.getPane('clickable-buffer').style.opacity = '.7';
-
-// Gold hover overlay (visual only)
-if (!map.getPane('hoverPane')) map.createPane('hoverPane');
-map.getPane('hoverPane').style.zIndex = 700;
-
-// ✅ Solved (green) overlays — must be on top of all of the above
-if (!map.getPane('solvedPane')) map.createPane('solvedPane');
-map.getPane('solvedPane').style.zIndex = 710;
-map.getPane('solvedPane').style.display = 'none';   // start hidden
-// ---------------------------------------------
-
-const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
-}).addTo(map);
-  const roadsRenderer = L.svg({ padding: 1.0 }); // try 0.5; bump to 0.6 if needed
-function setupTilePaneBlur(map, baseTiles) {
-  const tilePane = map.getPane('tilePane');
-  if (!tilePane || !baseTiles) return;
-
-  let moving = false;
-  let loadsInFlight = 0;
-  let removeTimer = null;
-
-  const apply = () => {
-    const shouldBlur = moving || loadsInFlight > 0;
-    if (shouldBlur) {
-      tilePane.classList.add('blurred');
-      if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
-    } else {
-      removeTimer = setTimeout(() => tilePane.classList.remove('blurred'), 120);
-    }
-  };
-
-  // blur only during zoom, not pan
-map.on('zoomstart', () => { moving = true;  apply(); });
-map.on('zoomend',   () => { moving = false; apply(); });
-
-
-  baseTiles.on('loading', () => { loadsInFlight++; apply(); });
-  baseTiles.on('load',    () => { loadsInFlight = Math.max(0, loadsInFlight - 1); apply(); });
-
-  baseTiles.on('remove',  () => { loadsInFlight = 0; moving = false; apply(); });
-}
-
-// call it once after creating baseTiles:
-setupTilePaneBlur(map, baseTiles);
-
-
-const suffixMap = {
-  st: 'street',
-  ave: 'avenue',
-  rd: 'road',
-  blvd: 'boulevard',
-  ln: 'lane',
-  dr: 'drive',
-  ct: 'court',
-  cir: 'circle',
-  hwy: 'highway',
-  pkwy: 'parkway',
-  ter: 'terrace',
-  pl: 'place',
-  pk: 'pike'
-};
-
-let preLoginGuesses = [];
-let nameToLayers = {};
-let guessedSegmentIds = new Set();
-let attemptCounts = {};  // Track attempts per segment ID
-let currentUserId = null;
-  const roadAttemptsMap = new Map(); // Tracks attempts per road name
-  const completedRoads = new Set(); // Tracks roads finalized via correct guess or 4th attempt
-let segmentStateMap = new Map();
-  const segmentIdToName = {};
-function getPreLoginGuesses() {
-  const stored = localStorage.getItem('preLoginGuesses');
-  return stored ? JSON.parse(stored) : [];
-}
-
-function savePreLoginGuess(guess) {
-  const guesses = getPreLoginGuesses();
-  guesses.push(guess);
-  localStorage.setItem('preLoginGuesses', JSON.stringify(guesses));
-}
-
-function clearPreLoginGuesses() {
-  localStorage.removeItem('preLoginGuesses');
-}
-async function flushPreLoginGuessesToSupabaseIfLoggedIn() {
-  // only flush if we actually have a session
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
-
-  const items = getPreLoginGuesses() || [];
-  if (!items.length) return;
-
-  for (const it of items) {
-    try {
-      await saveGuessSegmentIds(it.segmentIds, !!it.isCorrect, !!it.usedHint);
-    } catch (e) {
-      console.warn('prelogin flush failed', it, e);
-    }
-  }
-  clearPreLoginGuesses(); // removes 'preLoginGuesses' from localStorage
-}
-
-const loginBtn = document.getElementById('login-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const authMessage = document.getElementById('auth-message');
-
-loginBtn.onclick = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-  });
-  if (error) alert('Login error: ' + error.message);
-};
-
-logoutBtn.onclick = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) alert('Logout error: ' + error.message);
-  else location.reload();
-};
-
-supabase.auth.onAuthStateChange((event, session) => {
-  updateAuthUI(session?.user);
-
-  const loginNote = document.getElementById('login-note');
-  if (!loginNote) return;
-
-  if (event === 'SIGNED_IN') {
-    loginNote.style.display = 'none';
-    flushPreLoginGuessesToSupabaseIfLoggedIn().catch(() => {});  // ← add this
-  } else if (event === 'SIGNED_OUT') {
-    loginNote.style.display = 'block';
-  }
-});
-function animateIncorrectSegments(segments, delay = 60) {
-  segments.forEach((layer, index) => {
-    const sid = String(layer.feature.id);
-
-    // 1) Record red immediately so any follow-up restyle respects it
-    const prev = segmentStateMap.get(sid) || {};
-    segmentStateMap.set(sid, { ...prev, incorrect: true });
-
-    // 2) Apply the visual (optionally staggered)
-    setTimeout(() => {
-      // If this segment became orange/green since we queued the timeout, bail.
-      const st = segmentStateMap.get(sid);
-      if (st?.used_hint || st?.correct) return;
-
-      // Ensure the base path is visible and red, and remains clickable.
-      const el = layer.getElement?.();
-      if (el) { el.style.display = ''; el.style.stroke = ''; }
-
-      layer.setStyle({
-        color: 'red',
-        weight: 6,
-        opacity: 1,
-        pane: 'clickable-buffer'
-      });
-      layer.options.interactive = true;
-      layer._originalColor = 'red';
-    }, index * delay);
-  });
-}
-
-function resetCountyTooltip() {
-  const tt = document.getElementById('custom-tooltip');
-  if (!tt) return;
-  tt.style.display = 'none';
-  tt.textContent = '';
-}
-function rebuildCountyMask() {
-  try {
-    if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
-
+    // Gray world mask (below everything else we draw)
     if (!map.getPane('maskPane')) map.createPane('maskPane');
-    const mp = map.getPane('maskPane');
-    if (mp && !mp.style.zIndex) mp.style.zIndex = 210; // keep under townshipPane=400
+    map.getPane('maskPane').style.zIndex = 299;
 
-    let f = countyFeatureRef;
-    if (!f && countyLayerRef && typeof countyLayerRef.toGeoJSON === 'function') {
-      const gj = countyLayerRef.toGeoJSON();
-      f = (gj && Array.isArray(gj.features)) ? gj.features[0] : (gj && gj.type === 'Feature' ? gj : null);
-    }
-    if (!f || typeof createWorldMask !== 'function') return;
+    // Township fill/outline (sits under roads)
+    if (!map.getPane('townshipPane')) map.createPane('townshipPane');
+    map.getPane('townshipPane').style.zIndex = 510;
 
-    worldMask = L.geoJSON(createWorldMask(f), {
-      style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
+    // Base road strokes (black/active-blue)
+    if (!map.getPane('hiddenRoads')) map.createPane('hiddenRoads');
+    map.getPane('hiddenRoads').style.zIndex = 620;
+    map.getPane('hiddenRoads').style.pointerEvents = 'none';   // base paths never catch clicks
+
+    // County polygon (you wanted it above roads but below hover/solved)
+    if (!map.getPane('countyPolygon')) map.createPane('countyPolygon');
+    map.getPane('countyPolygon').style.zIndex = 650;
+
+    // Clickable buffer (fat invisible stroke used for hit-targets)
+    if (!map.getPane('clickable-buffer')) map.createPane('clickable-buffer');
+    map.getPane('clickable-buffer').style.zIndex = 660;
+    map.getPane('clickable-buffer').style.pointerEvents = 'auto';
+    map.getPane('clickable-buffer').style.opacity = '.7';
+
+    // Gold hover overlay (visual only)
+    if (!map.getPane('hoverPane')) map.createPane('hoverPane');
+    map.getPane('hoverPane').style.zIndex = 701;
+
+    // ✅ Solved (green) overlays — must be on top of all of the above
+    if (!map.getPane('solvedPane')) map.createPane('solvedPane');
+    map.getPane('solvedPane').style.zIndex = 710;
+    map.getPane('solvedPane').style.display = 'none';   // start hidden
+    // ---------------------------------------------
+
+    const baseTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
     }).addTo(map);
+    const roadsRenderer = L.svg({ padding: 1.0 }); // try 0.5; bump to 0.6 if needed
+    function setupTilePaneBlur(map, baseTiles) {
+      const tilePane = map.getPane('tilePane');
+      if (!tilePane || !baseTiles) return;
 
-    // let clicks pass through the mask
-    try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
-  } catch {}
-}
-  // ORANGE (always wins; replaces green if present)
-function drawHintOverlay(layer) {
-  if (!canShowOverlays()) return;        // ← guard
-  // (remove any showSolvedPane() call from here)
-  const el = layer.getElement?.();
-  layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-  layer.options.interactive = false;
-  if (el) {
-    el.style.display = 'none';
-    el.style.stroke = 'none';
-    el.removeAttribute('stroke');
-    el.removeAttribute('stroke-opacity');
-    el.removeAttribute('stroke-width');
-  }
-  removeSolvedOverlay(layer);
-  const ov = L.geoJSON(layer.feature, {
-    pane: 'solvedPane',
-    renderer: roadsRenderer,
-    interactive: false,
-    style: { color: HINT_COLOR, weight: HINT_WEIGHT, opacity: HINT_OPACITY, lineCap: 'round' }
-  }).addTo(map);
-  layer.__hintOverlay = ov;
-  layer.__hasHintOverlay = true;
-}
-function removeHintOverlay(layer) {
-  try {
-    if (layer.__hintOverlay) { map.removeLayer(layer.__hintOverlay); layer.__hintOverlay = null; }
-  } catch {}
-}
-function armSolvedSegmentsForReentry() {
-  try {
-    if (!roadsLayerGroup) return;
-    roadsLayerGroup.eachLayer(l => {
-      const st = segmentStateMap.get(String(l.feature.id));
-      if (!(st?.correct || st?.used_hint)) return;
+      let moving = false;
+      let loadsInFlight = 0;
+      let removeTimer = null;
 
-      // When this layer is re-added to the map, immediately scrub its stroke.
-      l.once('add', () => {
-        l.setStyle({ color: 'transparent', opacity: 0, weight: l.options.weight || 6 });
-        l.options.interactive = false;
-
-        const el = l.getElement?.();
-        if (el) {
-          el.style.pointerEvents = 'none';
-          el.style.stroke = 'none';
-          el.removeAttribute?.('stroke');
-          el.removeAttribute?.('stroke-opacity');
-          el.removeAttribute?.('stroke-width');
-          el.classList.remove('leaflet-interactive','correct-final','hover-green','active-highlight','hover-gold');
+      const apply = () => {
+        const shouldBlur = moving || loadsInFlight > 0;
+        if (shouldBlur) {
+          tilePane.classList.add('blurred');
+          if (removeTimer) { clearTimeout(removeTimer); removeTimer = null; }
+        } else {
+          removeTimer = setTimeout(() => tilePane.classList.remove('blurred'), 120);
         }
-        // keep our own marker consistent
-        l._originalColor = 'greenish';
+      };
+
+      // blur only during zoom, not pan
+      map.on('zoomstart', () => { moving = true; apply(); });
+      map.on('zoomend', () => { moving = false; apply(); });
+
+
+      baseTiles.on('loading', () => { loadsInFlight++; apply(); });
+      baseTiles.on('load', () => { loadsInFlight = Math.max(0, loadsInFlight - 1); apply(); });
+
+      baseTiles.on('remove', () => { loadsInFlight = 0; moving = false; apply(); });
+    }
+
+    // call it once after creating baseTiles:
+    setupTilePaneBlur(map, baseTiles);
+
+
+    const suffixMap = {
+      st: 'street',
+      ave: 'avenue',
+      rd: 'road',
+      blvd: 'boulevard',
+      ln: 'lane',
+      dr: 'drive',
+      ct: 'court',
+      cir: 'circle',
+      hwy: 'highway',
+      pkwy: 'parkway',
+      ter: 'terrace',
+      pl: 'place',
+      pk: 'pike'
+    };
+
+    let preLoginGuesses = [];
+    let nameToLayers = {};
+    let guessedSegmentIds = new Set();
+    let attemptCounts = {};  // Track attempts per segment ID
+    let currentUserId = null;
+    const roadAttemptsMap = new Map(); // Tracks attempts per road name
+    const completedRoads = new Set(); // Tracks roads finalized via correct guess or 4th attempt
+    let segmentStateMap = new Map();
+    const segmentIdToName = {};
+    function getPreLoginGuesses() {
+      const stored = localStorage.getItem('preLoginGuesses');
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    function savePreLoginGuess(guess) {
+      const guesses = getPreLoginGuesses();
+      guesses.push(guess);
+      localStorage.setItem('preLoginGuesses', JSON.stringify(guesses));
+    }
+
+    function clearPreLoginGuesses() {
+      localStorage.removeItem('preLoginGuesses');
+    }
+    async function flushPreLoginGuessesToSupabaseIfLoggedIn() {
+      // only flush if we actually have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const items = getPreLoginGuesses() || [];
+      if (!items.length) return;
+
+      for (const it of items) {
+        try {
+          await saveGuessSegmentIds(it.segmentIds, !!it.isCorrect, !!it.usedHint);
+        } catch (e) {
+          console.warn('prelogin flush failed', it, e);
+        }
+      }
+      clearPreLoginGuesses(); // removes 'preLoginGuesses' from localStorage
+    }
+
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const authMessage = document.getElementById('auth-message');
+
+    loginBtn.onclick = async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
       });
+      if (error) alert('Login error: ' + error.message);
+    };
+
+    logoutBtn.onclick = async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) alert('Logout error: ' + error.message);
+      else location.reload();
+    };
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      updateAuthUI(session?.user);
+
+      const loginNote = document.getElementById('login-note');
+      if (!loginNote) return;
+
+      if (event === 'SIGNED_IN') {
+        loginNote.style.display = 'none';
+        flushPreLoginGuessesToSupabaseIfLoggedIn().catch(() => { });  // ← add this
+      } else if (event === 'SIGNED_OUT') {
+        loginNote.style.display = 'block';
+      }
     });
-  } catch {}
-}
-  function resetOverlaysForLogin() {
-  try { hideSolvedPane(); } catch {}
-  try { clearSolvedPaneLayers(); } catch {}
-  // (belt-and-suspenders) don’t show overlays until MT click
-  // currentLayerDepth/insideManheim stay as-is; no need to change them here
-}
+    function animateIncorrectSegments(segments, delay = 60) {
+      segments.forEach((layer, index) => {
+        const sid = String(layer.feature.id);
 
-  function removeSolvedOverlay(layer) {
-  try {
-    if (layer.__solvedOverlay) { map.removeLayer(layer.__solvedOverlay); layer.__solvedOverlay = null; }
-  } catch {}
-}
-// Rebuild overlays when *inside* MT only.
-// Orange (used_hint) takes priority over green (correct).
-function normalizeCorrectOverlays() {
-  // Only inside MT view
-  if (currentLayerDepth !== 3) return;
+        // 1) Record red immediately so any follow-up restyle respects it
+        const prev = segmentStateMap.get(sid) || {};
+        segmentStateMap.set(sid, { ...prev, incorrect: true });
 
-  const group = (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) || roadLayer;
-  if (!group) return;
+        // 2) Apply the visual (optionally staggered)
+        setTimeout(() => {
+          // If this segment became orange/green since we queued the timeout, bail.
+          const st = segmentStateMap.get(sid);
+          if (st?.used_hint || st?.correct) return;
 
-  const visit = (layer) => {
-    const id = String(layer?.feature?.id ?? '');
-    if (!id) return;
+          // Ensure the base path is visible and red, and remains clickable.
+          const el = layer.getElement?.();
+          if (el) { el.style.display = ''; el.style.stroke = ''; }
 
-    const st = segmentStateMap.get(id);
-    if (!st) return;
+          layer.setStyle({
+            color: 'red',
+            weight: 6,
+            opacity: 1,
+            pane: 'clickable-buffer'
+          });
+          layer.options.interactive = true;
+          layer._originalColor = 'red';
+        }, index * delay);
+      });
+    }
 
-    // 1) ORANGE wins: hide base, draw orange overlay
-    if (st.used_hint) {
-      // hide base
-      const el1 = layer.getElement?.();
+    function resetCountyTooltip() {
+      const tt = document.getElementById('custom-tooltip');
+      if (!tt) return;
+      tt.style.display = 'none';
+      tt.textContent = '';
+    }
+    function rebuildCountyMask() {
+      try {
+        if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
+
+        if (!map.getPane('maskPane')) map.createPane('maskPane');
+        const mp = map.getPane('maskPane');
+        if (mp && !mp.style.zIndex) mp.style.zIndex = 210; // keep under townshipPane=400
+
+        let f = countyFeatureRef;
+        if (!f && countyLayerRef && typeof countyLayerRef.toGeoJSON === 'function') {
+          const gj = countyLayerRef.toGeoJSON();
+          f = (gj && Array.isArray(gj.features)) ? gj.features[0] : (gj && gj.type === 'Feature' ? gj : null);
+        }
+        if (!f || typeof createWorldMask !== 'function') return;
+
+        worldMask = L.geoJSON(createWorldMask(f), {
+          style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+        }).addTo(map);
+
+        // let clicks pass through the mask
+        try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch { }
+      } catch { }
+    }
+    // ORANGE (always wins; replaces green if present)
+    function drawHintOverlay(layer) {
+      if (!canShowOverlays()) return;        // ← guard
+      // (remove any showSolvedPane() call from here)
+      const el = layer.getElement?.();
       layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
       layer.options.interactive = false;
-      if (el1) { el1.style.display = 'none'; el1.style.stroke = 'none';
-        el1.removeAttribute('stroke'); el1.removeAttribute('stroke-opacity'); el1.removeAttribute('stroke-width'); }
-      drawHintOverlay(layer);
-      return;
+      if (el) {
+        el.style.display = 'none';
+        el.style.stroke = 'none';
+        el.removeAttribute('stroke');
+        el.removeAttribute('stroke-opacity');
+        el.removeAttribute('stroke-width');
+      }
+      removeSolvedOverlay(layer);
+      const ov = L.geoJSON(layer.feature, {
+        pane: 'solvedPane',
+        renderer: roadsRenderer,
+        interactive: false,
+        style: { color: HINT_COLOR, weight: HINT_WEIGHT, opacity: HINT_OPACITY, lineCap: 'round' }
+      }).addTo(map);
+      layer.__hintOverlay = ov;
+      layer.__hasHintOverlay = true;
+    }
+    function removeHintOverlay(layer) {
+      try {
+        if (layer.__hintOverlay) { map.removeLayer(layer.__hintOverlay); layer.__hintOverlay = null; }
+      } catch { }
+    }
+    function armSolvedSegmentsForReentry() {
+      try {
+        if (!roadsLayerGroup) return;
+        roadsLayerGroup.eachLayer(l => {
+          const st = segmentStateMap.get(String(l.feature.id));
+          if (!(st?.correct || st?.used_hint)) return;
+
+          // When this layer is re-added to the map, immediately scrub its stroke.
+          l.once('add', () => {
+            l.setStyle({ color: 'transparent', opacity: 0, weight: l.options.weight || 6 });
+            l.options.interactive = false;
+
+            const el = l.getElement?.();
+            if (el) {
+              el.style.pointerEvents = 'none';
+              el.style.stroke = 'none';
+              el.removeAttribute?.('stroke');
+              el.removeAttribute?.('stroke-opacity');
+              el.removeAttribute?.('stroke-width');
+              el.classList.remove('leaflet-interactive', 'correct-final', 'hover-green', 'active-highlight', 'hover-gold');
+            }
+            // keep our own marker consistent
+            l._originalColor = 'greenish';
+          });
+        });
+      } catch { }
+    }
+    function resetOverlaysForLogin() {
+      try { hideSolvedPane(); } catch { }
+      try { clearSolvedPaneLayers(); } catch { }
+      // (belt-and-suspenders) don’t show overlays until MT click
+      // currentLayerDepth/insideManheim stay as-is; no need to change them here
     }
 
-    // 2) GREEN next: hide base, draw green overlay
-    if (st.correct) {
-      const el2 = layer.getElement?.();
-      layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-      layer.options.interactive = false;
-      if (el2) { el2.style.display = 'none'; el2.style.stroke = 'none';
-        el2.removeAttribute('stroke'); el2.removeAttribute('stroke-opacity'); el2.removeAttribute('stroke-width'); }
-      drawSolvedOverlay(layer);
-      return;
+    function removeSolvedOverlay(layer) {
+      try {
+        if (layer.__solvedOverlay) { map.removeLayer(layer.__solvedOverlay); layer.__solvedOverlay = null; }
+      } catch { }
+    }
+    // Rebuild overlays when *inside* MT only.
+    // Orange (used_hint) takes priority over green (correct).
+    function normalizeCorrectOverlays() {
+      // Only inside MT view
+      if (currentLayerDepth !== 3) return;
+
+      const group = (typeof roadsLayerGroup !== 'undefined' && roadsLayerGroup) || roadLayer;
+      if (!group) return;
+
+      const visit = (layer) => {
+        const id = String(layer?.feature?.id ?? '');
+        if (!id) return;
+
+        const st = segmentStateMap.get(id);
+        if (!st) return;
+
+        // 1) ORANGE wins: hide base, draw orange overlay
+        if (st.used_hint) {
+          // hide base
+          const el1 = layer.getElement?.();
+          layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+          layer.options.interactive = false;
+          if (el1) {
+            el1.style.display = 'none'; el1.style.stroke = 'none';
+            el1.removeAttribute('stroke'); el1.removeAttribute('stroke-opacity'); el1.removeAttribute('stroke-width');
+          }
+          drawHintOverlay(layer);
+          return;
+        }
+
+        // 2) GREEN next: hide base, draw green overlay
+        if (st.correct) {
+          const el2 = layer.getElement?.();
+          layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+          layer.options.interactive = false;
+          if (el2) {
+            el2.style.display = 'none'; el2.style.stroke = 'none';
+            el2.removeAttribute('stroke'); el2.removeAttribute('stroke-opacity'); el2.removeAttribute('stroke-width');
+          }
+          drawSolvedOverlay(layer);
+          return;
+        }
+
+        // 3) RED: show base as red (clickable), no overlay
+        if (st.incorrect) {
+          const el3 = layer.getElement?.();
+          if (el3) { el3.style.display = ''; el3.style.stroke = ''; }
+          layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+          layer.options.interactive = true;
+          return;
+        }
+
+        // 4) No state → leave as default (black, clickable)
+      };
+
+      group.eachLayer(top => {
+        if (typeof top.eachLayer === 'function') top.eachLayer(visit);
+        else visit(top);
+      });
     }
 
-    // 3) RED: show base as red (clickable), no overlay
-    if (st.incorrect) {
-      const el3 = layer.getElement?.();
-      if (el3) { el3.style.display = ''; el3.style.stroke = ''; }
-      layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
-      layer.options.interactive = true;
-      return;
-    }
-
-    // 4) No state → leave as default (black, clickable)
-  };
-
-  group.eachLayer(top => {
-    if (typeof top.eachLayer === 'function') top.eachLayer(visit);
-    else visit(top);
-  });
-}
-
-function normalizeAfterRoadsReady() {
-  let tries = 0;
-  const tick = () => {
-    tries++;
-    // run only when roads are actually present on the map
-    if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
-      normalizeCorrectOverlays();
-    } else if (typeof roadLayer !== 'undefined' && map.hasLayer(roadLayer)) {
-      normalizeCorrectOverlays();
-    } else if (tries < 20) {
+    function normalizeAfterRoadsReady() {
+      let tries = 0;
+      const tick = () => {
+        tries++;
+        // run only when roads are actually present on the map
+        if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) {
+          normalizeCorrectOverlays();
+        } else if (typeof roadLayer !== 'undefined' && map.hasLayer(roadLayer)) {
+          normalizeCorrectOverlays();
+        } else if (tries < 20) {
+          requestAnimationFrame(tick);
+        }
+      };
       requestAnimationFrame(tick);
     }
-  };
-  requestAnimationFrame(tick);
-}
 
-function mergeState(a = {}, b = {}) {
-  // OR the flags, but if a road is green/orange it is no longer "incorrect"
-  const used_hint = !!(a.used_hint || b.used_hint);
-  const correct   = !!(a.correct   || b.correct);
-  const incorrect = !!(a.incorrect || b.incorrect) && !(used_hint || correct);
-  return { used_hint, correct, incorrect };
-}
-
-function setSegmentsState(segmentIds = [], delta = {}) {
-  for (const rawId of segmentIds) {
-    const id = String(rawId);
-    const prev = segmentStateMap.get(id) || {};
-    const next = mergeState(prev, {
-      used_hint: !!delta.used_hint,
-      correct:   !!delta.correct,
-      incorrect: !!delta.incorrect,
-    });
-    segmentStateMap.set(id, next);
-  }
-}
-function canShowOverlays() {
-  // Only show overlays when actually inside Manheim/Township view
-  return currentLayerDepth === 3 && insideManheim === true;
-}
-
-
-function scrubHiddenRoadsBlue() {
-  try {
-    const pane =
-      map.getPane?.('hiddenRoads') ||
-      document.querySelector('.leaflet-hiddenRoads-pane');
-    if (!pane) return;
-
-    const isBlue = (v) =>
-      v === 'rgb(0, 204, 255)' ||  // #00ccff
-      v === 'rgb(51, 136, 255)';   // #3388ff
-
-    pane.querySelectorAll('svg path').forEach(p => {
-      const cs = getComputedStyle(p);
-      const attrStroke = (p.getAttribute('stroke') || '').toLowerCase();
-
-      if (isBlue(cs.stroke) || attrStroke === '#00ccff' || attrStroke === '#3388ff') {
-        // ✅ Tag as "correct" so our unified CSS style applies
-       // p.setAttribute('data-correct', '1');
-
-        // Strip inline stroke so CSS wins
-        p.style.stroke = '';
-        p.style.strokeOpacity = '';
-        p.style.strokeWidth = '';
-        p.removeAttribute('stroke');
-        p.removeAttribute('stroke-opacity');
-        p.removeAttribute('stroke-width');
-
-        // Keep base path non-interactive
-        p.classList.remove('leaflet-interactive');
-        p.style.pointerEvents = 'none';
-      }
-    });
-  } catch {}
-}
-// Keep one overlay per segment id
-const solvedOverlayById = new Map();
-
-/** Hide the black/blue base stroke for a solved segment layer */
-function hideBaseStroke(layer) {
-  const el = layer.getElement?.();
-  // make base invisible & non-interactive
-  layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-  layer.options.interactive = false;
-  if (el) {
-    el.style.display = 'none';
-    el.style.stroke = 'none';
-    el.removeAttribute('stroke');
-    el.removeAttribute('stroke-opacity');
-    el.removeAttribute('stroke-width');
-    el.classList.remove('leaflet-interactive','active-highlight','hover-green','correct-final');
-  }
-  layer._originalColor = 'greenish'; // keep your internal tag
-}
-function hoverOK() {
-  // “Can this device actually hover with a fine pointer (mouse/trackpad)?”
-  const canHoverFine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  // Extra guard: if only touch pointers are present, treat as no-hover
-  const hasOnlyTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
-  return canHoverFine && !hasOnlyTouch;
-}
-
-function drawSolvedOverlay(layer) {
-  if (!canShowOverlays()) return;        // ← guard
-  // (remove any showSolvedPane() call from here)
-  removeHintOverlay(layer);
-  const ov = L.geoJSON(layer.feature, {
-    pane: 'solvedPane',
-    renderer: roadsRenderer,
-    interactive: false,
-    style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
-  }).addTo(map);
-  layer.__solvedOverlay = ov;
-  layer.__hasSolvedOverlay = true;
-}
-function removeMatchingBuffers(segmentIds) {
-  if (!roadsBufferGroup) return;
-  const want = new Set(segmentIds.map(String));
-  roadsBufferGroup.eachLayer(bl => {
-    try {
-      const id = String(bl.feature?.id ?? '');
-      if (want.has(id)) roadsBufferGroup.removeLayer(bl);
-    } catch {}
-  });
-}
-function showSolvedPane()  { try { const p = map.getPane('solvedPane'); if (p) p.style.display = ''; } catch {} }
-function hideSolvedPane()  { try { const p = map.getPane('solvedPane'); if (p) p.style.display = 'none'; } catch {} }
-function clearSolvedOverlays() {
-  try {
-    if (solvedOverlayById && solvedOverlayById.size) {
-      solvedOverlayById.forEach(ov => { try { map.removeLayer(ov); } catch {} });
-      solvedOverlayById.clear();
+    function mergeState(a = {}, b = {}) {
+      // OR the flags, but if a road is green/orange it is no longer "incorrect"
+      const used_hint = !!(a.used_hint || b.used_hint);
+      const correct = !!(a.correct || b.correct);
+      const incorrect = !!(a.incorrect || b.incorrect) && !(used_hint || correct);
+      return { used_hint, correct, incorrect };
     }
-  } catch {}
-}
-function clearSolvedPaneLayers() {
-  try {
-    // remove every Leaflet layer whose pane is 'solvedPane'
-    Object.values(map._layers || {}).forEach(l => {
-      if (l && l.options && l.options.pane === 'solvedPane') {
-        try { map.removeLayer(l); } catch {}
+
+    function setSegmentsState(segmentIds = [], delta = {}) {
+      for (const rawId of segmentIds) {
+        const id = String(rawId);
+        const prev = segmentStateMap.get(id) || {};
+        const next = mergeState(prev, {
+          used_hint: !!delta.used_hint,
+          correct: !!delta.correct,
+          incorrect: !!delta.incorrect,
+        });
+        segmentStateMap.set(id, next);
       }
-    });
+    }
+    function canShowOverlays() {
+      // Only show overlays when actually inside Manheim/Township view
+      return currentLayerDepth === 3 && insideManheim === true;
+    }
 
-    // clear any cached references you may have
-    try { solvedOverlayById?.forEach(ov => { try { map.removeLayer(ov); } catch {} }); solvedOverlayById?.clear?.(); } catch {}
 
-    // allow overlays to be recreated next time
-    try {
-      if (roadsLayerGroup) {
-        roadsLayerGroup.eachLayer(top => {
-          if (typeof top.eachLayer === 'function') {
-            top.eachLayer(seg => { if (seg && seg.__hasSolvedOverlay) seg.__hasSolvedOverlay = false; });
-          } else {
-            if (top && top.__hasSolvedOverlay) top.__hasSolvedOverlay = false;
+    function scrubHiddenRoadsBlue() {
+      try {
+        const pane =
+          map.getPane?.('hiddenRoads') ||
+          document.querySelector('.leaflet-hiddenRoads-pane');
+        if (!pane) return;
+
+        const isBlue = (v) =>
+          v === 'rgb(0, 204, 255)' ||  // #00ccff
+          v === 'rgb(51, 136, 255)';   // #3388ff
+
+        pane.querySelectorAll('svg path').forEach(p => {
+          const cs = getComputedStyle(p);
+          const attrStroke = (p.getAttribute('stroke') || '').toLowerCase();
+
+          if (isBlue(cs.stroke) || attrStroke === '#00ccff' || attrStroke === '#3388ff') {
+            // ✅ Tag as "correct" so our unified CSS style applies
+            // p.setAttribute('data-correct', '1');
+
+            // Strip inline stroke so CSS wins
+            p.style.stroke = '';
+            p.style.strokeOpacity = '';
+            p.style.strokeWidth = '';
+            p.removeAttribute('stroke');
+            p.removeAttribute('stroke-opacity');
+            p.removeAttribute('stroke-width');
+
+            // Keep base path non-interactive
+            p.classList.remove('leaflet-interactive');
+            p.style.pointerEvents = 'none';
           }
         });
+      } catch { }
+    }
+    // Keep one overlay per segment id
+    const solvedOverlayById = new Map();
+
+    /** Hide the black/blue base stroke for a solved segment layer */
+    function hideBaseStroke(layer) {
+      const el = layer.getElement?.();
+      // make base invisible & non-interactive
+      layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+      layer.options.interactive = false;
+      if (el) {
+        el.style.display = 'none';
+        el.style.stroke = 'none';
+        el.removeAttribute('stroke');
+        el.removeAttribute('stroke-opacity');
+        el.removeAttribute('stroke-width');
+        el.classList.remove('leaflet-interactive', 'active-highlight', 'hover-green', 'correct-final');
       }
-    } catch {}
-  } catch {}
-}
-function restoreLayerFromState(layer) {
-  const sid = String(layer?.feature?.id ?? '');
-  const st  = segmentStateMap.get(sid) || {};
-
-  // precedence: orange > green > red > default
-  if (st.used_hint) {            // ORANGE overlay, base hidden
-    drawHintOverlay(layer);
-    return;
-  }
-  if (st.correct) {              // GREEN overlay, base hidden
-    layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-    layer.options.interactive = false;
-    return;
-  }
-  if (st.incorrect) {            // RED base, clickable
-    layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
-    layer.options.interactive = true;
-    layer._originalColor = 'red';
-    return;
-  }
-  // default: BLACK
-  layer.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
-  layer.options.interactive = true;
-  layer._originalColor = 'black';
-}
-
-async function checkLogin() {
-  const { data: { session } } = await supabase.auth.getSession();
-
-  const loginNote = document.getElementById('login-note');
-  if (loginNote) loginNote.style.display = session ? 'none' : 'block';
-
-  const user = session?.user || null;
-  if (user) currentUserId = user.id;
-
-  // If not logged in, stop here. Do NOT flush or load.
-  if (!session) {
-    updateAuthUI(null);
-    return;
-  }
-
-  // Submit any saved pre-login guesses (then clear)
-  const savedGuesses = getPreLoginGuesses();
-  for (const guess of savedGuesses) {
-    try {
-      console.log('🟠 Auto-submitting pre-login guess:', guess.segmentIds);
-      await saveGuessSegmentIds(guess.segmentIds, !!guess.isCorrect, !!guess.usedHint);
-    } catch (error) {
-      console.error('❌ Failed to submit pre-login guess:', guess, error);
+      layer._originalColor = 'greenish'; // keep your internal tag
     }
-  }
-  clearPreLoginGuesses();
-
-  // Load server guesses for this user (your existing function)
-  await loadGuessedSegmentIds();
-  // If user is already viewing MT, rebuild overlays immediately
-if (insideManheim === true && currentLayerDepth === 3) {
-  try { showSolvedPane(); } catch {}
-  try { normalizeCorrectOverlays?.(); } catch {}
-}
-
-
-  updateAuthUI(user);
-}
-
-
-function updateAuthUI(user) {
-  if (user) {
-    const name = user.user_metadata?.full_name?.split(' ')[0] || 'User';
-    authMessage.innerText = `Hello, ${name}`;
-    loginBtn.style.display = 'none';
-    logoutBtn.style.display = 'inline-block';
-  } else {
-    authMessage.innerText = `You're not logged in.`;
-    loginBtn.style.display = 'inline-block';
-    logoutBtn.style.display = 'none';
-  }
-}
-
-
-async function loadGuessedSegmentIds() {
-  if (!currentUserId) return;
-
-  const { data, error } = await supabase
-    .from('road_guesses')                           // same table you write to
-    .select('road_id, correct, used_hint')          // ← remove 'incorrect'
-    .eq('user_id', currentUserId);
-
-  if (error) { console.error('❌ Error loading guesses:', error); return; }
-  if (!Array.isArray(data) || !data.length) return;
-
-  for (const row of data) {
-    const id   = String(row.road_id);
-    const prev = segmentStateMap.get(id) || {};
-
-    const mergedUsedHint  = !!(prev.used_hint  || row.used_hint);
-    const mergedCorrect   = !!(prev.correct    || row.correct);
-    // derive red from the row: a row with both flags false means “incorrect”
-    const rowIncorrect    = (row.correct === false) && (row.used_hint === false);
-    const mergedIncorrect = !!(prev.incorrect || rowIncorrect) && !(mergedUsedHint || mergedCorrect);
-
-    segmentStateMap.set(id, {
-      used_hint: mergedUsedHint,
-      correct:   mergedCorrect,
-      incorrect: mergedIncorrect,
-    });
-  }
-}
-
-
-
-
-
-async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
-  // 🔐 make sure we have a session/user id
-  const { data: { session } } = await supabase.auth.getSession();
-  const userId = session?.user?.id ?? currentUserId ?? null;
-  if (!userId) {
-    console.warn('saveGuessSegmentIds: no session; skipping write');
-    return;
-  }
-
-  // 🧰 normalize input to an array
-  const ids = Array.isArray(segmentIds) ? segmentIds : [segmentIds];
-
-  for (const id of ids) {
-    const stringId = String(id);
-
-    // derive a normalized name for convenience
-    const rawName = stringId.startsWith('way/')
-      ? (segmentIdToName[stringId] || '')
-      : stringId;
-    const normalized = normalizeName(rawName);
-
-    console.log('🔗 Handling segment:', { stringId, normalized, isCorrect, usedHint });
-
-    // SELECT existing (kept your flow, though upsert would also cover it)
-    const { data: existingRows, error: fetchError } = await supabase
-      .from('road_guesses')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('road_id', stringId);
-
-    if (fetchError) {
-      console.error('❌ Fetch error during saveGuessSegmentIds:', fetchError);
-      continue;
+    function hoverOK() {
+      // “Can this device actually hover with a fine pointer (mouse/trackpad)?”
+      const canHoverFine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      // Extra guard: if only touch pointers are present, treat as no-hover
+      const hasOnlyTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+      return canHoverFine && !hasOnlyTouch;
     }
 
-    const existing = existingRows[0];
+    function drawSolvedOverlay(layer) {
+      if (!canShowOverlays()) return;        // ← guard
+      // (remove any showSolvedPane() call from here)
+      removeHintOverlay(layer);
+      const ov = L.geoJSON(layer.feature, {
+        pane: 'solvedPane',
+        renderer: roadsRenderer,
+        interactive: false,
+        style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
+      }).addTo(map);
+      layer.__solvedOverlay = ov;
+      layer.__hasSolvedOverlay = true;
+    }
+    function removeMatchingBuffers(segmentIds) {
+      if (!roadsBufferGroup) return;
+      const want = new Set(segmentIds.map(String));
+      roadsBufferGroup.eachLayer(bl => {
+        try {
+          const id = String(bl.feature?.id ?? '');
+          if (want.has(id)) roadsBufferGroup.removeLayer(bl);
+        } catch { }
+      });
+    }
+    function showSolvedPane() { try { const p = map.getPane('solvedPane'); if (p) p.style.display = ''; } catch { } }
+    function hideSolvedPane() { try { const p = map.getPane('solvedPane'); if (p) p.style.display = 'none'; } catch { } }
+    function clearSolvedOverlays() {
+      try {
+        if (solvedOverlayById && solvedOverlayById.size) {
+          solvedOverlayById.forEach(ov => { try { map.removeLayer(ov); } catch { } });
+          solvedOverlayById.clear();
+        }
+      } catch { }
+    }
+    function clearSolvedPaneLayers() {
+      try {
+        // remove every Leaflet layer whose pane is 'solvedPane'
+        Object.values(map._layers || {}).forEach(l => {
+          if (l && l.options && l.options.pane === 'solvedPane') {
+            try { map.removeLayer(l); } catch { }
+          }
+        });
 
-    if (!existing) {
-      // INSERT / UPSERT new row
-      const { error: insertError } = await supabase.from('road_guesses').upsert([{
-        user_id:  userId,
-        road_id:  stringId,      // ← make sure this column is TEXT in your DB
-        road_name: normalized,
-        correct:  !!isCorrect,
-        used_hint: !!usedHint
-      }], { onConflict: 'user_id,road_id' });
+        // clear any cached references you may have
+        try { solvedOverlayById?.forEach(ov => { try { map.removeLayer(ov); } catch { } }); solvedOverlayById?.clear?.(); } catch { }
 
-      if (insertError) {
-        console.error('❌ Supabase insert error:', insertError);
+        // allow overlays to be recreated next time
+        try {
+          if (roadsLayerGroup) {
+            roadsLayerGroup.eachLayer(top => {
+              if (typeof top.eachLayer === 'function') {
+                top.eachLayer(seg => { if (seg && seg.__hasSolvedOverlay) seg.__hasSolvedOverlay = false; });
+              } else {
+                if (top && top.__hasSolvedOverlay) top.__hasSolvedOverlay = false;
+              }
+            });
+          }
+        } catch { }
+      } catch { }
+    }
+    function restoreLayerFromState(layer) {
+      const sid = String(layer?.feature?.id ?? '');
+      const st = segmentStateMap.get(sid) || {};
+
+      // precedence: orange > green > red > default
+      if (st.used_hint) {            // ORANGE overlay, base hidden
+        drawHintOverlay(layer);
+        return;
+      }
+      if (st.correct) {              // GREEN overlay, base hidden
+        layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+        layer.options.interactive = false;
+        return;
+      }
+      if (st.incorrect) {            // RED base, clickable
+        layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+        layer.options.interactive = true;
+        layer._originalColor = 'red';
+        return;
+      }
+      // default: BLACK
+      layer.setStyle({ color: 'black', weight: 6, pane: 'clickable-buffer' });
+      layer.options.interactive = true;
+      layer._originalColor = 'black';
+    }
+
+    async function checkLogin() {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const loginNote = document.getElementById('login-note');
+      if (loginNote) loginNote.style.display = session ? 'none' : 'block';
+
+      const user = session?.user || null;
+      if (user) currentUserId = user.id;
+
+      // If not logged in, stop here. Do NOT flush or load.
+      if (!session) {
+        updateAuthUI(null);
+        return;
+      }
+
+      // Submit any saved pre-login guesses (then clear)
+      const savedGuesses = getPreLoginGuesses();
+      for (const guess of savedGuesses) {
+        try {
+          console.log('🟠 Auto-submitting pre-login guess:', guess.segmentIds);
+          await saveGuessSegmentIds(guess.segmentIds, !!guess.isCorrect, !!guess.usedHint);
+        } catch (error) {
+          console.error('❌ Failed to submit pre-login guess:', guess, error);
+        }
+      }
+      clearPreLoginGuesses();
+
+      // Load server guesses for this user (your existing function)
+      await loadGuessedSegmentIds();
+      // If user is already viewing MT, rebuild overlays immediately
+      if (insideManheim === true && currentLayerDepth === 3) {
+        try { showSolvedPane(); } catch { }
+        try { normalizeCorrectOverlays?.(); } catch { }
+      }
+
+
+      updateAuthUI(user);
+    }
+
+
+    function updateAuthUI(user) {
+      if (user) {
+        const name = user.user_metadata?.full_name?.split(' ')[0] || 'User';
+        authMessage.innerText = `Hello, ${name}`;
+        loginBtn.style.display = 'none';
+        logoutBtn.style.display = 'inline-block';
       } else {
-        segmentStateMap.set(stringId, { correct: !!isCorrect, used_hint: !!usedHint });
+        authMessage.innerText = `You're not logged in.`;
+        loginBtn.style.display = 'inline-block';
+        logoutBtn.style.display = 'none';
+      }
+    }
+
+
+    async function loadGuessedSegmentIds() {
+      if (!currentUserId) return;
+
+      const { data, error } = await supabase
+        .from('road_guesses')                           // same table you write to
+        .select('road_id, correct, used_hint')          // ← remove 'incorrect'
+        .eq('user_id', currentUserId);
+
+      if (error) { console.error('❌ Error loading guesses:', error); return; }
+      if (!Array.isArray(data) || !data.length) return;
+
+      for (const row of data) {
+        const id = String(row.road_id);
+        const prev = segmentStateMap.get(id) || {};
+
+        const mergedUsedHint = !!(prev.used_hint || row.used_hint);
+        const mergedCorrect = !!(prev.correct || row.correct);
+        // derive red from the row: a row with both flags false means “incorrect”
+        const rowIncorrect = (row.correct === false) && (row.used_hint === false);
+        const mergedIncorrect = !!(prev.incorrect || rowIncorrect) && !(mergedUsedHint || mergedCorrect);
+
+        segmentStateMap.set(id, {
+          used_hint: mergedUsedHint,
+          correct: mergedCorrect,
+          incorrect: mergedIncorrect,
+        });
+      }
+    }
+
+
+
+
+
+    async function saveGuessSegmentIds(segmentIds, isCorrect, usedHint = false) {
+      // 🔐 make sure we have a session/user id
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id ?? currentUserId ?? null;
+      if (!userId) {
+        console.warn('saveGuessSegmentIds: no session; skipping write');
+        return;
       }
 
-    } else {
-      // UPDATE only if state changes
-      const needsUpdate =
-        (isCorrect && !existing.correct) ||
-        (usedHint && !existing.used_hint);
+      // 🧰 normalize input to an array
+      const ids = Array.isArray(segmentIds) ? segmentIds : [segmentIds];
 
-      if (needsUpdate) {
-        const updates = {
-          correct:   isCorrect || existing.correct,
-          used_hint: usedHint   || existing.used_hint
-        };
+      for (const id of ids) {
+        const stringId = String(id);
 
-        const { error: updateError } = await supabase
+        // derive a normalized name for convenience
+        const rawName = stringId.startsWith('way/')
+          ? (segmentIdToName[stringId] || '')
+          : stringId;
+        const normalized = normalizeName(rawName);
+
+        console.log('🔗 Handling segment:', { stringId, normalized, isCorrect, usedHint });
+
+        // SELECT existing (kept your flow, though upsert would also cover it)
+        const { data: existingRows, error: fetchError } = await supabase
           .from('road_guesses')
-          .update(updates)
+          .select('*')
           .eq('user_id', userId)
           .eq('road_id', stringId);
 
-        if (updateError) {
-          console.error('❌ Supabase update error:', updateError);
-        } else {
-          segmentStateMap.set(stringId, updates);
+        if (fetchError) {
+          console.error('❌ Fetch error during saveGuessSegmentIds:', fetchError);
+          continue;
         }
-      } else {
-        console.log('✅ No update needed. Existing values already match.');
+
+        const existing = existingRows[0];
+
+        if (!existing) {
+          // INSERT / UPSERT new row
+          const { error: insertError } = await supabase.from('road_guesses').upsert([{
+            user_id: userId,
+            road_id: stringId,      // ← make sure this column is TEXT in your DB
+            road_name: normalized,
+            correct: !!isCorrect,
+            used_hint: !!usedHint
+          }], { onConflict: 'user_id,road_id' });
+
+          if (insertError) {
+            console.error('❌ Supabase insert error:', insertError);
+          } else {
+            segmentStateMap.set(stringId, { correct: !!isCorrect, used_hint: !!usedHint });
+          }
+
+        } else {
+          // UPDATE only if state changes
+          const needsUpdate =
+            (isCorrect && !existing.correct) ||
+            (usedHint && !existing.used_hint);
+
+          if (needsUpdate) {
+            const updates = {
+              correct: isCorrect || existing.correct,
+              used_hint: usedHint || existing.used_hint
+            };
+
+            const { error: updateError } = await supabase
+              .from('road_guesses')
+              .update(updates)
+              .eq('user_id', userId)
+              .eq('road_id', stringId);
+
+            if (updateError) {
+              console.error('❌ Supabase update error:', updateError);
+            } else {
+              segmentStateMap.set(stringId, updates);
+            }
+          } else {
+            console.log('✅ No update needed. Existing values already match.');
+          }
+        }
       }
     }
-  }
-}
 
 
 
-function applyColorToAllSegments(name, color) {
-  if (!nameToLayers[name]) return;
-  for (const l of nameToLayers[name]) {
-    l.setStyle({ color });
-  }
-}
+    function applyColorToAllSegments(name, color) {
+      if (!nameToLayers[name]) return;
+      for (const l of nameToLayers[name]) {
+        l.setStyle({ color });
+      }
+    }
 
-function normalizeName(name) {
-  const parts = name.trim().toLowerCase().split(" ");
-  const last = parts[parts.length - 1];
-  const suffix = suffixMap[last] || last;
-  return [...parts.slice(0, -1), suffix].join(" ");
-}
+    function normalizeName(name) {
+      const parts = name.trim().toLowerCase().split(" ");
+      const last = parts[parts.length - 1];
+      const suffix = suffixMap[last] || last;
+      return [...parts.slice(0, -1), suffix].join(" ");
+    }
 
-function suffixOnlyMismatch(guess, actual) {
-  const g = guess.toLowerCase().split(" ");
-  const a = actual.toLowerCase().split(" ");
-  if (g.length !== a.length) return false;
-  const sameBase = g.slice(0, -1).join(" ") === a.slice(0, -1).join(" ");
-  const diffSuffix = g[g.length - 1] !== a[a.length - 1];
-  return sameBase && diffSuffix;
-}
+    function suffixOnlyMismatch(guess, actual) {
+      const g = guess.toLowerCase().split(" ");
+      const a = actual.toLowerCase().split(" ");
+      if (g.length !== a.length) return false;
+      const sameBase = g.slice(0, -1).join(" ") === a.slice(0, -1).join(" ");
+      const diffSuffix = g[g.length - 1] !== a[a.length - 1];
+      return sameBase && diffSuffix;
+    }
 
-async function loadMap() {
-  await checkLogin();
+    async function loadMap() {
+      await checkLogin();
 
-  fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
-    .then(res => res.json())
-    .then(data => {
-     const roadLayer = L.geoJSON(data, {
-  pane: 'hiddenRoads',          // ← TOP-LEVEL
-  renderer: roadsRenderer,      // ← TOP-LEVEL (keeps padding during drags)
-  style: {
-    color: 'black',
-    weight: 6,
-    opacity: 1,
-    lineCap: 'round'
-  },
-  onEachFeature: function (feature, layer) {
-          const id = String(feature.id);
-          const name = feature.properties.name || "";
-          segmentIdToName[id] = name;
-          if (!nameToLayers[name]) nameToLayers[name] = [];
-          nameToLayers[name].push(layer);
-
-          // ⬛ Style visible road based on state
-         // Style visible road based on state (precedence: orange > green > red > black)
-const st = segmentStateMap.get(id) || null;
-
-if (st?.used_hint) {
-  // ORANGE overlay; never paint base
-  drawHintOverlay(layer);
-  layer._originalColor = 'orange';
-
-} else if (st?.correct) {
-  // GREEN overlay; hide base
-  layer.setStyle({ color: 'transparent', opacity: 0, weight: 0, pane: 'hiddenRoads' });
-  layer.options.interactive = false;
-  layer._originalColor = 'greenish';
-
-} else if (st?.incorrect) {
-  // RED base; keep clickable
-  layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
-  layer.options.interactive = true;
-  layer._originalColor = 'red';
-
-} else {
-  // Default BLACK; keep clickable
-  layer.setStyle({ color: 'black', weight: 6, opacity: 1, pane: 'clickable-buffer' });
-  layer.options.interactive = true;
-  layer._originalColor = 'black';
-}
-
-
-          // 🟠 Add invisible buffer layer for easier clicking/tapping
-          const buffer = L.geoJSON(feature, {
-            renderer: roadsRenderer, 
-            pane: 'clickable-buffer',
+      fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
+        .then(res => res.json())
+        .then(data => {
+          const roadLayer = L.geoJSON(data, {
+            pane: 'hiddenRoads',          // ← TOP-LEVEL
+            renderer: roadsRenderer,      // ← TOP-LEVEL (keeps padding during drags)
             style: {
               color: 'black',
-              weight: 20,
-              opacity: 0,
+              weight: 6,
+              opacity: 1,
+              lineCap: 'round'
             },
-            onEachFeature: function (_, bufLayer) {
-              const state = segmentStateMap.get(id);
-              if (state?.correct || state?.used_hint) return;
-              bufLayer.on('click', () => {
-                layer.fire('click');
-              });
-              bufLayer.on('mouseover', () => {
-                layer.fire('mouseover');
-              });
-              bufLayer.on('mouseout', () => {
-                layer.fire('mouseout');
-              });
-            }
-          });
-          buffer.addTo(roadsBufferGroup);
+            onEachFeature: function (feature, layer) {
+              const id = String(feature.id);
+              const name = feature.properties.name || "";
+              segmentIdToName[id] = name;
+              if (!nameToLayers[name]) nameToLayers[name] = [];
+              nameToLayers[name].push(layer);
 
+              // ⬛ Style visible road based on state
+              // Style visible road based on state (precedence: orange > green > red > black)
+              const st = segmentStateMap.get(id) || null;
 
-          // Hover effect
-          layer.on('mouseover', function (e) {
-           if (!hoverOK()) return;  // no hover on touch devices
-           if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return; // safety for hybrids
-            if (!insideLancaster) return;
-            const matchingLayers = nameToLayers[name] || [];
-            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-            // 🟢 Soft glow if already guessed correctly
-const state = segmentStateMap.get(String(layer.feature.id));
-if (state?.correct) {
-  const el = layer.getElement();
-  if (el) el.classList.add('hover-green');
-  return;
-}
+              if (st?.used_hint) {
+                // ORANGE overlay; never paint base
+                drawHintOverlay(layer);
+                layer._originalColor = 'orange';
 
-            for (const l of matchingLayers) {
-              const currentColor = l._originalColor;
-              if (currentColor === 'greenish') return;
-              if (['black', 'red', 'yellow'].includes(currentColor)) {
-                l.setStyle({
-                  color: '#ffd700',
-                  weight: 8,
-                  opacity: 1,
-                  lineCap: 'round',
-                  pane: 'clickable-buffer'
-                });
+              } else if (st?.correct) {
+                // GREEN overlay; hide base
+                layer.setStyle({ color: 'transparent', opacity: 0, weight: 0, pane: 'hiddenRoads' });
+                layer.options.interactive = false;
+                layer._originalColor = 'greenish';
+
+              } else if (st?.incorrect) {
+                // RED base; keep clickable
+                layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+                layer.options.interactive = true;
+                layer._originalColor = 'red';
+
+              } else {
+                // Default BLACK; keep clickable
+                layer.setStyle({ color: 'black', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+                layer.options.interactive = true;
+                layer._originalColor = 'black';
               }
-              l.bringToFront?.();
-            }
-          });
-
-          layer.on('mouseout', function (e) {
-  if (!hoverOK()) return;
-  if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return;
-            const el = layer.getElement();
-if (el) el.classList.remove('hover-green');
-
-            const matchingLayers = nameToLayers[name] || [];
-            if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-            // 🧽 Remove green glow if present
 
 
-
-            for (const l of matchingLayers) {
-              const currentColor = l._originalColor;
-              if (['black', 'red', 'yellow'].includes(currentColor)) {
-                l.setStyle({
-                  color: currentColor,
-                  weight: 6,
-                  opacity: 1,
-                  lineCap: 'round',
-                  pane: 'hiddenRoads'
-                });
-              }
-            }
-          });
-
-          layer.on('click', function () {
-            const id = feature.id;
-            if (!insideLancaster) return;
-            const state = segmentStateMap.get(id);
-            if (state?.correct || state?.used_hint) return;
-
-            if (activeRoadName && nameToLayers[activeRoadName]) {
-              for (const l of nameToLayers[activeRoadName]) {
-                const segmentId = String(l.feature.id);
-                const s = segmentStateMap.get(segmentId);
-               if (s?.used_hint) {
-  // one source of truth for orange
-  drawHintOverlay(l);
-  l._originalColor = 'orange';
-
-} else if (s?.correct) {
-  // solved: ensure base is hidden; overlay already handles the look
-  l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-  l.options.interactive = false;
-
-} else if (s?.incorrect) {
-  l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
-  l._originalColor = 'red';
-
-} else {
-  restoreLayerFromState(l);  // respects red/orange/green/default
-}
+              // 🟠 Add invisible buffer layer for easier clicking/tapping
+              const buffer = L.geoJSON(feature, {
+                renderer: roadsRenderer,
+                pane: 'clickable-buffer',
+                style: {
+                  color: 'black',
+                  weight: 20,
+                  opacity: 0,
+                },
+                onEachFeature: function (_, bufLayer) {
+                  const state = segmentStateMap.get(id);
+                  if (state?.correct || state?.used_hint) return;
+                  bufLayer.on('click', () => {
+                    layer.fire('click');
+                  });
+                  bufLayer.on('mouseover', () => {
+                    layer.fire('mouseover');
+                  });
+                  bufLayer.on('mouseout', () => {
+                    layer.fire('mouseout');
+                  });
+                }
+              });
+              buffer.addTo(roadsBufferGroup);
 
 
-              }
-            }
+              // Hover effect
+              layer.on('mouseover', function (e) {
+                if (!hoverOK()) return;  // no hover on touch devices
+                if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return; // safety for hybrids
+                if (!insideLancaster) return;
+                const matchingLayers = nameToLayers[name] || [];
+                if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+                // 🟢 Soft glow if already guessed correctly
+                const state = segmentStateMap.get(String(layer.feature.id));
+                if (state?.correct) {
+                  const el = layer.getElement();
+                  if (el) el.classList.add('hover-green');
+                  return;
+                }
 
-            for (const l of nameToLayers[name] || []) {
-  const sid = String(l.feature.id);
-  const s = segmentStateMap.get(sid);
-  if (!s || (!s.correct && !s.used_hint)) {
-    l.setStyle({ color: '#00ccff', weight: 8, pane: 'hiddenRoads' });
-    l._originalColor = 'blue'; // Optional: update originalColor if needed
-  }
-}
+                for (const l of matchingLayers) {
+                  const currentColor = l._originalColor;
+                  if (currentColor === 'greenish') return;
+                  if (['black', 'red', 'yellow'].includes(currentColor)) {
+                    l.setStyle({
+                      color: '#ffd700',
+                      weight: 8,
+                      opacity: 1,
+                      lineCap: 'round',
+                      pane: 'clickable-buffer'
+                    });
+                  }
+                  l.bringToFront?.();
+                }
+              });
 
+              layer.on('mouseout', function (e) {
+                if (!hoverOK()) return;
+                if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return;
+                const el = layer.getElement();
+                if (el) el.classList.remove('hover-green');
 
-            activeRoadName = name;
-            currentRoad = { name, id, attempts: 0, layer };
-            interactionCount++;
-
-            document.getElementById('guess-modal').style.display = 'block';
-            document.getElementById('guess-input').value = '';
-            document.getElementById('feedback-message').innerText = '';
-            document.getElementById('guess-input').focus();
-          });
-        }
-      });
-
-      roadsLayerGroup.addLayer(roadLayer);
-      });
-    };
-
-
-fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
-  .then(res => res.json())
-  .then(data => {
-    const countyLayer = L.geoJSON(data, {
-      pane: 'countyPolygon',
-      style: {
-        color: 'black',
-        weight: 1.5,
-        fillColor: '#cccccc',
-        fillOpacity: 0.7,
-      },
-
-      onEachFeature: function (feature, layer) {
-        if (!countyFeatureRef) countyFeatureRef = feature;
-        layer.on('mouseover', function () {
-          if (insideLancaster) return;
-          const tooltip = document.getElementById('custom-tooltip');
-          const center = layer.getBounds().getCenter();
-          const screenPoint = map.latLngToContainerPoint(center);
-          tooltip.innerText = 'Lancaster County';
-          tooltip.style.left = screenPoint.x + 'px';
-          tooltip.style.top = screenPoint.y + 'px';
-          tooltip.style.display = 'block';
-        });
-
-        layer.on('mouseout', function () {
-          const tooltip = document.getElementById('custom-tooltip');
-          tooltip.innerText = '';
-          tooltip.style.display = 'none';
-        });
-
-        layer.on('click', function () {
-          map.fitBounds(layer.getBounds());
-          // Build & cache the mask once, *after* zooming (so outer rect matches view)
-if (!countyMaskFeature) {
-  countyMaskFeature = createWorldMask(feature);
-}
-
-          currentLayerDepth = 2;
-updateBackButtonVisibility();
-
-          insideLancaster = true;
-// hide the county tooltip immediately on enter
-{ const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
-
-          // (Re)apply the saved outside-only mask for Lancaster
-if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
-
-if (!map.getPane('maskPane')) map.createPane('maskPane');
-const mp = map.getPane('maskPane');
-if (mp && !mp.style.zIndex) mp.style.zIndex = 210; // keep under townshipPane=400
-
-if (countyMaskFeature) {
-  worldMask = L.geoJSON(countyMaskFeature, {
-    style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
-  }).addTo(map);
-
-  // let clicks pass through the mask
-  try {
-    worldMask.eachLayer(l => {
-      const el = l.getElement?.();
-      if (el) el.style.pointerEvents = 'none';
-    });
-  } catch {}
-}
-
-
-          setTimeout(() => {
-            layer.setStyle({ fillOpacity: 0 });
-
-            const path = layer._path;
-            if (path) {
-              path.style.outline = 'none';
-              path.style.pointerEvents = 'none';
-            }
-
-            const mapContainer = map.getContainer();
-            if (mapContainer) {
-              mapContainer.blur();
-            }
-
-            // ✅ Load Manheim Township after zoom-in
-            fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
-              .then(r => r.json())
-              .then(mtData => {
-                 townshipLayerRef = L.geoJSON(mtData, {
-                  pane: 'townshipPane',
-                  style: {
-                    color: 'black',
-                    weight: 1.5,
-                    fillColor: '#e3f2fd',
-                    fillOpacity: 0.75
-                  },
-                  onEachFeature: (feature, mtLayer) => {
-                    mtLayer.on('mouseover', function () {
-  if (insideManheim) return;
-
-  const tooltip = document.getElementById('custom-tooltip');
-  const center = mtLayer.getBounds().getCenter();
-  const screenPoint = map.latLngToContainerPoint(center);
-
-  tooltip.innerText = "Manheim Township";
-  tooltip.style.left = screenPoint.x + 'px';
-  tooltip.style.top = screenPoint.y + 'px';
-  tooltip.style.display = 'block';
-});
-
-mtLayer.on('mouseout', function () {
-  const tooltip = document.getElementById('custom-tooltip');
-  tooltip.style.display = 'none';
-  tooltip.innerText = '';
-});
-mtLayer.on('mouseover', function () {
-  if (insideManheim) return; // already clicked
-
-  // 🧹 Remove old hover overlay if any
-  if (hoverOverlay) {
-    map.removeLayer(hoverOverlay);
-    hoverOverlay = null;
-  }
-
-  // 🟡 Add gold semi-transparent hover overlay
-  hoverOverlay = L.geoJSON(mtLayer.feature, {
-  pane: 'hoverPane',
-  style: {
-    fillColor: '#ffd700',
-    fillOpacity: 0.30,
-    color: 'black',   // ← was 'black'
-    weight: 1,          // ← was 1
-    opacity: 1
-  }
-}).addTo(map);
-
-hoverOverlay.bringToFront?.(); // keep it above everything
-
-  // 🔒 Make hover overlay ignore pointer events
-  hoverOverlay.eachLayer(l => {
-    const el = l.getElement();
-    if (el) el.style.pointerEvents = 'none';
-  });
-});
-mtLayer.on('mouseout', function () {
-  if (hoverOverlay) {
-    map.removeLayer(hoverOverlay);
-    hoverOverlay = null;
-  }
-});
-                    mtLayer.on('touchstart', () => {
-  const tt = document.getElementById('custom-tooltip');
-  if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
-  // if you create a hover overlay on mouseover, remove it too
-  try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch {}
-});
-
-mtLayer.on('click', function (e) {
-  if (insideManheim) { if (e) L.DomEvent.stop(e); return; }
-
-  console.log("📍 Manheim Township clicked");
-  currentLayerDepth = 3;
-  updateBackButtonVisibility();
-  insideManheim = true;
-  showSolvedPane();
-  normalizeAfterRoadsReady();
-  // kill tooltip/hover so nothing lingers
-  try { mtLayer.unbindTooltip(); } catch (err) {}
-  (function () {
-    const tt = document.getElementById('custom-tooltip');
-    if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
-  })();
-  try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch (err) {}
-
-  // fade township fill & stop it intercepting taps
-  mtLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 });
-  var mtPath = mtLayer._path || (typeof mtLayer.getElement === 'function' ? mtLayer.getElement() : null);
-  if (mtPath) { mtPath.style.pointerEvents = 'none'; mtPath.style.outline = 'none'; }
-
-  // MT-only mask (same as your code)
-  if (worldMask) { try { map.removeLayer(worldMask); } catch (err) {} worldMask = null; }
-  try {
-    worldMask = L.geoJSON(createWorldMask(feature), {
-      pane: 'maskPane',
-      style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false}
-    }).addTo(map);
-    worldMask.eachLayer(function (layer) {
-      var el = (typeof layer.getElement === 'function') ? layer.getElement() : null;
-      if (el) el.style.pointerEvents = 'none';
-    });
-  } catch (err) {}
-
-  // --- Smooth zoom (desktop vs mobile) ---
-var IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? true : false;
-var bounds    = mtLayer.getBounds();
-
-if (IS_COARSE) {
-  // MOBILE: a bit tighter than before, but capped so it can't over-zoom
-  var padM   = L.point(6, 18);      // ↓ smaller = tighter; ↑ bigger = looser
-  var maxZM  = 20;                    // try 16, or 17 if still a tad wide
-  map.flyToBounds(bounds, {
-    paddingTopLeft: padM,
-    paddingBottomRight: padM,
-    maxZoom: maxZM,
-    animate: true,
-    duration: 1.0,                    // bump to 1.2 if you want slower
-    easeLinearity: 0.2
-  });
-} else {
-  // DESKTOP: keep your perfect settings
-  var padD = L.point(30, 30);
-  map.flyToBounds(bounds, {
-    paddingTopLeft: padD,
-    paddingBottomRight: padD,
-    maxZoom: 15,
-    animate: true,
-    duration: 1.0,
-    easeLinearity: 0.2
-  });
-}
+                const matchingLayers = nameToLayers[name] || [];
+                if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+                // 🧽 Remove green glow if present
 
 
 
-  // Add roads only when zoom settles
-  map.once('moveend', function () {
-    // ensure final frame (no under-zoom on some mobiles)
-    try { if (!map.hasLayer(roadsLayerGroup))  map.addLayer(roadsLayerGroup); } catch (err) {}
-    try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch (err) {}
-    try { if (typeof armSolvedSegmentsForReentry === 'function') armSolvedSegmentsForReentry(); } catch (err) {}
-    try { if (typeof scrubHiddenRoadsBlue === 'function') scrubHiddenRoadsBlue(); } catch (err) {}
-    try { if (typeof normalizeCorrectOverlays === 'function') normalizeCorrectOverlays(); } catch (err) {}
-  });
+                for (const l of matchingLayers) {
+                  const currentColor = l._originalColor;
+                  if (['black', 'red', 'yellow'].includes(currentColor)) {
+                    l.setStyle({
+                      color: currentColor,
+                      weight: 6,
+                      opacity: 1,
+                      lineCap: 'round',
+                      pane: 'hiddenRoads'
+                    });
+                  }
+                }
+              });
 
-  if (e) L.DomEvent.stop(e);
-});
+              layer.on('click', function () {
+                const id = feature.id;
+                if (!insideLancaster) return;
+                const state = segmentStateMap.get(id);
+                if (state?.correct || state?.used_hint) return;
 
+                if (activeRoadName && nameToLayers[activeRoadName]) {
+                  for (const l of nameToLayers[activeRoadName]) {
+                    const segmentId = String(l.feature.id);
+                    const s = segmentStateMap.get(segmentId);
+                    if (s?.used_hint) {
+                      // one source of truth for orange
+                      drawHintOverlay(l);
+                      l._originalColor = 'orange';
 
+                    } else if (s?.correct) {
+                      // solved: ensure base is hidden; overlay already handles the look
+                      l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+                      l.options.interactive = false;
+
+                    } else if (s?.incorrect) {
+                      l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+                      l._originalColor = 'red';
+
+                    } else {
+                      restoreLayerFromState(l);  // respects red/orange/green/default
+                    }
 
 
                   }
-                }).addTo(map);
+                }
+
+                for (const l of nameToLayers[name] || []) {
+                  const sid = String(l.feature.id);
+                  const s = segmentStateMap.get(sid);
+                  if (!s || (!s.correct && !s.used_hint)) {
+                    l.setStyle({ color: '#00ccff', weight: 8, pane: 'hiddenRoads' });
+                    l._originalColor = 'blue'; // Optional: update originalColor if needed
+                  }
+                }
+
+
+                activeRoadName = name;
+                currentRoad = { name, id, attempts: 0, layer };
+                interactionCount++;
+
+                document.getElementById('guess-modal').style.display = 'block';
+                document.getElementById('guess-input').value = '';
+                document.getElementById('feedback-message').innerText = '';
+                document.getElementById('guess-input').focus();
               });
-          }, 500);
-        });
             }
-    });
-    countyLayerRef = countyLayer.addTo(map);
+          });
+
+          roadsLayerGroup.addLayer(roadLayer);
+        });
+    };
 
 
-    function createWorldMask(feature) {
-      const bounds = map.getBounds().pad(1);
-      const outer = [
-        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
-        [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
-        [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
-        [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
-        [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
-      ];
+    fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
+      .then(res => res.json())
+      .then(data => {
+        const countyLayer = L.geoJSON(data, {
+          pane: 'countyPolygon',
+          style: {
+            color: 'black',
+            weight: 1.5,
+            fillColor: '#cccccc',
+            fillOpacity: 0.7,
+          },
 
-      let holes = [];
+          onEachFeature: function (feature, layer) {
+            if (!countyFeatureRef) countyFeatureRef = feature;
+            layer.on('mouseover', function () {
+              if (insideLancaster) return;
+              const tooltip = document.getElementById('custom-tooltip');
+              const center = layer.getBounds().getCenter();
+              const screenPoint = map.latLngToContainerPoint(center);
+              tooltip.innerText = 'Lancaster County';
+              tooltip.style.left = screenPoint.x + 'px';
+              tooltip.style.top = screenPoint.y + 'px';
+              tooltip.style.display = 'block';
+            });
 
-      if (feature.geometry.type === 'Polygon') {
-        holes = feature.geometry.coordinates;
-      } else if (feature.geometry.type === 'MultiPolygon') {
-        holes = feature.geometry.coordinates.flat();
+            layer.on('mouseout', function () {
+              const tooltip = document.getElementById('custom-tooltip');
+              tooltip.innerText = '';
+              tooltip.style.display = 'none';
+            });
+
+            layer.on('click', function () {
+              map.fitBounds(layer.getBounds());
+              // Build & cache the mask once, *after* zooming (so outer rect matches view)
+              if (!countyMaskFeature) {
+                countyMaskFeature = createWorldMask(feature);
+              }
+
+              currentLayerDepth = 2;
+              updateBackButtonVisibility();
+
+              insideLancaster = true;
+              // hide the county tooltip immediately on enter
+              { const tt = document.getElementById('custom-tooltip'); if (tt) { tt.style.display = 'none'; tt.textContent = ''; } }
+
+              // (Re)apply the saved outside-only mask for Lancaster
+              if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
+
+              if (!map.getPane('maskPane')) map.createPane('maskPane');
+              const mp = map.getPane('maskPane');
+              if (mp && !mp.style.zIndex) mp.style.zIndex = 210; // keep under townshipPane=400
+
+              if (countyMaskFeature) {
+                worldMask = L.geoJSON(countyMaskFeature, {
+                  style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+                }).addTo(map);
+
+                // let clicks pass through the mask
+                try {
+                  worldMask.eachLayer(l => {
+                    const el = l.getElement?.();
+                    if (el) el.style.pointerEvents = 'none';
+                  });
+                } catch { }
+              }
+
+
+              setTimeout(() => {
+                layer.setStyle({ fillOpacity: 0 });
+
+                const path = layer._path;
+                if (path) {
+                  path.style.outline = 'none';
+                  path.style.pointerEvents = 'none';
+                }
+
+                const mapContainer = map.getContainer();
+                if (mapContainer) {
+                  mapContainer.blur();
+                }
+
+                // ✅ Load Manheim Township after zoom-in
+                fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
+                  .then(r => r.json())
+                  .then(mtData => {
+                    townshipLayerRef = L.geoJSON(mtData, {
+                      pane: 'townshipPane',
+                      style: {
+                        color: 'black',
+                        weight: 1.5,
+                        fillColor: '#e3f2fd',
+                        fillOpacity: 0.75
+                      },
+                      onEachFeature: (feature, mtLayer) => {
+                        mtLayer.on('mouseover', function () {
+                          if (insideManheim) return;
+
+                          const tooltip = document.getElementById('custom-tooltip');
+                          const center = mtLayer.getBounds().getCenter();
+                          const screenPoint = map.latLngToContainerPoint(center);
+
+                          tooltip.innerText = "Manheim Township";
+                          tooltip.style.left = screenPoint.x + 'px';
+                          tooltip.style.top = screenPoint.y + 'px';
+                          tooltip.style.display = 'block';
+                        });
+
+                        mtLayer.on('mouseout', function () {
+                          const tooltip = document.getElementById('custom-tooltip');
+                          tooltip.style.display = 'none';
+                          tooltip.innerText = '';
+                        });
+                        mtLayer.on('mouseover', function () {
+                          if (insideManheim) return; // already clicked
+
+                          // 🧹 Remove old hover overlay if any
+                          if (hoverOverlay) {
+                            map.removeLayer(hoverOverlay);
+                            hoverOverlay = null;
+                          }
+
+                          // 🟡 Add gold semi-transparent hover overlay
+                          hoverOverlay = L.geoJSON(mtLayer.feature, {
+                            pane: 'hoverPane',
+                            style: {
+                              fillColor: '#ffd700',
+                              fillOpacity: 0.30,
+                              color: 'black',   // ← was 'black'
+                              weight: 1,          // ← was 1
+                              opacity: 1
+                            }
+                          }).addTo(map);
+
+                          hoverOverlay.bringToFront?.(); // keep it above everything
+
+                          // 🔒 Make hover overlay ignore pointer events
+                          hoverOverlay.eachLayer(l => {
+                            const el = l.getElement();
+                            if (el) el.style.pointerEvents = 'none';
+                          });
+                        });
+                        mtLayer.on('mouseout', function () {
+                          if (hoverOverlay) {
+                            map.removeLayer(hoverOverlay);
+                            hoverOverlay = null;
+                          }
+                        });
+                        mtLayer.on('touchstart', () => {
+                          const tt = document.getElementById('custom-tooltip');
+                          if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
+                          // if you create a hover overlay on mouseover, remove it too
+                          try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch { }
+                        });
+
+                        mtLayer.on('click', function (e) {
+                          if (insideManheim) { if (e) L.DomEvent.stop(e); return; }
+
+                          console.log("📍 Manheim Township clicked");
+                          currentLayerDepth = 3;
+                          updateBackButtonVisibility();
+                          insideManheim = true;
+                          showSolvedPane();
+                          normalizeAfterRoadsReady();
+                          // kill tooltip/hover so nothing lingers
+                          try { mtLayer.unbindTooltip(); } catch (err) { }
+                          (function () {
+                            const tt = document.getElementById('custom-tooltip');
+                            if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
+                          })();
+                          try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch (err) { }
+
+                          // fade township fill & stop it intercepting taps
+                          mtLayer.setStyle({ fillOpacity: 0, weight: 1.5, color: 'black', opacity: 1 });
+                          var mtPath = mtLayer._path || (typeof mtLayer.getElement === 'function' ? mtLayer.getElement() : null);
+                          if (mtPath) { mtPath.style.pointerEvents = 'none'; mtPath.style.outline = 'none'; }
+
+                          // MT-only mask (same as your code)
+                          if (worldMask) { try { map.removeLayer(worldMask); } catch (err) { } worldMask = null; }
+                          try {
+                            worldMask = L.geoJSON(createWorldMask(feature), {
+                              pane: 'maskPane',
+                              style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
+                            }).addTo(map);
+                            worldMask.eachLayer(function (layer) {
+                              var el = (typeof layer.getElement === 'function') ? layer.getElement() : null;
+                              if (el) el.style.pointerEvents = 'none';
+                            });
+                          } catch (err) { }
+
+                          // --- Smooth zoom (desktop vs mobile) ---
+                          var IS_COARSE = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? true : false;
+                          var bounds = mtLayer.getBounds();
+
+                          if (IS_COARSE) {
+                            // MOBILE: a bit tighter than before, but capped so it can't over-zoom
+                            var padM = L.point(6, 18);      // ↓ smaller = tighter; ↑ bigger = looser
+                            var maxZM = 20;                    // try 16, or 17 if still a tad wide
+                            map.flyToBounds(bounds, {
+                              paddingTopLeft: padM,
+                              paddingBottomRight: padM,
+                              maxZoom: maxZM,
+                              animate: true,
+                              duration: 1.0,                    // bump to 1.2 if you want slower
+                              easeLinearity: 0.2
+                            });
+                          } else {
+                            // DESKTOP: keep your perfect settings
+                            var padD = L.point(30, 30);
+                            map.flyToBounds(bounds, {
+                              paddingTopLeft: padD,
+                              paddingBottomRight: padD,
+                              maxZoom: 15,
+                              animate: true,
+                              duration: 1.0,
+                              easeLinearity: 0.2
+                            });
+                          }
+
+
+
+                          // Add roads only when zoom settles
+                          map.once('moveend', function () {
+                            // ensure final frame (no under-zoom on some mobiles)
+                            try { if (!map.hasLayer(roadsLayerGroup)) map.addLayer(roadsLayerGroup); } catch (err) { }
+                            try { if (!map.hasLayer(roadsBufferGroup)) map.addLayer(roadsBufferGroup); } catch (err) { }
+                            try { if (typeof armSolvedSegmentsForReentry === 'function') armSolvedSegmentsForReentry(); } catch (err) { }
+                            try { if (typeof scrubHiddenRoadsBlue === 'function') scrubHiddenRoadsBlue(); } catch (err) { }
+                            try { if (typeof normalizeCorrectOverlays === 'function') normalizeCorrectOverlays(); } catch (err) { }
+                          });
+
+                          if (e) L.DomEvent.stop(e);
+                        });
+
+
+
+
+                      }
+                    }).addTo(map);
+                  });
+              }, 500);
+            });
+          }
+        });
+        countyLayerRef = countyLayer.addTo(map);
+
+
+        function createWorldMask(feature) {
+          const bounds = map.getBounds().pad(1);
+          const outer = [
+            [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10],
+            [bounds.getNorthEast().lng + 10, bounds.getSouthWest().lat - 10],
+            [bounds.getNorthEast().lng + 10, bounds.getNorthEast().lat + 10],
+            [bounds.getSouthWest().lng - 10, bounds.getNorthEast().lat + 10],
+            [bounds.getSouthWest().lng - 10, bounds.getSouthWest().lat - 10]
+          ];
+
+          let holes = [];
+
+          if (feature.geometry.type === 'Polygon') {
+            holes = feature.geometry.coordinates;
+          } else if (feature.geometry.type === 'MultiPolygon') {
+            holes = feature.geometry.coordinates.flat();
+          }
+
+          return {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [outer, ...holes]
+            }
+          };
+        }
+      });
+
+    loadMap();
+    updateBackButtonVisibility();
+    document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
+      // Back from Township → County
+      if (currentLayerDepth === 3) {
+        // Set state FIRST so county hover won't fire during the transition
+        insideManheim = false;
+        insideLancaster = true;
+        currentLayerDepth = 2;
+
+        // Hard-kill any lingering custom tooltip
+        resetCountyTooltip();
+
+        // Also make sure no Leaflet tooltip is bound on county (prevents phantom mini-boxes)
+        try {
+          if (countyLayerRef) {
+            countyLayerRef.eachLayer(l => {
+              if (l.getTooltip && l.getTooltip()) l.unbindTooltip();
+            });
+          }
+        } catch { }
+
+        // 0) Ensure pane z-order: mask below township so MT can receive clicks
+        try {
+          if (!map.getPane('maskPane')) map.createPane('maskPane');
+          map.getPane('maskPane').style.zIndex = 210;  // below township
+
+          if (!map.getPane('townshipPane')) map.createPane('townshipPane');
+          map.getPane('townshipPane').style.zIndex = 400; // above mask
+        } catch { }
+
+        // 1) Hide roads + buffers
+        try {
+          if (map.hasLayer(roadsLayerGroup)) map.removeLayer(roadsLayerGroup);
+          if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
+        } catch { }
+        clearSolvedOverlays();
+        hideSolvedPane();
+        clearSolvedPaneLayers();
+
+        // 2) Make sure MT is visible and CLICKABLE again at county depth
+        try {
+          if (townshipLayerRef) {
+            if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
+            townshipLayerRef.eachLayer(mt => {
+              // county-depth visuals
+              mt.setStyle({
+                color: 'black',
+                weight: 1.5,
+                fillColor: '#e3f2fd',
+                fillOpacity: 0.75
+              });
+              // ensure interactivity
+              mt.options.interactive = true;
+              const p = mt._path;
+              if (p) p.style.pointerEvents = 'auto';
+              if (mt.bringToFront) mt.bringToFront(); // above mask just in case
+            });
+          }
+        } catch { }
+
+        // 3) County polygon should be hidden and NON-interactive at county depth
+        try {
+          if (countyLayerRef) {
+            if (!map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
+            countyLayerRef.eachLayer(l => {
+              // keep interior clear while inside county
+              l.setStyle({ fillOpacity: 0 });
+              const p = l._path;
+              if (p) {
+                p.style.pointerEvents = 'none'; // don't block township
+                p.style.outline = 'none';
+              }
+            });
+          }
+        } catch { }
+
+
+        // Reapply outside-only mask using the cached feature
+        if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
+        if (!map.getPane('maskPane')) map.createPane('maskPane');
+        const mp = map.getPane('maskPane'); if (mp && !mp.style.zIndex) mp.style.zIndex = 210;
+
+        if (countyMaskFeature) {
+          worldMask = L.geoJSON(countyMaskFeature, {
+            style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false, pane: 'maskPane' }
+          }).addTo(map);
+          try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch { }
+        } else {
+          // fallback if user navigated before cache existed
+          rebuildCountyMask();
+        }
+
+
+        // 5) Fit to county bounds
+        try {
+          // smooth + slightly relaxed framing (matches zoom-in feel)
+          if (countyLayerRef) {
+            const pad = L.point(30, 30); // use the same desktop pad you liked
+            map.flyToBounds(countyLayerRef.getBounds(), {
+              paddingTopLeft: pad,
+              paddingBottomRight: pad,
+              maxZoom: 12,
+              animate: true,
+              duration: 1.0,     // tweak to 1.2 if you want even slower
+              easeLinearity: 0.2 // same easing as your zoom-in
+            });
+          }
+
+        } catch { }
+
+        insideLancaster = true;
+        currentLayerDepth = 2;
+        updateBackButtonVisibility();
+        return;
       }
 
-      return {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [outer, ...holes]
+
+
+      // ---------- Back from County → World ----------
+      if (currentLayerDepth === 2) {
+        resetCountyTooltip();
+        insideManheim = false;
+        insideLancaster = false;
+
+        // Remove township, roads, buffers, mask
+        try {
+          if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef && map.hasLayer(townshipLayerRef)) map.removeLayer(townshipLayerRef);
+          if (typeof roadsLayerGroup !== 'undefined' && map.hasLayer(roadsLayerGroup)) map.removeLayer(roadsLayerGroup);
+          if (typeof roadsBufferGroup !== 'undefined' && map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
+          if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
+        } catch { }
+        clearSolvedOverlays();
+        hideSolvedPane();
+        clearSolvedPaneLayers();
+
+        // Restore county polygon UI (optional safeguard)
+        try {
+          if (countyLayerRef) {
+            countyLayerRef.eachLayer(l => {
+              l.setStyle({ fillOpacity: 0.7 });
+              const p = l._path; if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+            });
+          }
+        } catch { }
+
+        // Reset to your initial camera view
+        map.flyTo(INITIAL_CENTER, INITIAL_ZOOM, SMOOTH);
+
+        currentLayerDepth = 1;
+        updateBackButtonVisibility();
+      }
+    });
+
+
+
+
+    document.getElementById('guess-input').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        document.getElementById('submit-guess').click();
+      }
+    });
+
+
+    document.getElementById('guess-input').addEventListener('input', async function (e) {
+      if (!currentRoad) return;
+
+      const userGuess = e.target.value.trim();
+      const correctName = currentRoad.name.trim();
+      const normalizedGuess = normalizeName(userGuess);
+      const normalizedCorrect = normalizeName(correctName);
+
+      if (normalizedGuess === normalizedCorrect) {
+        console.log("⚡ Auto-submitting correct guess:", userGuess);
+        document.getElementById('submit-guess').click();
+      }
+    });
+
+    document.getElementById('guess-input').addEventListener('input', () => {
+      const input = document.getElementById('guess-input').value.trim();
+      const normalizedInput = normalizeName(input);
+      const targetName = normalizeName(currentRoad?.name || "");
+
+      function splitNameAndSuffix(name) {
+        const parts = name.trim().split(" ");
+        if (parts.length === 1) return [parts[0], ""];
+        const suffix = parts.pop();
+        const main = parts.join(" ");
+        return [main, suffix];
+      }
+
+      const [inputMain, inputSuffix] = splitNameAndSuffix(normalizedInput);
+      const [targetMain, targetSuffix] = splitNameAndSuffix(targetName);
+
+      const feedback = document.getElementById('feedback-message');
+
+      // Only show warning if:
+      // - main is correct
+      // - user started typing a suffix
+      // - AND the input suffix is NOT a prefix of the correct suffix
+      if (
+        normalizeName(inputMain) === normalizeName(targetMain) &&
+        targetSuffix &&
+        inputSuffix.trim() !== '' &&
+        !normalizeName(targetSuffix).startsWith(normalizeName(inputSuffix))
+      ) {
+        feedback.innerText = 'Check suffix!';
+        feedback.style.color = 'gold';
+      } else {
+        feedback.innerText = '';
+      }
+    });
+
+    function updateBackButtonVisibility() {
+      const backBtn = document.getElementById("exit-zone-btn");
+      if (currentLayerDepth > 1) {
+        backBtn.style.display = "flex"; // "flex" matches your current layout
+      } else {
+        backBtn.style.display = "none";
+      }
+    }
+
+
+    // 🎵 Web Audio API Seamless Loop Logic
+    let audioContext = null;
+    let sourceNode = null;
+    let musicBuffer = null;
+    let musicPlaying = false;
+    let isMuted = false;
+
+    const musicBtn = document.getElementById('music-btn');
+    const modal = document.getElementById('music-modal');
+    const muteBtn = document.getElementById('mute-btn');
+    const skipBtn = document.getElementById('skip-btn');
+
+    // Load audio buffer
+    async function loadMusic() {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const response = await fetch('music/Lofi_1.wav');
+      const arrayBuffer = await response.arrayBuffer();
+      musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    }
+
+    // Start playing loop
+    function playLoop() {
+      if (!musicBuffer || isMuted) return;
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = musicBuffer;
+      sourceNode.connect(audioContext.destination);
+      sourceNode.loop = true;
+      sourceNode.start(0);
+
+    }
+
+
+    // Stop loop
+    function stopLoop() {
+      if (sourceNode) {
+        sourceNode.stop(0);
+        sourceNode.disconnect();
+        sourceNode = null;
+      }
+    }
+
+    let musicModalVisible = false;
+
+    musicBtn.onclick = () => {
+      musicModalVisible = !musicModalVisible;
+
+      if (musicModalVisible) {
+        modal.classList.add('show');
+      } else {
+        modal.classList.remove('show');
+      }
+    };
+
+
+    muteBtn.onclick = () => {
+      isMuted = !isMuted;
+      muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
+      if (isMuted) stopLoop();
+      else playLoop();
+    };
+
+    skipBtn.onclick = () => {
+      stopLoop();
+      playLoop();
+    };
+
+    // Start audio on first interaction
+    window.addEventListener('click', async () => {
+      if (!musicPlaying) {
+        await loadMusic();
+        playLoop();
+        musicPlaying = true;
+      }
+    }, { once: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && musicPlaying && !isMuted) {
+        console.log("👆 Page returned to focus. Waiting for user tap to resume music...");
+        const resumeHandler = async () => {
+          try {
+            await audioContext.resume();
+            stopLoop();
+            playLoop();
+            console.log("✅ Music resumed after user tap.");
+          } catch (e) {
+            console.error("❌ Resume failed:", e);
+          }
+          window.removeEventListener('click', resumeHandler);
+        };
+        window.addEventListener('click', resumeHandler);
+      }
+    });
+    let interactionCount = 0;
+    let encouragementShown = false;
+
+    function maybeShowEncouragement() {
+      if (encouragementShown) return;  // already shown this session
+
+      supabase.auth.getSession().then(({ data }) => {
+        // show only if NOT logged in, and after 3+ submissions
+        if (!data?.session && interactionCount >= 3) {
+          const el = document.getElementById('inline-encouragement');
+          if (el) el.style.display = 'block';
+          encouragementShown = true;
+        }
+      }).catch(() => { });
+    }
+
+
+    function triggerCorrectDissolveAnimation(layer) {
+      const sid = String(layer?.feature?.id ?? '');
+      const st = segmentStateMap.get(sid);
+      if (st?.used_hint) {        // never run green dissolve if hint was used
+        drawHintOverlay(layer);
+        return;
+      }
+      const el = layer.getElement?.();
+      if (!el) return;
+
+      // Ensure it starts from the active stroke (blue) and can animate
+      el.classList.remove('correct-final'); // reset if previously set
+      void el.offsetWidth;                  // reflow to restart animation
+      el.classList.add('correct-final');
+
+      // When dissolve finishes: hide base stroke, disable it, and draw overlay once
+      const onDone = () => {
+        el.removeEventListener('animationend', onDone);
+
+        // Hide/scrub the base path (so it won’t re-hover or re-click)
+        layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+        layer.options.interactive = false;
+        el.style.display = 'none';
+        el.style.stroke = 'none';
+        el.removeAttribute('stroke');
+        el.removeAttribute('stroke-opacity');
+        el.removeAttribute('stroke-width');
+
+        // Add permanent green overlay (idempotent)
+        if (!layer.__hasSolvedOverlay) {
+          L.geoJSON(layer.feature, {
+            pane: 'solvedPane',
+            renderer: roadsRenderer,
+            interactive: false,
+            style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
+          }).addTo(map);
+
+          layer.__hasSolvedOverlay = true;
         }
       };
+      el.addEventListener('animationend', onDone, { once: true });
     }
-  });
 
-loadMap();
-  updateBackButtonVisibility();
- document.getElementById('exit-zone-btn')?.addEventListener('click', () => {
-// Back from Township → County
-if (currentLayerDepth === 3) {
-  // Set state FIRST so county hover won't fire during the transition
-  insideManheim = false;
-  insideLancaster = true;
-  currentLayerDepth = 2;
 
-  // Hard-kill any lingering custom tooltip
-  resetCountyTooltip();
 
-  // Also make sure no Leaflet tooltip is bound on county (prevents phantom mini-boxes)
-  try {
-    if (countyLayerRef) {
-      countyLayerRef.eachLayer(l => {
-        if (l.getTooltip && l.getTooltip()) l.unbindTooltip();
-      });
-    }
-  } catch {}
 
-  // 0) Ensure pane z-order: mask below township so MT can receive clicks
-  try {
-    if (!map.getPane('maskPane')) map.createPane('maskPane');
-    map.getPane('maskPane').style.zIndex = 210;  // below township
 
-    if (!map.getPane('townshipPane')) map.createPane('townshipPane');
-    map.getPane('townshipPane').style.zIndex = 400; // above mask
-  } catch {}
+    // ✅ Submit handler defined OUTSIDE of loadMap
+    document.getElementById('submit-guess').onclick = async function () {
+      if (!currentRoad) return;
 
-  // 1) Hide roads + buffers
-  try {
-    if (map.hasLayer(roadsLayerGroup))  map.removeLayer(roadsLayerGroup);
-    if (map.hasLayer(roadsBufferGroup)) map.removeLayer(roadsBufferGroup);
-  } catch {}
-clearSolvedOverlays();
-hideSolvedPane();
-clearSolvedPaneLayers();
+      const userGuess = document.getElementById('guess-input').value.trim();
+      if (!userGuess) return;
 
-  // 2) Make sure MT is visible and CLICKABLE again at county depth
-  try {
-    if (townshipLayerRef) {
-      if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
-      townshipLayerRef.eachLayer(mt => {
-        // county-depth visuals
-        mt.setStyle({
-    color: 'black',
-    weight: 1.5,
-    fillColor: '#e3f2fd',
-    fillOpacity: 0.75
-  });
-        // ensure interactivity
-        mt.options.interactive = true;
-        const p = mt._path;
-        if (p) p.style.pointerEvents = 'auto';
-        if (mt.bringToFront) mt.bringToFront(); // above mask just in case
-      });
-    }
-  } catch {}
+      interactionCount++;
+      maybeShowEncouragement();
 
-  // 3) County polygon should be hidden and NON-interactive at county depth
-try {
-  if (countyLayerRef) {
-    if (!map.hasLayer(countyLayerRef)) countyLayerRef.addTo(map);
-    countyLayerRef.eachLayer(l => {
-      // keep interior clear while inside county
-      l.setStyle({ fillOpacity: 0 });
-      const p = l._path;
-      if (p) {
-        p.style.pointerEvents = 'none'; // don't block township
-        p.style.outline = 'none';
+      const correctName = currentRoad.name.trim();
+      const normalizedGuess = normalizeName(userGuess);
+      const normalizedCorrect = normalizeName(correctName);
+
+      let isCorrect = normalizedGuess === normalizedCorrect;
+      let usedHint = false;
+      let color = 'gray';
+
+      // Wrong suffix case
+      if (!isCorrect && normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
+        color = 'yellow';
+        document.getElementById('feedback-message').innerText = 'Check the suffix!';
+        setTimeout(() => document.getElementById('feedback-message').innerText = '', 5000);
+        const key = Object.keys(nameToLayers).find(k => normalizeName(k) === normalizedCorrect);
+        for (const layer of nameToLayers[key] || []) {
+          layer.setStyle({
+            color: 'yellow',
+            weight: 6,
+            pane: 'clickable-buffer'
+          });
+
+          layer._originalColor = 'yellow';
+        }
+        return; // Don't count this as an attempt, and don't save to Supabase
       }
-    });
-  }
-} catch {}
+
+      // Track attempts globally by segment ID
+      if (!attemptCounts[normalizedCorrect]) {
+        attemptCounts[normalizedCorrect] = 1;
+      } else {
+        attemptCounts[normalizedCorrect] += 1;
+      }
+      console.log("🧠 attemptCounts =", attemptCounts);
+      console.log("📌 currentRoad.id =", currentRoad.id);
+      console.log("📊 attempts so far =", attemptCounts[normalizedCorrect]);
+
+      if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
+        for (const l of nameToLayers[currentRoad.name] || []) {
+          const sid = String(l.feature.id);
+          segmentStateMap.set(sid, { correct: false, used_hint: true });
+        }
+        currentRoad.hintGiven = true;
+        const firstLetter = correctName.charAt(0).toUpperCase();
+        console.log("🔥 HINT TRIGGERED");
+        document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+        document.getElementById('feedback-message').style.color = 'orange';
+
+        // Keep modal open
+        document.getElementById('guess-input').value = '';
+        document.getElementById('guess-input').focus();
+
+        return;
+      }
+
+      // If hint was given, flag it
+      if (currentRoad.hintGiven) {
+        usedHint = true;
+        color = 'orange';
+      } else if (!isCorrect) {
+        color = 'red';
+      }
+
+      // Color the correct road segments
+      const normalizedKey = Object.keys(roadNameToIds).find(
+        k => normalizeName(k) === normalizedCorrect
+      );
+      const segmentIds = roadNameToIds[normalizedKey];
+      const layers = nameToLayers[normalizedKey] || [];
+
+      if (isCorrect) {
+        // was a hint used for this road (either now or earlier)?
+        const wasHint = !!usedHint || (layers || []).some(l => {
+          const sid = String(l.feature.id);
+          return (segmentStateMap.get(sid) || {}).used_hint;
+        });
+
+        // A) state: mark correct and preserve/OR used_hint
+        for (const l of layers) {
+          const sid = String(l.feature.id);
+          const prev = segmentStateMap.get(sid) || {};
+          segmentStateMap.set(sid, { correct: true, used_hint: !!(prev.used_hint || wasHint) });
+        }
+
+        // B) stop further clicks
+        removeMatchingBuffers(segmentIds);
+
+        // C) render: ORANGE if hint was used, else GREEN dissolve
+        for (const layer of layers) {
+          if (wasHint) {
+            drawHintOverlay(layer);        // instant orange
+            layer._originalColor = 'orange';
+          } else {
+            triggerCorrectDissolveAnimation(layer);  // blue → dissolve → green
+            layer._originalColor = 'greenish';
+          }
+        }
+
+      } else if (usedHint) {
+        for (const layer of layers) {
+          drawHintOverlay(layer);
+          layer._originalColor = 'orange';
+
+        }
+      } else {
+        // mark red in state first so follow-up UI respects it
+        for (const id of segmentIds) {
+          const sid = String(id);
+          const prev = segmentStateMap.get(sid) || {};
+          segmentStateMap.set(sid, { ...prev, incorrect: true, correct: !!prev.correct, used_hint: !!prev.used_hint });
+        }
+
+        // now style/animate red
+        animateIncorrectSegments(layers);
+      }
 
 
-  // Reapply outside-only mask using the cached feature
-if (worldMask) { map.removeLayer(worldMask); worldMask = null; }
-if (!map.getPane('maskPane')) map.createPane('maskPane');
-const mp = map.getPane('maskPane'); if (mp && !mp.style.zIndex) mp.style.zIndex = 210;
 
-if (countyMaskFeature) {
-  worldMask = L.geoJSON(countyMaskFeature, {
-    style: { fillColor:'#cccccc', fillOpacity:0.7, stroke:false, pane:'maskPane' }
-  }).addTo(map);
-  try { worldMask.eachLayer(l => { const el = l.getElement?.(); if (el) el.style.pointerEvents = 'none'; }); } catch {}
-} else {
-  // fallback if user navigated before cache existed
-  rebuildCountyMask();
-}
+      if (currentUserId) {
+        await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
+      } else {
+        savePreLoginGuess({ segmentIds, isCorrect, usedHint });
+      }
+
+      if (isCorrect || usedHint) {
+        completedRoads.add(normalizedCorrect);
+      }
+      // Show correct answer if hint was used but still wrong
+      if (usedHint && !isCorrect) {
+        alert(`Correct answer: ${correctName}`);
+      }
+
+      // Show feedback
+      document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
+
+      // Delay hide based on color
+      let hideDelay = 800;
+      if (color === 'yellow') hideDelay = 5001;
+
+      if (isCorrect || usedHint) {
+        setTimeout(() => {
+          document.getElementById('guess-modal').style.display = 'none';
+          document.getElementById('feedback-message').innerText = '';
+          currentRoad = null;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, hideDelay);
+      } else {
+        // 🔴 Incorrect guess — close immediately
+        document.getElementById('guess-modal').style.display = 'none';
+        document.getElementById('feedback-message').innerText = '';
+        currentRoad = null;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+    };
+    document.getElementById('give-up').onclick = async function () {
+      if (!currentRoad) return;
+
+      const correctName = currentRoad.name.trim();
+      const normalizedCorrect = normalizeName(correctName);
+      const normalizedKey = Object.keys(roadNameToIds).find(
+        k => normalizeName(k) === normalizedCorrect
+      );
+      const segmentIds = roadNameToIds[normalizedKey];
+      const layers = nameToLayers[normalizedKey] || [];
+
+      // Track attempts
+      if (!attemptCounts[normalizedCorrect]) {
+        attemptCounts[normalizedCorrect] = 1;
+      } else {
+        attemptCounts[normalizedCorrect] += 1;
+      }
+
+      let usedHint = false;
+      let isCorrect = false;
+
+      // Show hint on 4th give-up if not already shown
+      if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
+        currentRoad.hintGiven = true;
+
+        const firstLetter = correctName.charAt(0).toUpperCase();
+        document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
+
+        document.getElementById('guess-input').value = '';
+        document.getElementById('guess-input').focus();
+
+        return; // ✅ Wait for next user input
+      }
+
+      usedHint = currentRoad.hintGiven;
+
+      for (const layer of layers) {
+        if (usedHint) {
+          // unified orange overlay; never paint the base path
+          drawHintOverlay(layer);          // uses HINT_COLOR / HINT_WEIGHT / HINT_OPACITY
+          layer._originalColor = 'orange';
+        } else {
+          // red stays as-is
+          layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+          layer._originalColor = 'red';
+          setSegmentsState([layer.feature.id], { incorrect: true });
+        }
+      }
 
 
-  // 5) Fit to county bounds
-  try {
-    // smooth + slightly relaxed framing (matches zoom-in feel)
-if (countyLayerRef) {
-  const pad = L.point(30, 30); // use the same desktop pad you liked
-  map.flyToBounds(countyLayerRef.getBounds(), {
-    paddingTopLeft: pad,
-    paddingBottomRight: pad,
-    maxZoom: 12,
-    animate: true,
-    duration: 1.0,     // tweak to 1.2 if you want even slower
-    easeLinearity: 0.2 // same easing as your zoom-in
-  });
-}
 
-  } catch {}
+      if (currentUserId) {
+        await saveGuessSegmentIds(segmentIds, false, usedHint);
+      } else {
+        savePreLoginGuess({ segmentIds, isCorrect: false, usedHint });
+      }
 
-  insideLancaster   = true;
-  currentLayerDepth = 2;
-  updateBackButtonVisibility();
-  return;
-}
-
-
-
-  // ---------- Back from County → World ----------
-  if (currentLayerDepth === 2) {
-    resetCountyTooltip();
-    insideManheim = false;
-    insideLancaster = false;
-
-    // Remove township, roads, buffers, mask
-    try {
-      if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef && map.hasLayer(townshipLayerRef)) map.removeLayer(townshipLayerRef);
-      if (typeof roadsLayerGroup  !== 'undefined' && map.hasLayer(roadsLayerGroup))   map.removeLayer(roadsLayerGroup);
-      if (typeof roadsBufferGroup !== 'undefined' && map.hasLayer(roadsBufferGroup))  map.removeLayer(roadsBufferGroup);
-      if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
-    } catch {}
-clearSolvedOverlays();
-hideSolvedPane();
-clearSolvedPaneLayers();
-
-    // Restore county polygon UI (optional safeguard)
-    try {
-      if (countyLayerRef) {
-        countyLayerRef.eachLayer(l => {
-          l.setStyle({ fillOpacity: 0.7 });
-          const p = l._path; if (p) { p.style.pointerEvents = 'auto'; p.style.outline = ''; }
+      for (const id of segmentIds) {
+        segmentStateMap.set(String(id), {
+          correct: false,
+          used_hint: usedHint,
+          incorrect: !usedHint
         });
       }
-    } catch {}
 
-    // Reset to your initial camera view
-    map.flyTo(INITIAL_CENTER, INITIAL_ZOOM, SMOOTH);
-
-    currentLayerDepth = 1;
-    updateBackButtonVisibility();
-  }
-});
+      document.getElementById('feedback-message').innerText =
+        usedHint ? `Correct answer: ${correctName}` : 'Incorrect';
+      document.getElementById('feedback-message').style.color = 'orange';
 
 
-
-
-  document.getElementById('guess-input').addEventListener('keypress', function (e) {
-  if (e.key === 'Enter') {
-    document.getElementById('submit-guess').click();
-  }
-});
-
-
-document.getElementById('guess-input').addEventListener('input', async function (e) {
-  if (!currentRoad) return;
-
-  const userGuess = e.target.value.trim();
-  const correctName = currentRoad.name.trim();
-  const normalizedGuess = normalizeName(userGuess);
-  const normalizedCorrect = normalizeName(correctName);
-
-  if (normalizedGuess === normalizedCorrect) {
-    console.log("⚡ Auto-submitting correct guess:", userGuess);
-    document.getElementById('submit-guess').click();
-  }
-});
-
-document.getElementById('guess-input').addEventListener('input', () => {
-  const input = document.getElementById('guess-input').value.trim();
-  const normalizedInput = normalizeName(input);
-  const targetName = normalizeName(currentRoad?.name || "");
-
-  function splitNameAndSuffix(name) {
-    const parts = name.trim().split(" ");
-    if (parts.length === 1) return [parts[0], ""];
-    const suffix = parts.pop();
-    const main = parts.join(" ");
-    return [main, suffix];
-  }
-
-  const [inputMain, inputSuffix] = splitNameAndSuffix(normalizedInput);
-  const [targetMain, targetSuffix] = splitNameAndSuffix(targetName);
-
-  const feedback = document.getElementById('feedback-message');
-
-  // Only show warning if:
-  // - main is correct
-  // - user started typing a suffix
-  // - AND the input suffix is NOT a prefix of the correct suffix
-  if (
-    normalizeName(inputMain) === normalizeName(targetMain) &&
-    targetSuffix &&
-    inputSuffix.trim() !== '' &&
-    !normalizeName(targetSuffix).startsWith(normalizeName(inputSuffix))
-  ) {
-    feedback.innerText = 'Check suffix!';
-    feedback.style.color = 'gold';
-  } else {
-    feedback.innerText = '';
-  }
-});
-
-function updateBackButtonVisibility() {
-  const backBtn = document.getElementById("exit-zone-btn");
-  if (currentLayerDepth > 1) {
-    backBtn.style.display = "flex"; // "flex" matches your current layout
-  } else {
-    backBtn.style.display = "none";
-  }
-}
-
-
-// 🎵 Web Audio API Seamless Loop Logic
-let audioContext = null;
-let sourceNode = null;
-let musicBuffer = null;
-let musicPlaying = false;
-let isMuted = false;
-
-const musicBtn = document.getElementById('music-btn');
-const modal = document.getElementById('music-modal');
-const muteBtn = document.getElementById('mute-btn');
-const skipBtn = document.getElementById('skip-btn');
-
-// Load audio buffer
-async function loadMusic() {
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  const response = await fetch('music/Lofi_1.wav');
-  const arrayBuffer = await response.arrayBuffer();
-  musicBuffer = await audioContext.decodeAudioData(arrayBuffer);
-}
-
-// Start playing loop
-function playLoop() {
-  if (!musicBuffer || isMuted) return;
-  sourceNode = audioContext.createBufferSource();
-  sourceNode.buffer = musicBuffer;
-  sourceNode.connect(audioContext.destination);
-  sourceNode.loop = true;
-  sourceNode.start(0);
-
-}
-
-
-// Stop loop
-function stopLoop() {
-  if (sourceNode) {
-    sourceNode.stop(0);
-    sourceNode.disconnect();
-    sourceNode = null;
-  }
-}
-
-let musicModalVisible = false;
-
-musicBtn.onclick = () => {
-  musicModalVisible = !musicModalVisible;
-
-  if (musicModalVisible) {
-    modal.classList.add('show');
-  } else {
-    modal.classList.remove('show');
-  }
-};
-
-
-muteBtn.onclick = () => {
-  isMuted = !isMuted;
-  muteBtn.innerText = isMuted ? 'Unmute' : 'Mute';
-  if (isMuted) stopLoop();
-  else playLoop();
-};
-
-skipBtn.onclick = () => {
-  stopLoop();
-  playLoop();
-};
-
-// Start audio on first interaction
-window.addEventListener('click', async () => {
-  if (!musicPlaying) {
-    await loadMusic();
-    playLoop();
-    musicPlaying = true;
-  }
-}, { once: true });
-  document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && musicPlaying && !isMuted) {
-    console.log("👆 Page returned to focus. Waiting for user tap to resume music...");
-    const resumeHandler = async () => {
-      try {
-        await audioContext.resume();
-        stopLoop();
-        playLoop();
-        console.log("✅ Music resumed after user tap.");
-      } catch (e) {
-        console.error("❌ Resume failed:", e);
-      }
-      window.removeEventListener('click', resumeHandler);
+      // ✅ Close modal after short delay (2s for hint, 0s for red)
+      setTimeout(() => {
+        document.getElementById('guess-modal').style.display = 'none';
+        document.getElementById('feedback-message').innerText = '';
+        currentRoad = null;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, usedHint ? 2000 : 0);
     };
-    window.addEventListener('click', resumeHandler);
-  }
-});
-let interactionCount = 0;
-let encouragementShown = false;
-
-  function maybeShowEncouragement() {
-  if (encouragementShown) return;  // already shown this session
-
-  supabase.auth.getSession().then(({ data }) => {
-    // show only if NOT logged in, and after 3+ submissions
-    if (!data?.session && interactionCount >= 3) {
-      const el = document.getElementById('inline-encouragement');
-      if (el) el.style.display = 'block';
-      encouragementShown = true;
-    }
-  }).catch(() => {});
-}
-
-
-function triggerCorrectDissolveAnimation(layer) {
-  const sid = String(layer?.feature?.id ?? '');
-  const st  = segmentStateMap.get(sid);
-  if (st?.used_hint) {        // never run green dissolve if hint was used
-    drawHintOverlay(layer);
-    return;
-  }
-  const el = layer.getElement?.();
-  if (!el) return;
-
-  // Ensure it starts from the active stroke (blue) and can animate
-  el.classList.remove('correct-final'); // reset if previously set
-  void el.offsetWidth;                  // reflow to restart animation
-  el.classList.add('correct-final');
-
-  // When dissolve finishes: hide base stroke, disable it, and draw overlay once
-  const onDone = () => {
-    el.removeEventListener('animationend', onDone);
-
-    // Hide/scrub the base path (so it won’t re-hover or re-click)
-    layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-    layer.options.interactive = false;
-    el.style.display = 'none';
-    el.style.stroke = 'none';
-    el.removeAttribute('stroke');
-    el.removeAttribute('stroke-opacity');
-    el.removeAttribute('stroke-width');
-
-    // Add permanent green overlay (idempotent)
-    if (!layer.__hasSolvedOverlay) {
-      L.geoJSON(layer.feature, {
-  pane: 'solvedPane',
-  renderer: roadsRenderer,
-  interactive: false,
-  style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
-}).addTo(map);
-
-      layer.__hasSolvedOverlay = true;
-    }
-  };
-  el.addEventListener('animationend', onDone, { once: true });
-}
-
-
-
-
-
-// ✅ Submit handler defined OUTSIDE of loadMap
-document.getElementById('submit-guess').onclick = async function () {
-  if (!currentRoad) return;
-
-  const userGuess = document.getElementById('guess-input').value.trim();
-  if (!userGuess) return;
-
-  interactionCount++;
-  maybeShowEncouragement();
-
-  const correctName = currentRoad.name.trim();
-  const normalizedGuess = normalizeName(userGuess);
-  const normalizedCorrect = normalizeName(correctName);
-
-  let isCorrect = normalizedGuess === normalizedCorrect;
-  let usedHint = false;
-  let color = 'gray';
-
-  // Wrong suffix case
-  if (!isCorrect && normalizedGuess.split(' ')[0] === normalizedCorrect.split(' ')[0]) {
-    color = 'yellow';
-    document.getElementById('feedback-message').innerText = 'Check the suffix!';
-    setTimeout(() => document.getElementById('feedback-message').innerText = '', 5000);
-    const key = Object.keys(nameToLayers).find(k => normalizeName(k) === normalizedCorrect);
-    for (const layer of nameToLayers[key] || []) {
-      layer.setStyle({
-  color: 'yellow',
-  weight: 6,
-  pane: 'clickable-buffer'
-});
-
-      layer._originalColor = 'yellow';
-    }
-    return; // Don't count this as an attempt, and don't save to Supabase
-  }
-
-// Track attempts globally by segment ID
-if (!attemptCounts[normalizedCorrect]) {
-  attemptCounts[normalizedCorrect] = 1;
-} else {
-  attemptCounts[normalizedCorrect] += 1;
-}
-console.log("🧠 attemptCounts =", attemptCounts);
-console.log("📌 currentRoad.id =", currentRoad.id);
-console.log("📊 attempts so far =", attemptCounts[normalizedCorrect]);
-
-if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
-  for (const l of nameToLayers[currentRoad.name] || []) {
-  const sid = String(l.feature.id);
-  segmentStateMap.set(sid, { correct: false, used_hint: true });
-}
-  currentRoad.hintGiven = true;
-  const firstLetter = correctName.charAt(0).toUpperCase();
-  console.log("🔥 HINT TRIGGERED");
-  document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
-  document.getElementById('feedback-message').style.color = 'orange';
-
-  // Keep modal open
-  document.getElementById('guess-input').value = '';
-  document.getElementById('guess-input').focus();
-
-  return;
-}
-
-  // If hint was given, flag it
-  if (currentRoad.hintGiven) {
-    usedHint = true;
-    color = 'orange';
-  } else if (!isCorrect) {
-    color = 'red';
-  }
-
-  // Color the correct road segments
-  const normalizedKey = Object.keys(roadNameToIds).find(
-    k => normalizeName(k) === normalizedCorrect
-  );
-  const segmentIds = roadNameToIds[normalizedKey];
-  const layers = nameToLayers[normalizedKey] || [];
-
-if (isCorrect) {
-  // was a hint used for this road (either now or earlier)?
-  const wasHint = !!usedHint || (layers || []).some(l => {
-    const sid = String(l.feature.id);
-    return (segmentStateMap.get(sid) || {}).used_hint;
-  });
-
-  // A) state: mark correct and preserve/OR used_hint
-  for (const l of layers) {
-    const sid  = String(l.feature.id);
-    const prev = segmentStateMap.get(sid) || {};
-    segmentStateMap.set(sid, { correct: true, used_hint: !!(prev.used_hint || wasHint) });
-  }
-
-  // B) stop further clicks
-  removeMatchingBuffers(segmentIds);
-
-  // C) render: ORANGE if hint was used, else GREEN dissolve
-  for (const layer of layers) {
-    if (wasHint) {
-      drawHintOverlay(layer);        // instant orange
-      layer._originalColor = 'orange';
-    } else {
-      triggerCorrectDissolveAnimation(layer);  // blue → dissolve → green
-      layer._originalColor = 'greenish';
-    }
-  }
-
-} else if (usedHint) {
-  for (const layer of layers) {
-    drawHintOverlay(layer);
-layer._originalColor = 'orange';
-
-  }
-} else {
-  // mark red in state first so follow-up UI respects it
-  for (const id of segmentIds) {
-    const sid  = String(id);
-    const prev = segmentStateMap.get(sid) || {};
-    segmentStateMap.set(sid, { ...prev, incorrect: true, correct: !!prev.correct, used_hint: !!prev.used_hint });
-  }
-
-  // now style/animate red
-  animateIncorrectSegments(layers);
-}
-
-
-
-if (currentUserId) {
-  await saveGuessSegmentIds(segmentIds, isCorrect, usedHint);
-} else {
-  savePreLoginGuess({ segmentIds, isCorrect, usedHint });
-}
-
-  if (isCorrect || usedHint) {
-  completedRoads.add(normalizedCorrect);
-}
-  // Show correct answer if hint was used but still wrong
-  if (usedHint && !isCorrect) {
-    alert(`Correct answer: ${correctName}`);
-  }
-
-  // Show feedback
-  document.getElementById('feedback-message').innerText = isCorrect ? 'Correct!' : 'Incorrect';
-
-  // Delay hide based on color
-  let hideDelay = 800;
-  if (color === 'yellow') hideDelay = 5001;
-
-  if (isCorrect || usedHint) {
-  setTimeout(() => {
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
-    currentRoad = null;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, hideDelay);
-} else {
-  // 🔴 Incorrect guess — close immediately
-  document.getElementById('guess-modal').style.display = 'none';
-  document.getElementById('feedback-message').innerText = '';
-  currentRoad = null;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-};
-document.getElementById('give-up').onclick = async function () {
-  if (!currentRoad) return;
-
-  const correctName = currentRoad.name.trim();
-  const normalizedCorrect = normalizeName(correctName);
-  const normalizedKey = Object.keys(roadNameToIds).find(
-    k => normalizeName(k) === normalizedCorrect
-  );
-  const segmentIds = roadNameToIds[normalizedKey];
-  const layers = nameToLayers[normalizedKey] || [];
-
-  // Track attempts
-  if (!attemptCounts[normalizedCorrect]) {
-    attemptCounts[normalizedCorrect] = 1;
-  } else {
-    attemptCounts[normalizedCorrect] += 1;
-  }
-
-  let usedHint = false;
-  let isCorrect = false;
-
-  // Show hint on 4th give-up if not already shown
-  if (attemptCounts[normalizedCorrect] >= 4 && !currentRoad.hintGiven) {
-    currentRoad.hintGiven = true;
-
-    const firstLetter = correctName.charAt(0).toUpperCase();
-    document.getElementById('feedback-message').innerText = `Hint: Road begins with '${firstLetter}'`;
-
-    document.getElementById('guess-input').value = '';
-    document.getElementById('guess-input').focus();
-
-    return; // ✅ Wait for next user input
-  }
-
-  usedHint = currentRoad.hintGiven;
-
-for (const layer of layers) {
-  if (usedHint) {
-    // unified orange overlay; never paint the base path
-    drawHintOverlay(layer);          // uses HINT_COLOR / HINT_WEIGHT / HINT_OPACITY
-    layer._originalColor = 'orange';
-  } else {
-    // red stays as-is
-    layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
-    layer._originalColor = 'red';
-    setSegmentsState([layer.feature.id], { incorrect: true });
-  }
-}
-
-
-
-  if (currentUserId) {
-    await saveGuessSegmentIds(segmentIds, false, usedHint);
-  } else {
-    savePreLoginGuess({ segmentIds, isCorrect: false, usedHint });
-  }
-
-  for (const id of segmentIds) {
-    segmentStateMap.set(String(id), {
-      correct: false,
-      used_hint: usedHint,
-      incorrect: !usedHint
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
+        checkLogin();                 // flush pre-login guesses + load server guesses + update UI
+      }
     });
-  }
-
-  document.getElementById('feedback-message').innerText =
-    usedHint ? `Correct answer: ${correctName}` : 'Incorrect';
-  document.getElementById('feedback-message').style.color = 'orange';
-
-
-  // ✅ Close modal after short delay (2s for hint, 0s for red)
-  setTimeout(() => {
-    document.getElementById('guess-modal').style.display = 'none';
-    document.getElementById('feedback-message').innerText = '';
-    currentRoad = null;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, usedHint ? 2000 : 0);
-};
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
-    checkLogin();                 // flush pre-login guesses + load server guesses + update UI
-  }
-});
   </script>
 </body>
+
 </html>
