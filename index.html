@@ -804,16 +804,41 @@
 
     function removeSolvedOverlay(layer) {
       try {
-        const ov = layer && layer.__solvedOverlay;
-        if (ov) {
-          // remove from whichever parent it has (map or a group)
-          if (typeof ov.remove === 'function') ov.remove();
-          else if (map && map.hasLayer(ov)) map.removeLayer(ov);
-          layer.__solvedOverlay = null;
-          layer.__hasSolvedOverlay = false;
+        const fid = String(layer?.feature?.id ?? '');
+        if (!fid) return;
+
+        // 1️⃣ Remove any overlay object stored on the layer itself
+        if (layer.__solvedOverlay && typeof layer.__solvedOverlay.remove === 'function') {
+          layer.__solvedOverlay.remove();
         }
-      } catch { }
+
+        // 2️⃣ Sweep township overlay group for any green overlay of same feature id
+        if (window.mtOverlayGroup && typeof window.mtOverlayGroup.eachLayer === 'function') {
+          const toRemove = [];
+          window.mtOverlayGroup.eachLayer(ch => {
+            const cfid = String(ch?.feature?.id ?? (ch?.feature?.features?.[0]?.id ?? ''));
+            if (cfid && cfid === fid) toRemove.push(ch);
+          });
+          toRemove.forEach(ch => window.mtOverlayGroup.removeLayer(ch));
+        }
+
+        // 3️⃣ Belt and suspenders: clean up legacy map overlays
+        if (map && map._layers) {
+          Object.values(map._layers).forEach(ch => {
+            if (!ch || ch.options?.pane !== 'solvedPane') return;
+            const cfid = String(ch?.feature?.id ?? (ch?.feature?.features?.[0]?.id ?? ''));
+            if (cfid && cfid === fid && map.hasLayer(ch) && typeof ch.remove === 'function') ch.remove();
+          });
+        }
+
+        // 4️⃣ Reset flags so we can safely repaint
+        layer.__solvedOverlay = null;
+        layer.__hasSolvedOverlay = false;
+      } catch (err) {
+        console.warn('removeSolvedOverlay error', err);
+      }
     }
+
 
     // Rebuild overlays when *inside* MT only.
     // Orange (used_hint) takes priority over green (correct).
