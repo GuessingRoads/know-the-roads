@@ -843,7 +843,7 @@
 
         // 2) GREEN next: draw green overlay (do NOT scrub base)
         if (st.correct) {
-          try { layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
+          try { layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: .7 }); } catch { }
           layer.options.interactive = false;
           try { removeMatchingBuffers([id]); } catch { }
           drawSolvedOverlay(layer);
