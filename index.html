@@ -697,51 +697,37 @@
     function drawHintOverlay(layer) {
       if (!canShowOverlays()) return;
 
-      try { layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
-      layer.options.interactive = false;
-      try { const sid = String(layer?.feature?.id ?? ''); removeMatchingBuffers([sid]); } catch { }
-
-      // orange replaces any green overlay
+      // remove any green overlay first
       removeSolvedOverlay(layer);
+
+      // 🔒 make the base completely invisible so no blue can show through
       try {
-        // force the base back to neutral black so no residual blue shows through
-        layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 });
-        layer._originalColor = 'black';
+        layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
         const el = layer.getElement?.();
-        el?.classList?.remove?.('active-blue');
+        if (el) {
+          el.style.display = 'none';
+          el.style.stroke = 'none';
+          el.removeAttribute?.('stroke');
+          el.removeAttribute?.('stroke-opacity');
+          el.removeAttribute?.('stroke-width');
+          el.classList?.remove?.('active-blue');  // belt-and-suspenders
+        }
       } catch { }
 
-      // ⬇️ NEW: aggressively remove ANY existing overlay for this feature id
+      // disable interaction and remove the fat buffer
+      layer.options.interactive = false;
       try {
-        const fid = String(layer?.feature?.id ?? '');
-        // sweep township overlay group
-        if (window.mtOverlayGroup && typeof window.mtOverlayGroup.eachLayer === 'function') {
-          const toRemove = [];
-          window.mtOverlayGroup.eachLayer(ch => {
-            const cfid = String(ch?.feature?.id ?? (ch?.feature?.features?.[0]?.id ?? ''));
-            if (cfid && cfid === fid) toRemove.push(ch);
-          });
-          toRemove.forEach(ch => window.mtOverlayGroup.removeLayer(ch));
-        }
-        // cleanup any legacy overlay that might still be on the map (pre-refactor)
-        if (map && map._layers) {
-          Object.values(map._layers).forEach(ch => {
-            if (!ch || ch.options?.pane !== 'solvedPane') return;
-            const cfid = String(ch?.feature?.id ?? (ch?.feature?.features?.[0]?.id ?? ''));
-            if (cfid && cfid === fid && map.hasLayer(ch) && typeof ch.remove === 'function') ch.remove();
-          });
-        }
-        // clear pointers/flags so we can't double-stack
-        layer.__solvedOverlay = null;
-        layer.__hasSolvedOverlay = false;
+        const sid = String(layer?.feature?.id ?? '');
+        removeMatchingBuffers([sid]);
       } catch { }
 
-      // ensure pane exists (map is initialized)
+      // ensure pane exists (now that map is initialized)
       if (map && !map.getPane('solvedPane')) {
         const sp = map.createPane('solvedPane');
         sp.style.zIndex = '650';
       }
 
+      // draw orange overlay into the MT overlay group
       const ov = L.geoJSON(layer.feature, {
         pane: 'solvedPane',
         renderer: roadsRenderer,
@@ -758,9 +744,10 @@
       layer.__hintOverlay = ov;
       layer.__hasHintOverlay = true;
 
-      // ensure no lingering "active" class on base
-      try { layer.getElement?.()?.classList?.remove?.('active-blue'); } catch { }
+      // normalize bookkeeping for hover/click logic
+      layer._originalColor = 'orange';
     }
+
 
 
     function removeHintOverlay(layer) {
