@@ -703,6 +703,13 @@
 
       // orange replaces any green overlay
       removeSolvedOverlay(layer);
+      try {
+        // force the base back to neutral black so no residual blue shows through
+        layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 });
+        layer._originalColor = 'black';
+        const el = layer.getElement?.();
+        el?.classList?.remove?.('active-blue');
+      } catch { }
 
       // ⬇️ NEW: aggressively remove ANY existing overlay for this feature id
       try {
