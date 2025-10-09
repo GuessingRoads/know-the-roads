@@ -677,6 +677,13 @@
       layer.__suffixOverlay = null;
       layer.__hasSuffixOverlay = false;
     }
+    function clearSuffixForRoad(roadName) {
+      const arr = nameToLayers?.[roadName] || [];
+      for (const lyr of arr) {
+        if (!lyr) continue;
+        try { removeSuffixOverlay(lyr); } catch { }
+      }
+    }
 
     function drawSuffixOverlay(layer) {
       // hide the base so no active-blue can bleed through
@@ -1548,7 +1555,7 @@
               if (!insideLancaster) return;
               if (activeRoadName && nameToLayers[activeRoadName]) {
                 for (const l of nameToLayers[activeRoadName]) {
-                  removeSuffixOverlay(l);
+                  if (activeRoadName) clearSuffixForRoad(activeRoadName);
                 }
               }
 
@@ -2514,7 +2521,7 @@
           layer._originalColor = 'orange';
         } else {
           // red stays as-is
-          removeSuffixOverlay(l);
+          if (currentRoad?.name) clearSuffixForRoad(currentRoad.name);
           layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
           layer._originalColor = 'red';
           setSegmentsState([layer.feature.id], { incorrect: true });
