@@ -701,6 +701,12 @@
       // Keep the base visible (black) and simply stack the orange overlay above it.
       try { layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
       layer.options.interactive = false;     // optional: prevent clicks after hint
+      // prevent hover/click via the 20px buffer, too
+      try {
+        const sid = String(layer?.feature?.id ?? '');
+        removeMatchingBuffers([sid]);
+      } catch { }
+
 
       // orange replaces any green overlay
       removeSolvedOverlay(layer);
@@ -978,6 +984,18 @@
 
       layer.__solvedOverlay = ov;
       layer.__hasSolvedOverlay = true;
+      // make base non-interactive & remove buffer
+      layer.options.interactive = false;
+      try {
+        const sid = String(layer?.feature?.id ?? '');
+        removeMatchingBuffers([sid]);
+      } catch { }
+      // drop any lingering blue class
+      try {
+        const el = layer.getElement?.();
+        el?.classList?.remove?.('active-blue');
+      } catch { }
+
     }
 
 
