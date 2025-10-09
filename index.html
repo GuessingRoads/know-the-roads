@@ -652,7 +652,7 @@
           // Ensure the base path is visible and red, and remains clickable.
           const el = layer.getElement?.();
           if (el) { el.style.display = ''; el.style.stroke = ''; }
-
+          removeSuffixOverlay(l);
           layer.setStyle({
             color: 'red',
             weight: 6,
@@ -963,6 +963,7 @@
         if (st.incorrect) {
           const el3 = layer.getElement?.();
           if (el3) { el3.style.display = ''; el3.style.stroke = ''; }
+          removeSuffixOverlay(l);
           layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
           layer.options.interactive = true;
           return;
@@ -1186,6 +1187,7 @@
       } catch { }
     }
     function restoreLayerFromState(layer) {
+      removeSuffixOverlay(l)
       const sid = String(layer?.feature?.id ?? '');
       const st = segmentStateMap.get(sid) || {};
 
@@ -1200,6 +1202,7 @@
         return;
       }
       if (st.incorrect) {            // RED base, clickable
+        removeSuffixOverlay(l);
         layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
         layer.options.interactive = true;
         layer._originalColor = 'red';
@@ -1447,6 +1450,7 @@
 
             } else if (st?.incorrect) {
               // RED base; keep clickable
+              removeSuffixOverlay(l);
               layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
               layer.options.interactive = true;
               layer._originalColor = 'red';
@@ -1526,6 +1530,7 @@
               for (const l of matchingLayers) {
                 const currentColor = l._originalColor;
                 if (['black', 'red', 'yellow'].includes(currentColor)) {
+                  removeSuffixOverlay(l)
                   l.setStyle({
                     color: currentColor,
                     weight: 6,
@@ -1541,6 +1546,11 @@
             layer.on('click', function () {
               const id = feature.id;
               if (!insideLancaster) return;
+              if (activeRoadName && nameToLayers[activeRoadName]) {
+                for (const l of nameToLayers[activeRoadName]) {
+                  removeSuffixOverlay(l);
+                }
+              }
 
               const state = segmentStateMap.get(id);
               if (state?.correct || state?.used_hint) return;
@@ -1559,6 +1569,7 @@
                     l.options.interactive = false;
                     try { removeMatchingBuffers([segmentId]); } catch { }
                   } else if (s?.incorrect) {
+                    removeSuffixOverlay(l);
                     l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
                     l._originalColor = 'red';
                   } else {
@@ -2503,6 +2514,7 @@
           layer._originalColor = 'orange';
         } else {
           // red stays as-is
+          removeSuffixOverlay(l);
           layer.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
           layer._originalColor = 'red';
           setSegmentsState([layer.feature.id], { incorrect: true });
