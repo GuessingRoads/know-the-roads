@@ -998,10 +998,10 @@
     }
 
     function drawSolvedOverlay(layer) {
-      if (!canShowOverlays()) return;        // guard
-      removeHintOverlay(layer);              // keep existing behavior
+      if (!canShowOverlays()) return;
+      removeHintOverlay(layer);
 
-      // ensure pane exists (now that map is initialized)
+      // make sure pane exists
       if (map && !map.getPane('solvedPane')) {
         const sp = map.createPane('solvedPane');
         sp.style.zIndex = '650';
@@ -1009,33 +1009,50 @@
 
       const ov = L.geoJSON(layer.feature, {
         pane: 'solvedPane',
-        renderer: roadsRenderer,             // ← use your existing renderer
+        renderer: roadsRenderer,
         interactive: false,
-        style: { color: SOLVED_COLOR, weight: SOLVED_WEIGHT, opacity: SOLVED_OPACITY, lineCap: 'round' }
+        style: {
+          color: SOLVED_COLOR,
+          weight: SOLVED_WEIGHT,
+          // fully opaque to avoid color bleed
+          opacity: 1,
+          lineCap: 'round'
+        }
       });
 
-      // add into the township overlay group (not the map)
-      const target = (window.mtOverlayGroup && typeof window.mtOverlayGroup.addLayer === 'function')
-        ? window.mtOverlayGroup
-        : roadsLayerGroup; // safe fallback
+      const target =
+        window.mtOverlayGroup && typeof window.mtOverlayGroup.addLayer === 'function'
+          ? window.mtOverlayGroup
+          : roadsLayerGroup;
 
       ov.addTo(target);
-
       layer.__solvedOverlay = ov;
       layer.__hasSolvedOverlay = true;
-      // make base non-interactive & remove buffer
+
+      // 🔒 Disable interaction & remove buffer
       layer.options.interactive = false;
       try {
         const sid = String(layer?.feature?.id ?? '');
         removeMatchingBuffers([sid]);
       } catch { }
-      // drop any lingering blue class
+
+      // 🔧 Hide the base stroke so only the overlay is visible
+      try {
+        layer.setStyle({ color: 'transparent', opacity: 0 });
+        const el = layer.getElement?.();
+        if (el) {
+          el.style.display = 'none';
+          el.style.stroke = 'none';
+        }
+      } catch { }
+
+      // 🧼 Clear any lingering blue class
       try {
         const el = layer.getElement?.();
         el?.classList?.remove?.('active-blue');
       } catch { }
-
     }
+
 
 
     function removeMatchingBuffers(segmentIds) {
