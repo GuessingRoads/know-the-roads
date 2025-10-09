@@ -2093,23 +2093,29 @@
           }
         }
       } else {
-        // no warning → clear yellow and restore active-blue while modal is open
+        // no warning → clear text and restore active-blue while the modal stays open
         feedback.innerText = '';
+
         if (currentRoad?.name) {
           const layers = nameToLayers[currentRoad.name] || [];
           for (const l of layers) {
+            // remove any yellow suffix overlay
             removeSuffixOverlay(l);
 
+            // don’t touch solved (green) or hint-used (orange) segments
             const sid = String(l?.feature?.id ?? '');
             const st = segmentStateMap.get(sid) || {};
-            if (!st.correct && !st.used_hint) {
-              try {
-                l.setStyle({ color: '#00ccff', weight: 8, pane: 'hiddenRoads' });
-                l._originalColor = 'blue';
-                const el = l.getElement?.();
-                el?.classList?.add?.('active-blue');
-              } catch { }
-            }
+            if (st.correct || st.used_hint) continue;
+
+            try {
+              // put the base back into “active blue”
+              l.setStyle({ color: '#00ccff', weight: 8, opacity: 1, pane: 'hiddenRoads' });
+              l._originalColor = 'blue';
+              l.options.interactive = true;
+
+              const el = l.getElement?.();
+              el?.classList?.add?.('active-blue');
+            } catch { }
           }
         }
       }
