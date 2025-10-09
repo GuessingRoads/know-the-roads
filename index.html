@@ -831,32 +831,25 @@
         const st = segmentStateMap.get(id);
         if (!st) return;
 
-        // 1) ORANGE wins: hide base, draw orange overlay
+        // 1) ORANGE wins: draw orange overlay (do NOT scrub base)
         if (st.used_hint) {
-          // hide base
-          const el1 = layer.getElement?.();
-          layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+          try { layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
           layer.options.interactive = false;
-          if (el1) {
-            el1.style.display = 'none'; el1.style.stroke = 'none';
-            el1.removeAttribute('stroke'); el1.removeAttribute('stroke-opacity'); el1.removeAttribute('stroke-width');
-          }
+          try { removeMatchingBuffers([id]); } catch { }
+          removeSolvedOverlay(layer);          // ensure green is gone
           drawHintOverlay(layer);
           return;
         }
 
-        // 2) GREEN next: hide base, draw green overlay
+        // 2) GREEN next: draw green overlay (do NOT scrub base)
         if (st.correct) {
-          const el2 = layer.getElement?.();
-          layer.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
+          try { layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
           layer.options.interactive = false;
-          if (el2) {
-            el2.style.display = 'none'; el2.style.stroke = 'none';
-            el2.removeAttribute('stroke'); el2.removeAttribute('stroke-opacity'); el2.removeAttribute('stroke-width');
-          }
+          try { removeMatchingBuffers([id]); } catch { }
           drawSolvedOverlay(layer);
           return;
         }
+
 
         // 3) RED: show base as red (clickable), no overlay
         if (st.incorrect) {
