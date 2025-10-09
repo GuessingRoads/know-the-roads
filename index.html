@@ -1266,197 +1266,191 @@
       return sameBase && diffSuffix;
     }
 
-    async function loadMap() {
-      await checkLogin();
+    async function loadMap() { }
+    await checkLogin();
 
-      fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
-        .then(res => res.json())
-        .then(data => {
-          const roadLayer = L.geoJSON(data, {
-            pane: 'hiddenRoads',          // ← TOP-LEVEL
-            renderer: roadsRenderer,      // ← TOP-LEVEL (keeps padding during drags)
-            style: {
-              color: 'black',
-              weight: 6,
-              opacity: 1,
-              lineCap: 'round'
-            },
-            onEachFeature: function (feature, layer) {
-              const id = String(feature.id);
-              const name = feature.properties.name || "";
-              segmentIdToName[id] = name;
-              if (!nameToLayers[name]) nameToLayers[name] = [];
-              nameToLayers[name].push(layer);
+    fetch('Roads/Roads_ManheimTownship_Lancaster_PA.geojson')
+      .then(res => res.json())
+      .then(data => {
+        const roadLayer = L.geoJSON(data, {
+          pane: 'hiddenRoads',          // TOP-LEVEL container for the geojson group
+          renderer: roadsRenderer,
+          style: {
+            color: 'black',
+            weight: 6,
+            opacity: 1,
+            lineCap: 'round'
+          },
+          onEachFeature: function (feature, layer) {
+            const id = String(feature.id);
+            const name = feature.properties.name || "";
+            segmentIdToName[id] = name;
+            if (!nameToLayers[name]) nameToLayers[name] = [];
+            nameToLayers[name].push(layer);
 
-              // ⬛ Style visible road based on state
-              // Style visible road based on state (precedence: orange > green > red > black)
-              const st = segmentStateMap.get(id) || null;
+            // ---------- initial paint from in-memory state ----------
+            const st = segmentStateMap.get(id) || null;
 
-              if (st?.used_hint) {
-                // ORANGE overlay; never paint base
-                drawHintOverlay(layer);
-                layer._originalColor = 'orange';
+            if (st?.used_hint) {
+              // ORANGE overlay; keep base intact but non-interactive
+              drawHintOverlay(layer);
+              layer._originalColor = 'orange';
+              layer.options.interactive = false;
+              try { removeMatchingBuffers([id]); } catch { }
 
-              } else if (st?.correct) {
-                // GREEN overlay; hide base
-                layer.setStyle({ color: 'transparent', opacity: 0, weight: 0, pane: 'hiddenRoads' });
-                layer.options.interactive = false;
-                layer._originalColor = 'greenish';
+            } else if (st?.correct) {
+              // GREEN overlay; keep base intact but non-interactive
+              drawSolvedOverlay(layer);
+              layer._originalColor = 'greenish';
+              layer.options.interactive = false;
+              try { removeMatchingBuffers([id]); } catch { }
 
-              } else if (st?.incorrect) {
-                // RED base; keep clickable
-                layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
-                layer.options.interactive = true;
-                layer._originalColor = 'red';
+            } else if (st?.incorrect) {
+              // RED base; keep clickable
+              layer.setStyle({ color: 'red', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+              layer.options.interactive = true;
+              layer._originalColor = 'red';
 
-              } else {
-                // Default BLACK; keep clickable
-                layer.setStyle({ color: 'black', weight: 6, opacity: 1, pane: 'clickable-buffer' });
-                layer.options.interactive = true;
-                layer._originalColor = 'black';
-              }
+            } else {
+              // Default BLACK; keep clickable
+              layer.setStyle({ color: 'black', weight: 6, opacity: 1, pane: 'clickable-buffer' });
+              layer.options.interactive = true;
+              layer._originalColor = 'black';
+            }
 
-
-              // 🟠 Add invisible buffer layer for easier clicking/tapping
+            // ---------- buffer (skip for green/orange) ----------
+            if (!(st?.correct || st?.used_hint)) {
               const buffer = L.geoJSON(feature, {
                 renderer: roadsRenderer,
                 pane: 'clickable-buffer',
-                style: {
-                  color: 'black',
-                  weight: 20,
-                  opacity: 0,
-                },
+                style: { color: 'black', weight: 20, opacity: 0 },
                 onEachFeature: function (_, bufLayer) {
-                  const state = segmentStateMap.get(id);
-                  if (state?.correct || state?.used_hint) return;
-                  bufLayer.on('click', () => {
-                    layer.fire('click');
-                  });
-                  bufLayer.on('mouseover', () => {
-                    layer.fire('mouseover');
-                  });
-                  bufLayer.on('mouseout', () => {
-                    layer.fire('mouseout');
-                  });
+                  bufLayer.on('click', () => layer.fire('click'));
+                  bufLayer.on('mouseover', () => layer.fire('mouseover'));
+                  bufLayer.on('mouseout', () => layer.fire('mouseout'));
                 }
               });
               buffer.addTo(roadsBufferGroup);
-
-
-              // Hover effect
-              layer.on('mouseover', function (e) {
-                if (!hoverOK()) return;  // no hover on touch devices
-                if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return; // safety for hybrids
-                if (!insideLancaster) return;
-                const matchingLayers = nameToLayers[name] || [];
-                if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-                // 🟢 Soft glow if already guessed correctly
-                const state = segmentStateMap.get(String(layer.feature.id));
-                if (state?.correct) {
-                  const el = layer.getElement();
-                  if (el) el.classList.add('hover-green');
-                  return;
-                }
-
-                for (const l of matchingLayers) {
-                  const currentColor = l._originalColor;
-                  if (currentColor === 'greenish') return;
-                  if (['black', 'red', 'yellow'].includes(currentColor)) {
-                    l.setStyle({
-                      color: '#ffd700',
-                      weight: 8,
-                      opacity: 1,
-                      lineCap: 'round',
-                      pane: 'clickable-buffer'
-                    });
-                  }
-                  l.bringToFront?.();
-                }
-              });
-
-              layer.on('mouseout', function (e) {
-                if (!hoverOK()) return;
-                if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return;
-                const el = layer.getElement();
-                if (el) el.classList.remove('hover-green');
-
-                const matchingLayers = nameToLayers[name] || [];
-                if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
-                // 🧽 Remove green glow if present
-
-
-
-                for (const l of matchingLayers) {
-                  const currentColor = l._originalColor;
-                  if (['black', 'red', 'yellow'].includes(currentColor)) {
-                    l.setStyle({
-                      color: currentColor,
-                      weight: 6,
-                      opacity: 1,
-                      lineCap: 'round',
-                      pane: 'hiddenRoads'
-                    });
-                  }
-                }
-              });
-
-              layer.on('click', function () {
-                const id = feature.id;
-                if (!insideLancaster) return;
-                const state = segmentStateMap.get(id);
-                if (state?.correct || state?.used_hint) return;
-
-                if (activeRoadName && nameToLayers[activeRoadName]) {
-                  for (const l of nameToLayers[activeRoadName]) {
-                    const segmentId = String(l.feature.id);
-                    const s = segmentStateMap.get(segmentId);
-                    if (s?.used_hint) {
-                      // one source of truth for orange
-                      drawHintOverlay(l);
-                      l._originalColor = 'orange';
-
-                    } else if (s?.correct) {
-                      // solved: ensure base is hidden; overlay already handles the look
-                      l.setStyle({ color: 'transparent', opacity: 0, weight: 0 });
-                      l.options.interactive = false;
-
-                    } else if (s?.incorrect) {
-                      l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
-                      l._originalColor = 'red';
-
-                    } else {
-                      restoreLayerFromState(l);  // respects red/orange/green/default
-                    }
-
-
-                  }
-                }
-
-                for (const l of nameToLayers[name] || []) {
-                  const sid = String(l.feature.id);
-                  const s = segmentStateMap.get(sid);
-                  if (!s || (!s.correct && !s.used_hint)) {
-                    l.setStyle({ color: '#00ccff', weight: 8, pane: 'hiddenRoads' });
-                    l._originalColor = 'blue'; // Optional: update originalColor if needed
-                  }
-                }
-
-
-                activeRoadName = name;
-                currentRoad = { name, id, attempts: 0, layer };
-                interactionCount++;
-
-                document.getElementById('guess-modal').style.display = 'block';
-                document.getElementById('guess-input').value = '';
-                document.getElementById('feedback-message').innerText = '';
-                document.getElementById('guess-input').focus();
-              });
             }
-          });
 
-          roadsLayerGroup.addLayer(roadLayer);
+            // ---------- hover ----------
+            layer.on('mouseover', function (e) {
+              if (!hoverOK()) return;  // no hover on touch devices
+              if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return; // safety for hybrids
+              if (!insideLancaster) return;
+
+              // NEW: never hover green/orange
+              const stateMO = segmentStateMap.get(String(layer.feature.id));
+              if (stateMO?.correct || stateMO?.used_hint) return;
+
+              const matchingLayers = nameToLayers[name] || [];
+              if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+
+              // soft glow if already correct (kept behavior)
+              if (stateMO?.correct) {
+                const el = layer.getElement?.();
+                if (el) el.classList.add('hover-green');
+                return;
+              }
+
+              for (const l of matchingLayers) {
+                const currentColor = l._originalColor;
+                if (currentColor === 'greenish') return;
+                if (['black', 'red', 'yellow'].includes(currentColor)) {
+                  l.setStyle({
+                    color: '#ffd700',
+                    weight: 8,
+                    opacity: 1,
+                    lineCap: 'round',
+                    pane: 'clickable-buffer'
+                  });
+                }
+                l.bringToFront?.();
+              }
+            });
+
+            layer.on('mouseout', function (e) {
+              if (!hoverOK()) return;
+              if (e?.originalEvent?.pointerType && e.originalEvent.pointerType !== 'mouse') return;
+
+              const el = layer.getElement?.();
+              if (el) el.classList.remove('hover-green');
+
+              // NEW: never try to restore for green/orange
+              const stateMO2 = segmentStateMap.get(String(layer.feature.id));
+              if (stateMO2?.correct || stateMO2?.used_hint) return;
+
+              const matchingLayers = nameToLayers[name] || [];
+              if (activeRoadName === name && document.getElementById('guess-modal').style.display === 'block') return;
+
+              for (const l of matchingLayers) {
+                const currentColor = l._originalColor;
+                if (['black', 'red', 'yellow'].includes(currentColor)) {
+                  l.setStyle({
+                    color: currentColor,
+                    weight: 6,
+                    opacity: 1,
+                    lineCap: 'round',
+                    pane: 'clickable-buffer' // ← FIX: was 'hiddenRoads'
+                  });
+                }
+              }
+            });
+
+            // ---------- click ----------
+            layer.on('click', function () {
+              const id = feature.id;
+              if (!insideLancaster) return;
+
+              const state = segmentStateMap.get(id);
+              if (state?.correct || state?.used_hint) return;
+
+              if (activeRoadName && nameToLayers[activeRoadName]) {
+                for (const l of nameToLayers[activeRoadName]) {
+                  const segmentId = String(l.feature.id);
+                  const s = segmentStateMap.get(segmentId);
+                  if (s?.used_hint) {
+                    drawHintOverlay(l);
+                    l._originalColor = 'orange';
+                    l.options.interactive = false;
+                    try { removeMatchingBuffers([segmentId]); } catch { }
+                  } else if (s?.correct) {
+                    drawSolvedOverlay(l);
+                    l.options.interactive = false;
+                    try { removeMatchingBuffers([segmentId]); } catch { }
+                  } else if (s?.incorrect) {
+                    l.setStyle({ color: 'red', weight: 6, pane: 'clickable-buffer' });
+                    l._originalColor = 'red';
+                  } else {
+                    restoreLayerFromState(l);
+                  }
+                }
+              }
+
+              for (const l of nameToLayers[name] || []) {
+                const sid = String(l.feature.id);
+                const s = segmentStateMap.get(sid);
+                if (!s || (!s.correct && !s.used_hint)) {
+                  l.setStyle({ color: '#00ccff', weight: 8, pane: 'hiddenRoads' });
+                  l._originalColor = 'blue';
+                }
+              }
+
+              activeRoadName = name;
+              currentRoad = { name, id, attempts: 0, layer };
+              interactionCount++;
+
+              document.getElementById('guess-modal').style.display = 'block';
+              document.getElementById('guess-input').value = '';
+              document.getElementById('feedback-message').innerText = '';
+              document.getElementById('guess-input').focus();
+            });
+          }
         });
-    };
+
+        roadsLayerGroup.addLayer(roadLayer);
+      });
+
 
 
     fetch('Counties/Boundaries_County_Lancaster_PA.geojson')
