@@ -747,6 +747,31 @@
       // normalize bookkeeping for hover/click logic
       layer._originalColor = 'orange';
     }
+    // Paint the whole road yellow for a "suffix warning" (local only).
+    function paintSuffixWarning(roadName) {
+      const layers = nameToLayers[roadName] || [];
+      for (const l of layers) {
+        // don't override solved/hint
+        const sid = String(l?.feature?.id ?? '');
+        const st = segmentStateMap.get(sid) || {};
+        if (st.correct || st.used_hint) continue;
+
+        try {
+          l.setStyle({
+            color: '#ffd34d',             // yellow
+            weight: BASE_ROAD_WEIGHT,
+            opacity: 1,
+            pane: 'clickable-buffer'
+          });
+          l._originalColor = 'yellow';    // so mouseout restores to yellow
+          l.options.interactive = true;   // keep clickable while modal stays open
+
+          // kill any lingering active-blue on the base path
+          const el = l.getElement?.();
+          el?.classList?.remove?.('active-blue');
+        } catch { }
+      }
+    }
 
 
 
@@ -1985,6 +2010,7 @@
       ) {
         feedback.innerText = 'Check suffix!';
         feedback.style.color = 'gold';
+        if (currentRoad?.name) paintSuffixWarning(currentRoad.name);
       } else {
         feedback.innerText = '';
       }
