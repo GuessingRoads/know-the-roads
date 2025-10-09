@@ -695,23 +695,41 @@
     }
     // ORANGE (always wins; replaces green if present)
     function drawHintOverlay(layer) {
-      if (!canShowOverlays()) return;        // guard
+      if (!canShowOverlays()) return;
 
-      // DO NOT scrub/hide the base path anymore.
-      // Keep the base visible (black) and simply stack the orange overlay above it.
       try { layer.setStyle({ color: '#000000', weight: BASE_ROAD_WEIGHT, opacity: 1 }); } catch { }
-      layer.options.interactive = false;     // optional: prevent clicks after hint
-      // prevent hover/click via the 20px buffer, too
-      try {
-        const sid = String(layer?.feature?.id ?? '');
-        removeMatchingBuffers([sid]);
-      } catch { }
-
+      layer.options.interactive = false;
+      try { const sid = String(layer?.feature?.id ?? ''); removeMatchingBuffers([sid]); } catch { }
 
       // orange replaces any green overlay
       removeSolvedOverlay(layer);
 
-      // ensure pane exists (map is definitely initialized here)
+      // ⬇️ NEW: aggressively remove ANY existing overlay for this feature id
+      try {
+        const fid = String(layer?.feature?.id ?? '');
+        // sweep township overlay group
+        if (window.mtOverlayGroup && typeof window.mtOverlayGroup.eachLayer === 'function') {
+          const toRemove = [];
+          window.mtOverlayGroup.eachLayer(ch => {
+            const cfid = String(ch?.feature?.id ?? (ch?.feature?.features?.[0]?.id ?? ''));
+            if (cfid && cfid === fid) toRemove.push(ch);
+          });
+          toRemove.forEach(ch => window.mtOverlayGroup.removeLayer(ch));
+        }
+        // cleanup any legacy overlay that might still be on the map (pre-refactor)
+        if (map && map._layers) {
+          Object.values(map._layers).forEach(ch => {
+            if (!ch || ch.options?.pane !== 'solvedPane') return;
+            const cfid = String(ch?.feature?.id ?? (ch?.feature?.features?.[0]?.id ?? ''));
+            if (cfid && cfid === fid && map.hasLayer(ch) && typeof ch.remove === 'function') ch.remove();
+          });
+        }
+        // clear pointers/flags so we can't double-stack
+        layer.__solvedOverlay = null;
+        layer.__hasSolvedOverlay = false;
+      } catch { }
+
+      // ensure pane exists (map is initialized)
       if (map && !map.getPane('solvedPane')) {
         const sp = map.createPane('solvedPane');
         sp.style.zIndex = '650';
@@ -724,16 +742,19 @@
         style: { color: HINT_COLOR, weight: HINT_WEIGHT, opacity: HINT_OPACITY, lineCap: 'round' }
       });
 
-      // add into the township overlay group (not the map)
       const target = (window.mtOverlayGroup && typeof window.mtOverlayGroup.addLayer === 'function')
         ? window.mtOverlayGroup
-        : roadsLayerGroup; // safe fallback
+        : roadsLayerGroup;
 
       ov.addTo(target);
 
       layer.__hintOverlay = ov;
       layer.__hasHintOverlay = true;
+
+      // ensure no lingering "active" class on base
+      try { layer.getElement?.()?.classList?.remove?.('active-blue'); } catch { }
     }
+
 
     function removeHintOverlay(layer) {
       try {
