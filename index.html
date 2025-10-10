@@ -680,25 +680,58 @@
     }
 
     function applyTownshipMask(feature) {
-      // Remove any previous mask
-      try { if (worldMask) { map.removeLayer(worldMask); } } catch { }
+      // Remove previous mask safely
+      try { if (worldMask) map.removeLayer(worldMask); } catch { }
       worldMask = null;
 
-      // Ensure the pane exists and sits above tiles but below polygons/roads
+      // Ensure mask pane and z-index
       const pane = map.getPane('maskPane') || map.createPane('maskPane');
       pane.style.zIndex = '210';
 
-      try {
-        // Use the same geometry you used previously for "outside-of-this-township"
-        const maskGeo = createWorldMask(feature);
+      // --- Fallback builder if createWorldMask is not globally available ---
+      function buildMaskFromFeature(f) {
+        const b = map.getBounds().pad(1); // pad so the outer rect is well outside view
+        const outer = [
+          [b.getSouthWest().lng - 10, b.getSouthWest().lat - 10],
+          [b.getNorthEast().lng + 10, b.getSouthWest().lat - 10],
+          [b.getNorthEast().lng + 10, b.getNorthEast().lat + 10],
+          [b.getSouthWest().lng - 10, b.getNorthEast().lat + 10],
+          [b.getSouthWest().lng - 10, b.getSouthWest().lat - 10]
+        ];
 
+        const holes = [];
+        if (f && f.geometry) {
+          const g = f.geometry;
+          if (g.type === 'Polygon') {
+            // All rings (outer + inner) become holes in the big rectangle
+            holes.push(...g.coordinates);
+          } else if (g.type === 'MultiPolygon') {
+            // Flatten each polygon's rings into holes
+            g.coordinates.forEach(poly => holes.push(...poly));
+          }
+        }
+
+        return {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'Polygon', coordinates: [outer, ...holes] }
+        };
+      }
+
+      // Prefer your project’s function if it exists; otherwise use fallback
+      const maskGeo =
+        (typeof createWorldMask === 'function')
+          ? createWorldMask(feature)
+          : buildMaskFromFeature(feature);
+
+      try {
         worldMask = L.geoJSON(maskGeo, {
           pane: 'maskPane',
-          interactive: false, // make sure it never eats clicks
+          interactive: false, // don't capture clicks
           style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
         }).addTo(map);
 
-        // Extra safety: disable pointer events on the actual SVG path
+        // Extra safety: disable pointer events on SVG path(s)
         worldMask.eachLayer(l => {
           const el = (typeof l.getElement === 'function') ? l.getElement() : l._path;
           if (el) el.style.pointerEvents = 'none';
@@ -707,6 +740,7 @@
         console.warn('applyTownshipMask failed:', err);
       }
     }
+
 
 
     function showTownshipRoadsAndNormalize() {
