@@ -680,40 +680,34 @@
     }
 
     function applyTownshipMask(feature) {
-      // Replace mask with “outside-of-this-township only” (uses your existing mask panes/colors)
-      try {
-        if (typeof worldMask !== 'undefined' && worldMask) {
-          map.removeLayer(worldMask);
-          worldMask = null;
-        }
-      } catch { }
+      // Remove any previous mask
+      try { if (worldMask) { map.removeLayer(worldMask); } } catch { }
+      worldMask = null;
+
+      // Ensure the pane exists and sits above tiles but below polygons/roads
+      const pane = map.getPane('maskPane') || map.createPane('maskPane');
+      pane.style.zIndex = '210';
 
       try {
-        // Expect you already have createWorldMask(feature) or equivalent.
-        // If your project names this differently, keep the call you already use for township-level masks.
-        const maskGeoJson = (typeof createWorldMask === 'function')
-          ? createWorldMask(feature)
-          : null;
+        // Use the same geometry you used previously for "outside-of-this-township"
+        const maskGeo = createWorldMask(feature);
 
-        if (maskGeoJson) {
-          if (!map.getPane('maskPane')) map.createPane('maskPane');
-          const pane = map.getPane('maskPane');
-          if (pane && !pane.style.zIndex) pane.style.zIndex = 210;
+        worldMask = L.geoJSON(maskGeo, {
+          pane: 'maskPane',
+          interactive: false, // make sure it never eats clicks
+          style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
+        }).addTo(map);
 
-          worldMask = L.geoJSON(maskGeoJson, {
-            pane: 'maskPane',
-            style: { fillColor: '#cccccc', fillOpacity: 0.7, stroke: false }
-          }).addTo(map);
-
-          worldMask.eachLayer(l => {
-            const el = l.getElement?.();
-            if (el) el.style.pointerEvents = 'none';
-          });
-        }
+        // Extra safety: disable pointer events on the actual SVG path
+        worldMask.eachLayer(l => {
+          const el = (typeof l.getElement === 'function') ? l.getElement() : l._path;
+          if (el) el.style.pointerEvents = 'none';
+        });
       } catch (err) {
-        console.warn('applyTownshipMask fallback path:', err);
+        console.warn('applyTownshipMask failed:', err);
       }
     }
+
 
     function showTownshipRoadsAndNormalize() {
       // Reveal roads/buffers and re-apply solved/hint overlays after zoom settles
