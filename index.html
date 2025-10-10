@@ -740,6 +740,10 @@
         console.warn('applyTownshipMask failed:', err);
       }
     }
+    // true whenever we’re inside ANY township (MT now; EP later)
+    function isTownshipActive() {
+      return !!insideTownship; // set to true in enterTownship(), false in exitTownshipToCounty()
+    }
 
 
 
@@ -1161,9 +1165,10 @@
       }
     }
     function canShowOverlays() {
-      // Only show overlays when actually inside Manheim/Township view
-      return currentLayerDepth === 3 && insideManheim === true;
+      // Only show roads/overlays when actually inside a township view
+      return currentLayerDepth === 3 && isTownshipActive();
     }
+
 
 
     function scrubHiddenRoadsBlue() {
@@ -1386,11 +1391,12 @@
 
       // Load server guesses for this user (your existing function)
       await loadGuessedSegmentIds();
-      // If user is already viewing MT, rebuild overlays immediately
-      if (insideManheim === true && currentLayerDepth === 3) {
+      // If user is already viewing a township, rebuild overlays immediately
+      if (isTownshipActive() && currentLayerDepth === 3) {
         try { showSolvedPane(); } catch { }
         try { normalizeCorrectOverlays?.(); } catch { }
       }
+
 
 
       updateAuthUI(user);
@@ -1834,7 +1840,7 @@
                       },
                       onEachFeature: (feature, mtLayer) => {
                         mtLayer.on('mouseover', function () {
-                          if (insideManheim) return;
+                          if (isTownshipActive) return;
 
                           const tooltip = document.getElementById('custom-tooltip');
                           const center = mtLayer.getBounds().getCenter();
@@ -1852,7 +1858,7 @@
                           tooltip.innerText = '';
                         });
                         mtLayer.on('mouseover', function () {
-                          if (insideManheim) return; // already clicked
+                          if (isTownshipActive) return; // already clicked
 
                           // 🧹 Remove old hover overlay if any
                           if (hoverOverlay) {
@@ -1951,10 +1957,14 @@
 
 
 
-      // ---------- Back from County → World ----------
+      // -------- Back from County → World --------
       if (currentLayerDepth === 2) {
         resetCountyTooltip();
-        insideManheim = false;
+
+        // ✅ make sure ALL township state is cleared
+        insideTownship = false;   // add this
+        currentTownship = null;   // add this
+        insideManheim = false;    // keep this (back-compat)
         insideLancaster = false;
 
         // Remove township, roads, buffers, mask
