@@ -909,8 +909,9 @@
     function resetCountyTooltip() {
       const tt = document.getElementById('custom-tooltip');
       if (!tt) return;
+      if (currentLayerDepth === 2 && !isTownshipActive()) return; // no-op at county view
+      tt.innerText = '';
       tt.style.display = 'none';
-      tt.textContent = '';
     }
     function rebuildCountyMask() {
       try {
