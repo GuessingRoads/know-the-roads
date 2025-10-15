@@ -852,21 +852,6 @@
             mt.options && (mt.options.interactive = true);
             const p = mt._path; if (p) p.style.pointerEvents = 'auto';
 
-            // 👇 Rebind township tooltip on exit
-            const label =
-              mt.feature?.properties?.tooltip ||
-              mt.feature?.properties?.NAME ||
-              mt.feature?.properties?.name ||
-              'Manheim Township';
-            if (!mt.getTooltip()) {
-              mt.bindTooltip(label, {
-                sticky: true,
-                direction: 'top',
-                offset: [0, -8],
-                opacity: 0.95
-              });
-            }
-
             mt.bringToFront?.();
           });
         }
