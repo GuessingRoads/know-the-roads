@@ -505,6 +505,7 @@
     // Gold hover overlay (visual only)
     if (!map.getPane('hoverPane')) map.createPane('hoverPane');
     map.getPane('hoverPane').style.zIndex = 701;
+    map.getPane('hoverPane').style.pointerEvents = 'none';
 
     // ✅ Solved (green) overlays — must be on top of all of the above
     if (!map.getPane('solvedPane')) map.createPane('solvedPane');
@@ -956,8 +957,16 @@
               if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
               hoverOverlay = L.geoJSON(layer.feature, {
                 pane: 'hoverPane',
+                interactive: false,
                 style: { fillColor: '#cfd720', fillOpacity: 0.25, stroke: false }
               }).addTo(map);
+              // Belt & suspenders: make the SVG ignore events, too
+              try {
+                hoverOverlay.eachLayer(l => {
+                  const el = (typeof l.getElement === 'function') ? l.getElement() : l._path;
+                  if (el) el.style.pointerEvents = 'none';
+                });
+              } catch { }
             });
             layer.on('mouseout', function () {
               if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
@@ -965,6 +974,7 @@
 
             // Click → unified entry
             layer.on('click', function (e) {
+              if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } // ← add
               enterTownship(id, layer, feature);
               if (e) L.DomEvent.stop(e);
             });
