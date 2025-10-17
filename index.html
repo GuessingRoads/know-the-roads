@@ -900,7 +900,6 @@
       try { typeof clearSolvedOverlays === 'function' && clearSolvedOverlays(); } catch { }
       try { typeof hideSolvedPane === 'function' && hideSolvedPane(); } catch { }
       try { typeof clearSolvedPaneLayers === 'function' && clearSolvedPaneLayers(); } catch { }
-      ensurePaneOrderingForCountyView()
 
       // --- enforce pane order + click-through where needed ---
       if (!map.getPane('maskPane')) map.createPane('maskPane');
