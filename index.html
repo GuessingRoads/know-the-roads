@@ -899,9 +899,10 @@
       insideTownship = false;
       if (typeof insideManheim !== 'undefined') insideManheim = false;
       currentTownship = null;
+
+      // County clickable buffer must NOT eat events at county view
       const cb = document.querySelector('.leaflet-clickable-buffer-pane');
       if (cb) cb.style.pointerEvents = 'none';
-
 
       // --- clean tooltip (guarded so county view isn't suppressed) ---
       try { typeof resetCountyTooltip === 'function' && resetCountyTooltip(); } catch { }
@@ -920,14 +921,15 @@
 
       // --- enforce pane order + click-through where needed ---
       if (!map.getPane('maskPane')) map.createPane('maskPane');
-      map.getPane('maskPane').style.zIndex = 210;
-
       if (!map.getPane('townshipPane')) map.createPane('townshipPane');
-      map.getPane('townshipPane').style.zIndex = 680;
-
       if (!map.getPane('hoverPane')) map.createPane('hoverPane');
-      map.getPane('hoverPane').style.zIndex = 701;
-      map.getPane('hoverPane').style.pointerEvents = 'none'; // never intercept clicks
+
+      // Use !important so nothing overrides us
+      map.getPane('maskPane').style.setProperty('z-index', '210', 'important');
+      map.getPane('maskPane').style.setProperty('pointer-events', 'none', 'important');
+      map.getPane('townshipPane').style.setProperty('z-index', '680', 'important');
+      map.getPane('hoverPane').style.setProperty('z-index', '701', 'important');
+      map.getPane('hoverPane').style.setProperty('pointer-events', 'none', 'important');
 
       // --- re-enable township layer interactivity & style ---
       try {
@@ -939,35 +941,43 @@
               group.eachLayer(poly => {
                 poly.setStyle?.({ color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 });
                 if (poly.options) poly.options.interactive = true;
+
                 const el = (typeof poly.getElement === 'function') ? poly.getElement() : poly._path;
-                if (el) el.style.pointerEvents = 'auto';
+                if (el) {
+                  // ✨ flip BOTH the style and the SVG attribute back to interactive
+                  el.style.pointerEvents = 'auto';
+                  el.setAttribute('pointer-events', 'auto');
+                }
+
                 try { poly.unbindTooltip?.(); } catch { }
                 poly.bringToFront?.();
               });
+              // small nudge: bring the GeoJSON container too
+              group.bringToFront?.();
             } else {
               group.setStyle?.({ color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 });
               if (group.options) group.options.interactive = true;
+
               const el = (typeof group.getElement === 'function') ? group.getElement() : group._path;
-              if (el) el.style.pointerEvents = 'auto';
+              if (el) {
+                el.style.pointerEvents = 'auto';
+                el.setAttribute('pointer-events', 'auto');
+              }
+
               try { group.unbindTooltip?.(); } catch { }
               group.bringToFront?.();
             }
           });
         }
       } catch { }
-      // -- ASSERT the renderer's pane is raised above clickable-buffer --
+
+      // --- ASSERT the renderer's pane is above clickable-buffer (belt & suspenders) ---
       try {
         let sample = null;
         townshipLayerRef?.eachLayer(g => g.eachLayer?.(p => { if (!sample) sample = p; }));
-        // This is the <div class="leaflet-*-pane"> that actually holds the <svg> renderer:
         const paneEl = sample?._renderer?._container?.parentElement;
-        if (paneEl) {
-          // hard-set with !important so nothing can override it
-          paneEl.style.setProperty('z-index', '680', 'important');
-        }
+        if (paneEl) paneEl.style.setProperty('z-index', '680', 'important');
       } catch { }
-
-
 
       // --- county polygon must never eat events ---
       try {
@@ -984,7 +994,6 @@
       try {
         if (typeof worldMask !== 'undefined' && worldMask) { map.removeLayer(worldMask); worldMask = null; }
         const mp = map.getPane('maskPane');
-        if (mp && !mp.style.zIndex) mp.style.zIndex = 210;
 
         if (typeof countyMaskFeature !== 'undefined' && countyMaskFeature) {
           worldMask = L.geoJSON(countyMaskFeature, {
@@ -997,6 +1006,11 @@
           });
         } else if (typeof rebuildCountyMask === 'function') {
           rebuildCountyMask();
+        }
+        // keep mask non-interactive even if rebuild changed it
+        if (mp) {
+          mp.style.setProperty('z-index', '210', 'important');
+          mp.style.setProperty('pointer-events', 'none', 'important');
         }
       } catch { }
 
@@ -1014,8 +1028,22 @@
       if (typeof insideLancaster !== 'undefined') insideLancaster = true;
       if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 2;
       if (typeof updateBackButtonVisibility === 'function') updateBackButtonVisibility();
-      ensurePaneOrderingForCountyView()
+
+      // ✨ Final rescue in case any multipolygon path slipped through:
+      try {
+        // use the actual pane and flip ALL vector paths under it
+        let sample = null;
+        townshipLayerRef?.eachLayer(g => g.eachLayer?.(p => { if (!sample) sample = p; }));
+        const paneEl = sample?._renderer?._container?.parentElement;
+        if (paneEl) {
+          paneEl.querySelectorAll('path,polygon,polyline').forEach(n => {
+            n.style.pointerEvents = 'auto';
+            n.setAttribute('pointer-events', 'auto');
+          });
+        }
+      } catch { }
     }
+
 
     // ================= End Unified Township Helpers =================
     // ================= Township Loader (generic) =================
