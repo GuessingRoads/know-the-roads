@@ -955,6 +955,17 @@
           });
         }
       } catch { }
+      // -- ASSERT the renderer's pane is raised above clickable-buffer --
+      try {
+        let sample = null;
+        townshipLayerRef?.eachLayer(g => g.eachLayer?.(p => { if (!sample) sample = p; }));
+        // This is the <div class="leaflet-*-pane"> that actually holds the <svg> renderer:
+        const paneEl = sample?._renderer?._container?.parentElement;
+        if (paneEl) {
+          // hard-set with !important so nothing can override it
+          paneEl.style.setProperty('z-index', '680', 'important');
+        }
+      } catch { }
 
 
 
