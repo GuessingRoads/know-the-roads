@@ -315,24 +315,33 @@
       stroke-opacity: 0.7 !important;
     }
 
-    /* Pane ordering — force with !important so late code cannot override */
-    .leaflet-maskPane-pane {
+    /* Mask below everything; never clickable */
+    .leaflet-maskPane-pane,
+    .leaflet-maskpane-pane,
+    .leaflet-mask-pane {
       z-index: 210 !important;
       pointer-events: none !important;
     }
 
-    .leaflet-townshipPane-pane {
+    /* Township polygons above the county clickable buffer (660) */
+    .leaflet-townshipPane-pane,
+    .leaflet-townshippane-pane,
+    .leaflet-township-pane {
       z-index: 680 !important;
     }
 
-    /* above clickable-buffer (660) */
-    .leaflet-hoverPane-pane {
+    /* Hover overlay: visual only, never clickable */
+    .leaflet-hoverPane-pane,
+    .leaflet-hoverpane-pane,
+    .leaflet-hover-pane {
       z-index: 701 !important;
       pointer-events: none !important;
     }
 
-    /* (optional but good) make solved overlays click-through too */
-    .leaflet-solvedPane-pane {
+    /* Optional: solved overlays click-through */
+    .leaflet-solvedPane-pane,
+    .leaflet-solvedpane-pane,
+    .leaflet-solved-pane {
       pointer-events: none !important;
     }
   </style>
