@@ -911,14 +911,17 @@
     // ================= End Unified Township Helpers =================
     // ================= Township Loader (generic) =================
     function loadTownship({ id, url, name }) {
-      // Ensure pane + group exist
+      // Ensure pane exists
       if (!map.getPane('townshipPane')) map.createPane('townshipPane');
       map.getPane('townshipPane').style.zIndex = 400;
 
-      if (!window.townshipLayerRef) {
-        window.townshipLayerRef = L.featureGroup([], { pane: 'townshipPane' }).addTo(map);
-      } else if (!map.hasLayer(townshipLayerRef)) {
-        townshipLayerRef.addTo(map);
+      // 🔧 Normalize a handle that works in module scope
+      let group = window.townshipLayerRef;
+      if (!group) {
+        group = L.featureGroup([], { pane: 'townshipPane' }).addTo(map);
+        window.townshipLayerRef = group; // keep a global reference for other code that uses it
+      } else if (!map.hasLayer(group)) {
+        group.addTo(map);
       }
 
       return fetch(url).then(r => r.json()).then(geo => {
@@ -926,11 +929,11 @@
           pane: 'townshipPane',
           style: { color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 },
           onEachFeature: (feature, layer) => {
-            // store label fallback on the feature so we can reuse it
             feature.properties = feature.properties || {};
-            feature.properties.tooltip = feature.properties.tooltip || feature.properties.NAME || feature.properties.name || name || id;
+            feature.properties.tooltip =
+              feature.properties.tooltip || feature.properties.NAME || feature.properties.name || name || id;
 
-            // --- hover: DOM tooltip (county view only) ---
+            // DOM tooltip at county view
             layer.on('mouseover', function () {
               if (isTownshipActive()) return;
               const tt = document.getElementById('custom-tooltip');
@@ -941,14 +944,13 @@
               tt.style.top = pt.y + 'px';
               tt.style.display = 'block';
             });
-
             layer.on('mouseout', function () {
               const tt = document.getElementById('custom-tooltip');
               tt.innerText = '';
               tt.style.display = 'none';
             });
 
-            // --- gold hover overlay (county view only) ---
+            // Gold hover overlay at county view
             layer.on('mouseover', function () {
               if (isTownshipActive()) return;
               if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
@@ -957,12 +959,11 @@
                 style: { fillColor: '#cfd720', fillOpacity: 0.25, stroke: false }
               }).addTo(map);
             });
-
             layer.on('mouseout', function () {
               if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
             });
 
-            // --- click → unified entry ---
+            // Click → unified entry
             layer.on('click', function (e) {
               enterTownship(id, layer, feature);
               if (e) L.DomEvent.stop(e);
@@ -970,15 +971,13 @@
           }
         });
 
-        // Add this township’s layer into the shared group
-        g.addTo(townshipLayerRef);
+        // ✅ Use the normalized handle
+        g.addTo(group);
 
-        // Ensure pointer events for all polygons in the group
-        townshipLayerRef.eachLayer(mt => {
-          const p = mt._path; if (p) p.style.pointerEvents = 'auto';
-        });
+        // Ensure pointer events are enabled on paths
+        group.eachLayer(mt => { const p = mt._path; if (p) p.style.pointerEvents = 'auto'; });
 
-        return g; // return the specific township layer if you ever want a handle
+        return g;
       });
     }
     // ================= end loader =================
