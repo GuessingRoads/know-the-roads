@@ -964,7 +964,7 @@
                 el.removeAttribute('pointer-events');
                 el.style.removeProperty('pointer-events');
                 el.classList.add('leaflet-interactive');
-                el.style.pointerEvents = 'auto';
+                el.style.setProperty('pointer-events', 'auto', 'important');
               }
 
               try { group.unbindTooltip?.(); } catch { }
