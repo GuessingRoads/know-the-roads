@@ -852,10 +852,14 @@
             mt.options && (mt.options.interactive = true);
             const p = mt._path; if (p) p.style.pointerEvents = 'auto';
 
+            // 🔧 ensure no sticky Leaflet tooltips remain
+            try { mt.unbindTooltip?.(); } catch { }
+
             mt.bringToFront?.();
           });
         }
       } catch { }
+
 
 
       // County polygon stays clear and non-blocking
