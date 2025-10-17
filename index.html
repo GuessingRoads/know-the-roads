@@ -485,7 +485,7 @@
 
     // Township fill/outline (sits under roads)
     if (!map.getPane('townshipPane')) map.createPane('townshipPane');
-    map.getPane('townshipPane').style.zIndex = 510;
+    map.getPane('townshipPane').style.zIndex = 680;
 
     // Base road strokes (black/active-blue)
     if (!map.getPane('hiddenRoads')) map.createPane('hiddenRoads');
@@ -823,6 +823,9 @@
       insideTownship = false;
       if (typeof insideManheim !== 'undefined') insideManheim = false;
       currentTownship = null;
+      const cb = map.getPane('clickable-buffer');
+      if (cb) cb.style.pointerEvents = 'none';   // don’t eat township hover/clicks at depth 2
+
 
       // --- clean tooltip (guarded so county view isn't suppressed) ---
       try { typeof resetCountyTooltip === 'function' && resetCountyTooltip(); } catch { }
@@ -844,7 +847,7 @@
       map.getPane('maskPane').style.zIndex = 210;
 
       if (!map.getPane('townshipPane')) map.createPane('townshipPane');
-      map.getPane('townshipPane').style.zIndex = 400;
+      map.getPane('townshipPane').style.zIndex = 680;
 
       if (!map.getPane('hoverPane')) map.createPane('hoverPane');
       map.getPane('hoverPane').style.zIndex = 701;
