@@ -848,34 +848,51 @@
       }
     }
     function ensurePaneOrderingForCountyView() {
-      const get = name => (map.getPane && map.getPane(name)) ||
-        document.querySelector(`.leaflet-${name}-pane`);
-
-      // Mask: below, never clickable
-      const mask = get('maskPane') || (map.createPane && map.createPane('maskPane'));
+      // Mask: below everything, never clickable
+      const mask = getPaneElByName('maskPane') || (map.createPane && map.createPane('maskPane'));
       if (mask) {
         mask.style.setProperty('z-index', '210', 'important');
         mask.style.setProperty('pointer-events', 'none', 'important');
       }
 
-      // Township polygons: above the clickable buffer (660)
-      const township = get('townshipPane') || (map.createPane && map.createPane('townshipPane'));
+      // Township: above the county clickable buffer (660)
+      const township = getTownshipPaneEl() || getPaneElByName('townshipPane') || (map.createPane && map.createPane('townshipPane'));
       if (township) {
         township.style.setProperty('z-index', '680', 'important');
       }
 
-      // Hover overlay: visual only
-      const hover = get('hoverPane') || (map.createPane && map.createPane('hoverPane'));
+      // Hover: visual only
+      const hover = getPaneElByName('hoverPane') || (map.createPane && map.createPane('hoverPane'));
       if (hover) {
         hover.style.setProperty('z-index', '701', 'important');
         hover.style.setProperty('pointer-events', 'none', 'important');
       }
 
-      // County clickable buffer must NOT eat events at county view
-      const cbuf = get('clickable-buffer');
+      // County clickable buffer: OFF at county view
+      const cbuf = getPaneElByName('clickable-buffer');
       if (cbuf) cbuf.style.setProperty('pointer-events', 'none', 'important');
     }
 
+
+    // Find the actual DOM pane element used by township polygons (robust)
+    function getTownshipPaneEl() {
+      try {
+        let sample = null;
+        window.townshipLayerRef?.eachLayer(g => g.eachLayer?.(p => { if (!sample) sample = p; }));
+        // Leaflet’s vector renderer puts its <svg> in _renderer._container; the pane is its parent <div>
+        return sample?._renderer?._container?.parentElement
+          || (map.getPane && map.getPane('townshipPane'))
+          || document.querySelector('.leaflet-townshipPane-pane')
+          || document.querySelector('.leaflet-townshippane-pane')
+          || document.querySelector('.leaflet-township-pane');
+      } catch { return null; }
+    }
+
+    function getPaneElByName(name) {
+      return (map.getPane && map.getPane(name))
+        || document.querySelector(`.leaflet-${name}-pane`)
+        || document.querySelector(`.leaflet-${name.toLowerCase()}-pane`);
+    }
 
     function exitTownshipToCounty() {
       // --- reset generic + specific flags ---
