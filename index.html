@@ -817,6 +817,35 @@
         showTownshipRoadsAndNormalize();
       }
     }
+    function ensurePaneOrderingForCountyView() {
+      const get = name => (map.getPane && map.getPane(name)) ||
+        document.querySelector(`.leaflet-${name}-pane`);
+
+      // Mask: below, never clickable
+      const mask = get('maskPane') || (map.createPane && map.createPane('maskPane'));
+      if (mask) {
+        mask.style.zIndex = '210';
+        mask.style.pointerEvents = 'none';
+      }
+
+      // Township polygons: above buffers
+      const township = get('townshipPane') || (map.createPane && map.createPane('townshipPane'));
+      if (township) {
+        township.style.zIndex = '680';   // must be > clickable-buffer (660)
+        // no pointer-events change here (children SVGs handle that)
+      }
+
+      // Hover overlay: purely visual, never clickable
+      const hover = get('hoverPane') || (map.createPane && map.createPane('hoverPane'));
+      if (hover) {
+        hover.style.zIndex = '701';
+        hover.style.pointerEvents = 'none';
+      }
+
+      // County clickable buffer: OFF at county view
+      const cbuf = get('clickable-buffer');
+      if (cbuf) cbuf.style.pointerEvents = 'none';
+    }
 
     function exitTownshipToCounty() {
       // --- reset generic + specific flags ---
@@ -841,6 +870,7 @@
       try { typeof clearSolvedOverlays === 'function' && clearSolvedOverlays(); } catch { }
       try { typeof hideSolvedPane === 'function' && hideSolvedPane(); } catch { }
       try { typeof clearSolvedPaneLayers === 'function' && clearSolvedPaneLayers(); } catch { }
+      ensurePaneOrderingForCountyView()
 
       // --- enforce pane order + click-through where needed ---
       if (!map.getPane('maskPane')) map.createPane('maskPane');
