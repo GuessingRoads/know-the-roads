@@ -854,28 +854,28 @@
       // Mask: below, never clickable
       const mask = get('maskPane') || (map.createPane && map.createPane('maskPane'));
       if (mask) {
-        mask.style.zIndex = '210';
-        mask.style.pointerEvents = 'none';
+        mask.style.setProperty('z-index', '210', 'important');
+        mask.style.setProperty('pointer-events', 'none', 'important');
       }
 
-      // Township polygons: above buffers
+      // Township polygons: above the clickable buffer (660)
       const township = get('townshipPane') || (map.createPane && map.createPane('townshipPane'));
       if (township) {
-        township.style.zIndex = '680';   // must be > clickable-buffer (660)
-        // no pointer-events change here (children SVGs handle that)
+        township.style.setProperty('z-index', '680', 'important');
       }
 
-      // Hover overlay: purely visual, never clickable
+      // Hover overlay: visual only
       const hover = get('hoverPane') || (map.createPane && map.createPane('hoverPane'));
       if (hover) {
-        hover.style.zIndex = '701';
-        hover.style.pointerEvents = 'none';
+        hover.style.setProperty('z-index', '701', 'important');
+        hover.style.setProperty('pointer-events', 'none', 'important');
       }
 
-      // County clickable buffer: OFF at county view
+      // County clickable buffer must NOT eat events at county view
       const cbuf = get('clickable-buffer');
-      if (cbuf) cbuf.style.pointerEvents = 'none';
+      if (cbuf) cbuf.style.setProperty('pointer-events', 'none', 'important');
     }
+
 
     function exitTownshipToCounty() {
       // --- reset generic + specific flags ---
