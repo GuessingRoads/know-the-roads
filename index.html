@@ -909,6 +909,79 @@
       if (typeof updateBackButtonVisibility === 'function') updateBackButtonVisibility();
     }
     // ================= End Unified Township Helpers =================
+    // ================= Township Loader (generic) =================
+    function loadTownship({ id, url, name }) {
+      // Ensure pane + group exist
+      if (!map.getPane('townshipPane')) map.createPane('townshipPane');
+      map.getPane('townshipPane').style.zIndex = 400;
+
+      if (!window.townshipLayerRef) {
+        window.townshipLayerRef = L.featureGroup([], { pane: 'townshipPane' }).addTo(map);
+      } else if (!map.hasLayer(townshipLayerRef)) {
+        townshipLayerRef.addTo(map);
+      }
+
+      return fetch(url).then(r => r.json()).then(geo => {
+        const g = L.geoJSON(geo, {
+          pane: 'townshipPane',
+          style: { color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 },
+          onEachFeature: (feature, layer) => {
+            // store label fallback on the feature so we can reuse it
+            feature.properties = feature.properties || {};
+            feature.properties.tooltip = feature.properties.tooltip || feature.properties.NAME || feature.properties.name || name || id;
+
+            // --- hover: DOM tooltip (county view only) ---
+            layer.on('mouseover', function () {
+              if (isTownshipActive()) return;
+              const tt = document.getElementById('custom-tooltip');
+              const center = layer.getBounds().getCenter();
+              const pt = map.latLngToContainerPoint(center);
+              tt.innerText = feature.properties.tooltip;
+              tt.style.left = pt.x + 'px';
+              tt.style.top = pt.y + 'px';
+              tt.style.display = 'block';
+            });
+
+            layer.on('mouseout', function () {
+              const tt = document.getElementById('custom-tooltip');
+              tt.innerText = '';
+              tt.style.display = 'none';
+            });
+
+            // --- gold hover overlay (county view only) ---
+            layer.on('mouseover', function () {
+              if (isTownshipActive()) return;
+              if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
+              hoverOverlay = L.geoJSON(layer.feature, {
+                pane: 'hoverPane',
+                style: { fillColor: '#cfd720', fillOpacity: 0.25, stroke: false }
+              }).addTo(map);
+            });
+
+            layer.on('mouseout', function () {
+              if (hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; }
+            });
+
+            // --- click → unified entry ---
+            layer.on('click', function (e) {
+              enterTownship(id, layer, feature);
+              if (e) L.DomEvent.stop(e);
+            });
+          }
+        });
+
+        // Add this township’s layer into the shared group
+        g.addTo(townshipLayerRef);
+
+        // Ensure pointer events for all polygons in the group
+        townshipLayerRef.eachLayer(mt => {
+          const p = mt._path; if (p) p.style.pointerEvents = 'auto';
+        });
+
+        return g; // return the specific township layer if you ever want a handle
+      });
+    }
+    // ================= end loader =================
 
     function resetCountyTooltip() {
       const tt = document.getElementById('custom-tooltip');
@@ -1833,91 +1906,11 @@
                   mapContainer.blur();
                 }
 
-                // ✅ Load Manheim Township after zoom-in
-                fetch('Townships/Boundaries_Township_ManheimTownship_PA.geojson')
-                  .then(r => r.json())
-                  .then(mtData => {
-                    townshipLayerRef = L.geoJSON(mtData, {
-                      pane: 'townshipPane',
-                      style: {
-                        color: 'black',
-                        weight: 1.5,
-                        fillColor: '#e3f2fd',
-                        fillOpacity: 0.75
-                      },
-                      onEachFeature: (feature, mtLayer) => {
-                        mtLayer.on('mouseover', function () {
-                          if (isTownshipActive()) return;
-
-                          const tooltip = document.getElementById('custom-tooltip');
-                          const center = mtLayer.getBounds().getCenter();
-                          const screenPoint = map.latLngToContainerPoint(center);
-
-                          tooltip.innerText = "Manheim Township";
-                          tooltip.style.left = screenPoint.x + 'px';
-                          tooltip.style.top = screenPoint.y + 'px';
-                          tooltip.style.display = 'block';
-                        });
-
-                        mtLayer.on('mouseout', function () {
-                          const tooltip = document.getElementById('custom-tooltip');
-                          tooltip.style.display = 'none';
-                          tooltip.innerText = '';
-                        });
-                        mtLayer.on('mouseover', function () {
-                          if (isTownshipActive()) return; // already clicked
-
-                          // 🧹 Remove old hover overlay if any
-                          if (hoverOverlay) {
-                            map.removeLayer(hoverOverlay);
-                            hoverOverlay = null;
-                          }
-
-                          // 🟡 Add gold semi-transparent hover overlay
-                          hoverOverlay = L.geoJSON(mtLayer.feature, {
-                            pane: 'hoverPane',
-                            style: {
-                              fillColor: '#ffd700',
-                              fillOpacity: 0.30,
-                              color: 'black',   // ← was 'black'
-                              weight: 1,          // ← was 1
-                              opacity: 1
-                            }
-                          }).addTo(map);
-
-                          hoverOverlay.bringToFront?.(); // keep it above everything
-
-                          // 🔒 Make hover overlay ignore pointer events
-                          hoverOverlay.eachLayer(l => {
-                            const el = l.getElement();
-                            if (el) el.style.pointerEvents = 'none';
-                          });
-                        });
-                        mtLayer.on('mouseout', function () {
-                          if (hoverOverlay) {
-                            map.removeLayer(hoverOverlay);
-                            hoverOverlay = null;
-                          }
-                        });
-                        mtLayer.on('touchstart', () => {
-                          const tt = document.getElementById('custom-tooltip');
-                          if (tt) { tt.style.display = 'none'; tt.textContent = ''; }
-                          // if you create a hover overlay on mouseover, remove it too
-                          try { if (typeof hoverOverlay !== 'undefined' && hoverOverlay) { map.removeLayer(hoverOverlay); hoverOverlay = null; } } catch { }
-                        });
-
-                        mtLayer.on('click', function (e) {
-                          enterTownship('manheim', mtLayer, feature);
-                          if (e) L.DomEvent.stop(e);
-                        });
-
-
-
-
-
-                      }
-                    }).addTo(map);
-                  });
+                loadTownship({
+                  id: 'manheim',
+                  url: 'Townships/Boundaries_Township_ManheimTownship_PA.geojson',
+                  name: 'Manheim Township'
+                });
               }, 500);
             });
           }
