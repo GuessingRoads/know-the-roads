@@ -857,16 +857,35 @@
       try {
         if (typeof townshipLayerRef !== 'undefined' && townshipLayerRef) {
           if (!map.hasLayer(townshipLayerRef)) townshipLayerRef.addTo(map);
-          townshipLayerRef.eachLayer(mt => {
-            mt.setStyle?.({ color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 });
-            if (mt.options) mt.options.interactive = true;
-            const el = (typeof mt.getElement === 'function') ? mt.getElement() : mt._path;
-            if (el) el.style.pointerEvents = 'auto';
-            try { mt.unbindTooltip?.(); } catch { }   // kill any sticky Leaflet tooltip
-            mt.bringToFront?.();
+
+          townshipLayerRef.eachLayer(group => {
+            // group is an L.GeoJSON (from loadTownship). We must drill into its children.
+            if (typeof group.eachLayer === 'function') {
+              group.eachLayer(poly => {
+                poly.setStyle?.({ color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 });
+                if (poly.options) poly.options.interactive = true;
+
+                const el = (typeof poly.getElement === 'function') ? poly.getElement() : poly._path;
+                if (el) el.style.pointerEvents = 'auto';
+
+                try { poly.unbindTooltip?.(); } catch { }
+                poly.bringToFront?.();
+              });
+            } else {
+              // Fallback: in case anything was added directly to the group
+              group.setStyle?.({ color: 'black', weight: 1.5, fillColor: '#e3f2fd', fillOpacity: 0.75 });
+              if (group.options) group.options.interactive = true;
+
+              const el = (typeof group.getElement === 'function') ? group.getElement() : group._path;
+              if (el) el.style.pointerEvents = 'auto';
+
+              try { group.unbindTooltip?.(); } catch { }
+              group.bringToFront?.();
+            }
           });
         }
       } catch { }
+
 
       // --- county polygon must never eat events ---
       try {
