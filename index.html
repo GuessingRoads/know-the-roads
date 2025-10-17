@@ -1847,7 +1847,7 @@
                       },
                       onEachFeature: (feature, mtLayer) => {
                         mtLayer.on('mouseover', function () {
-                          if (isTownshipActive) return;
+                          if (isTownshipActive()) return;
 
                           const tooltip = document.getElementById('custom-tooltip');
                           const center = mtLayer.getBounds().getCenter();
@@ -1865,7 +1865,7 @@
                           tooltip.innerText = '';
                         });
                         mtLayer.on('mouseover', function () {
-                          if (isTownshipActive) return; // already clicked
+                          if (isTownshipActive()) return; // already clicked
 
                           // 🧹 Remove old hover overlay if any
                           if (hoverOverlay) {
