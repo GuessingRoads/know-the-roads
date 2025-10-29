@@ -1025,6 +1025,17 @@
       forceTownshipClickable();                // now
       requestAnimationFrame(() => forceTownshipClickable());  // next frame
       setTimeout(forceTownshipClickable, 0);   // next task (covers race in Path.js)
+      // --- FINAL DOM sweep (post-Leaflet tick) to guarantee interactivity is restored
+      requestAnimationFrame(() => {
+        const pane = document.querySelector('.leaflet-townshipPane-pane');
+        if (!pane) return;
+        pane.querySelectorAll('path, polygon, polyline').forEach(el => {
+          el.removeAttribute('pointer-events');        // remove SVG attr
+          el.style.removeProperty('pointer-events');   // remove inline style
+          el.classList.add('leaflet-interactive');     // make it hit-testable
+          el.style.pointerEvents = 'auto';             // fallback
+        });
+      });
 
     }
 
