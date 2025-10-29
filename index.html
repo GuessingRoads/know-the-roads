@@ -1012,6 +1012,20 @@
       if (typeof insideLancaster !== 'undefined') insideLancaster = true;
       if (typeof currentLayerDepth !== 'undefined') currentLayerDepth = 2;
       if (typeof updateBackButtonVisibility === 'function') updateBackButtonVisibility();
+      // --- FINAL HARD FIX for sticky inline pointer-events on township paths ---
+      const forceTownshipClickable = () => {
+        const tp = document.querySelector('.leaflet-townshipPane-pane');
+        if (!tp) return;
+        tp.querySelectorAll('path,polygon,polyline').forEach(n => {
+          n.removeAttribute('pointer-events');        // SVG attribute
+          n.style.removeProperty('pointer-events');   // inline style
+          n.classList.add('leaflet-interactive');     // restore Leaflet hit-testing
+        });
+      };
+      forceTownshipClickable();                // now
+      requestAnimationFrame(() => forceTownshipClickable());  // next frame
+      setTimeout(forceTownshipClickable, 0);   // next task (covers race in Path.js)
+
     }
 
 
